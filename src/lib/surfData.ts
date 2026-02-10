@@ -32,7 +32,8 @@ export interface BeachCondition {
   bestTimeWindow: string
   lat: number
   lng: number
-  surflineUrl?: string // URL da câmera do Surfline
+  cameraUrl?: string // URL da câmera ao vivo
+  cameraEmbed?: string // URL para embed da câmera
 }
 
 // Simulação de dados em tempo real
@@ -87,7 +88,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '06h - 09h',
       lat: -27.6683,
       lng: -48.4772,
-      surflineUrl: 'https://www.surfline.com/surf-report/campeche/5842041f4e65fad6a77088a1'
+      cameraUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
+      cameraEmbed: 'https://www.youtube.com/embed/5qap5aO4i9A'
     },
     {
       id: 'morro-pedras',
@@ -115,7 +117,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '07h - 10h',
       lat: -27.6761,
       lng: -48.4842,
-      surflineUrl: 'https://www.surfline.com/surf-report/morro-das-pedras/584204204e65fad6a7709c32'
+      cameraUrl: 'https://www.youtube.com/watch?v=live_floripa',
+      cameraEmbed: 'https://www.youtube.com/embed/live_floripa'
     },
     {
       id: 'matadeiro',
@@ -139,7 +142,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '06h - 09h',
       lat: -27.7342,
       lng: -48.5167,
-      surflineUrl: 'https://www.surfline.com/surf-report/matadeiro/584204204e65fad6a7709c40'
+      cameraUrl: 'https://www.youtube.com/watch?v=matadeiro_live',
+      cameraEmbed: 'https://www.youtube.com/embed/matadeiro_live'
     },
     {
       id: 'lagoinha-leste',
@@ -162,8 +166,7 @@ export function getCurrentConditions(): BeachCondition[] {
       crowdLevel: 'Vazio',
       bestTimeWindow: 'Dia todo (acesso por trilha)',
       lat: -27.7892,
-      lng: -48.5289,
-      surflineUrl: 'https://www.surfline.com/surf-report/lagoinha-do-leste/5842041f4e65fad6a77088b2'
+      lng: -48.5289
     },
     {
       id: 'acores',
@@ -191,7 +194,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '07h - 11h',
       lat: -27.7572,
       lng: -48.5125,
-      surflineUrl: 'https://www.surfline.com/surf-report/acores/584204204e65fad6a7709c45'
+      cameraUrl: 'https://www.youtube.com/watch?v=acores_live',
+      cameraEmbed: 'https://www.youtube.com/embed/acores_live'
     },
     {
       id: 'solidao',
@@ -214,8 +218,7 @@ export function getCurrentConditions(): BeachCondition[] {
       crowdLevel: 'Vazio',
       bestTimeWindow: '08h - 11h',
       lat: -27.7456,
-      lng: -48.5089,
-      surflineUrl: 'https://www.surfline.com/surf-report/solidao/584204204e65fad6a7709c48'
+      lng: -48.5089
     },
     {
       id: 'armacao',
@@ -244,7 +247,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '06h - 09h e 16h - 18h',
       lat: -27.7447,
       lng: -48.5044,
-      surflineUrl: 'https://www.surfline.com/surf-report/armacao/584204204e65fad6a7709c55'
+      cameraUrl: 'https://www.youtube.com/watch?v=armacao_live',
+      cameraEmbed: 'https://www.youtube.com/embed/armacao_live'
     },
     {
       id: 'naufragados',
@@ -267,8 +271,7 @@ export function getCurrentConditions(): BeachCondition[] {
       crowdLevel: 'Vazio',
       bestTimeWindow: 'Depende da maré (acesso por trilha)',
       lat: -27.8456,
-      lng: -48.5623,
-      surflineUrl: 'https://www.surfline.com/surf-report/naufragados/5842041f4e65fad6a77088c1'
+      lng: -48.5623
     },
 
     // ========== LESTE ==========
@@ -299,7 +302,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: 'Agora até 11h',
       lat: -27.6214,
       lng: -48.4433,
-      surflineUrl: 'https://www.surfline.com/surf-report/joaquina/5842041f4e65fad6a77088a8'
+      cameraUrl: 'https://www.youtube.com/watch?v=joaquina_live',
+      cameraEmbed: 'https://www.youtube.com/embed/joaquina_live'
     },
     {
       id: 'mole',
@@ -327,7 +331,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '07h - 10h',
       lat: -27.5989,
       lng: -48.4381,
-      surflineUrl: 'https://www.surfline.com/surf-report/praia-mole/5842041f4e65fad6a77088a5'
+      cameraUrl: 'https://www.youtube.com/watch?v=mole_live',
+      cameraEmbed: 'https://www.youtube.com/embed/mole_live'
     },
     {
       id: 'mocambique',
@@ -356,7 +361,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '08h - 11h',
       lat: -27.5647,
       lng: -48.4208,
-      surflineUrl: 'https://www.surfline.com/surf-report/mocambique/5842041f4e65fad6a77088a2'
+      cameraUrl: 'https://www.youtube.com/watch?v=mocambique_live',
+      cameraEmbed: 'https://www.youtube.com/embed/mocambique_live'
     },
     {
       id: 'barra-lagoa',
@@ -384,7 +390,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: 'Não recomendado hoje',
       lat: -27.5767,
       lng: -48.4194,
-      surflineUrl: 'https://www.surfline.com/surf-report/barra-da-lagoa/5842041f4e65fad6a77088a3'
+      cameraUrl: 'https://www.youtube.com/watch?v=barra_live',
+      cameraEmbed: 'https://www.youtube.com/embed/barra_live'
     },
 
     // ========== NORTE ==========
@@ -414,7 +421,8 @@ export function getCurrentConditions(): BeachCondition[] {
       bestTimeWindow: '15h - 17h',
       lat: -27.4433,
       lng: -48.3917,
-      surflineUrl: 'https://www.surfline.com/surf-report/santinho/5842041f4e65fad6a77088a0'
+      cameraUrl: 'https://www.youtube.com/watch?v=santinho_live',
+      cameraEmbed: 'https://www.youtube.com/embed/santinho_live'
     },
     {
       id: 'ponta-aranhas',
@@ -437,8 +445,7 @@ export function getCurrentConditions(): BeachCondition[] {
       crowdLevel: 'Vazio',
       bestTimeWindow: '09h - 12h',
       lat: -27.4256,
-      lng: -48.3889,
-      surflineUrl: 'https://www.surfline.com/surf-report/ponta-das-aranhas/5842041f4e65fad6a77088a4'
+      lng: -48.3889
     },
     {
       id: 'canajure',
@@ -461,8 +468,7 @@ export function getCurrentConditions(): BeachCondition[] {
       crowdLevel: 'Vazio',
       bestTimeWindow: '10h - 13h',
       lat: -27.4189,
-      lng: -48.3945,
-      surflineUrl: 'https://www.surfline.com/surf-report/canajure/5842041f4e65fad6a77088a6'
+      lng: -48.3945
     },
     {
       id: 'cachoeira',
