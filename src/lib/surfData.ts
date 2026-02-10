@@ -25,7 +25,6 @@ export function getCurrentConditions(): BeachCondition[] {
 
   // Simulação de condições variáveis por hora
   const isMorning = hour >= 6 && hour <= 10
-  const isAfternoon = hour >= 14 && hour <= 18
 
   return [
     {
