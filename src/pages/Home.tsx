@@ -91,7 +91,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t">
                 <div>
                   <div className="text-xs text-muted-foreground">Ondas</div>
                   <div className="text-lg font-semibold">{topSpot.waveHeight}m</div>
@@ -103,6 +103,10 @@ export default function Home() {
                 <div>
                   <div className="text-xs text-muted-foreground">Maré</div>
                   <div className="text-lg font-semibold">{topSpot.tide}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Água</div>
+                  <div className="text-lg font-semibold">{topSpot.waterConditions.temperature}°C</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Prancha</div>

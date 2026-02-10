@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BeachCondition } from '@/lib/surfData'
-import { Waves, Wind, Clock, Users } from 'lucide-react'
+import { Waves, Wind, Clock, Users, Thermometer } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface SpotCardProps {
@@ -82,6 +82,15 @@ export function SpotCard({ spot }: SpotCardProps) {
               <div className="text-sm font-semibold">{spot.windSpeed}km/h</div>
               <div className="text-xs text-muted-foreground">{spot.windDirection}</div>
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-2">
+          <Thermometer className="h-4 w-4 text-chart-2" />
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-semibold">{spot.waterConditions.temperature}°C</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">{spot.waterConditions.wetsuit.thickness}</span>
           </div>
         </div>
 

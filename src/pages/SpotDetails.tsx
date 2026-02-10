@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Separator } from '@/components/ui/separator'
 import { getSpotById, analyzeConditions } from '@/lib/surfData'
 import {
   ArrowLeft,
@@ -14,7 +15,10 @@ import {
   Users,
   TrendingUp,
   Compass,
-  AlertCircle
+  AlertCircle,
+  Thermometer,
+  MapPin,
+  Video
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -89,6 +93,33 @@ export default function SpotDetails() {
           </div>
         </div>
 
+        {/* Sub-regiões da Praia */}
+        {spot.subRegions && spot.subRegions.length > 0 && (
+          <Card className="bg-accent/5 border-accent/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-accent" />
+                Regiões da Praia
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {spot.subRegions.map((subRegion) => (
+                  <div key={subRegion.id} className="flex items-start gap-3">
+                    <div className="h-2 w-2 rounded-full bg-accent mt-2 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold">{subRegion.name}</div>
+                      {subRegion.description && (
+                        <div className="text-sm text-muted-foreground">{subRegion.description}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Análise da IA */}
         <Alert className="bg-primary/5 border-primary/20">
           <TrendingUp className="h-4 w-4 text-primary" />
@@ -100,13 +131,72 @@ export default function SpotDetails() {
 
         {/* Janela Ideal */}
         {spot.bestTimeWindow !== 'Não recomendado hoje' && spot.bestTimeWindow !== 'Condições ruins' && (
-          <Card className="bg-accent/5 border-accent/20">
+          <Card className="bg-secondary/5 border-secondary/20">
             <CardContent className="flex items-center gap-3 py-4">
-              <Clock className="h-5 w-5 text-accent flex-shrink-0" />
+              <Clock className="h-5 w-5 text-secondary flex-shrink-0" />
               <div>
                 <div className="text-sm font-semibold">Melhor Janela</div>
                 <div className="text-sm text-muted-foreground">{spot.bestTimeWindow}</div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Temperatura da Água & Neoprene */}
+        <Card className="bg-chart-2/5 border-chart-2/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Thermometer className="h-5 w-5 text-chart-2" />
+              Temperatura da Água
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold">{spot.waterConditions.temperature}°C</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {spot.waterConditions.wetsuit.description}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Neoprene Recomendado</div>
+                <div className="text-lg font-semibold">{spot.waterConditions.wetsuit.thickness}</div>
+              </div>
+            </div>
+            <Separator />
+            <div className="text-xs text-muted-foreground">
+              {spot.waterConditions.temperature >= 24 && '☀️ Água quentinha, pode até surfar de lycra!'}
+              {spot.waterConditions.temperature >= 20 && spot.waterConditions.temperature < 24 && '🌤️ Temperatura agradável para sessões longas'}
+              {spot.waterConditions.temperature >= 18 && spot.waterConditions.temperature < 20 && '🌊 Use um 4/3mm para maior conforto'}
+              {spot.waterConditions.temperature < 18 && '🥶 Água bem fria, considere touca e botinhas'}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Câmera Ao Vivo Surfline */}
+        {spot.surflineUrl && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Video className="h-5 w-5 text-primary" />
+                Câmera Ao Vivo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <a
+                href={spot.surflineUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button variant="outline" className="w-full">
+                  <Video className="h-4 w-4 mr-2" />
+                  Ver câmera ao vivo no Surfline
+                </Button>
+              </a>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Confira as condições em tempo real antes de ir
+              </p>
             </CardContent>
           </Card>
         )}

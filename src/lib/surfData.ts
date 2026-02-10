@@ -1,7 +1,22 @@
+export interface SubRegion {
+  id: string
+  name: string
+  description?: string
+}
+
+export interface WaterConditions {
+  temperature: number // °C
+  wetsuit: {
+    thickness: string // "2mm", "3/2mm", "4/3mm", "5/4mm"
+    description: string // "Quentinha", "Confortável", "Fria", "Muito fria"
+  }
+}
+
 export interface BeachCondition {
   id: string
   name: string
   region: 'Sul' | 'Leste' | 'Norte' | 'Centro'
+  subRegions?: SubRegion[] // Ex: Campeche tem Lomba do Sabão, Palanque, etc
   score: number // 0-10
   waveHeight: number // metros
   windSpeed: number // km/h
@@ -12,25 +27,48 @@ export interface BeachCondition {
   tideHeight: number // metros
   level: 'Iniciante' | 'Intermediário' | 'Avançado'
   boardSuggestion: string
+  waterConditions: WaterConditions
   crowdLevel: 'Vazio' | 'Pouca gente' | 'Cheio'
   bestTimeWindow: string
   lat: number
   lng: number
+  surflineUrl?: string // URL da câmera do Surfline
 }
 
 // Simulação de dados em tempo real
 export function getCurrentConditions(): BeachCondition[] {
   const now = new Date()
   const hour = now.getHours()
+  const month = now.getMonth() // 0-11
+
+  // Temperatura da água varia por estação
+  // Verão (Dez-Mar): 24-26°C | Outono (Abr-Jun): 20-22°C
+  // Inverno (Jul-Set): 16-18°C | Primavera (Out-Nov): 20-22°C
+  const waterTemp = month >= 11 || month <= 2 ? 25 :
+                    month >= 3 && month <= 5 ? 21 :
+                    month >= 6 && month <= 8 ? 17 : 21
+
+  const getWetsuitInfo = (temp: number): WaterConditions['wetsuit'] => {
+    if (temp >= 24) return { thickness: '2mm ou lycra', description: 'Quentinha ☀️' }
+    if (temp >= 20) return { thickness: '3/2mm', description: 'Confortável 🌤️' }
+    if (temp >= 18) return { thickness: '4/3mm', description: 'Fria 🌊' }
+    return { thickness: '5/4mm + touca', description: 'Muito fria 🥶' }
+  }
 
   // Simulação de condições variáveis por hora
   const isMorning = hour >= 6 && hour <= 10
 
   return [
+    // ========== SUL ==========
     {
       id: 'campeche',
       name: 'Campeche',
       region: 'Sul',
+      subRegions: [
+        { id: 'lomba-sabao', name: 'Lomba do Sabão', description: 'Região protegida, boa para iniciantes' },
+        { id: 'palanque', name: 'Palanque', description: 'Pico famoso, ondas tubulares' },
+        { id: 'principal', name: 'Principal', description: 'Faixa central, mais movimentada' }
+      ],
       score: isMorning ? 8.5 : 6.0,
       waveHeight: 1.5,
       windSpeed: isMorning ? 8 : 15,
@@ -41,110 +79,153 @@ export function getCurrentConditions(): BeachCondition[] {
       tideHeight: 0.8,
       level: 'Intermediário',
       boardSuggestion: 'Shortboard 6\'0" - 6\'2"',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
       crowdLevel: isMorning ? 'Cheio' : 'Pouca gente',
       bestTimeWindow: '06h - 09h',
       lat: -27.6683,
-      lng: -48.4772
+      lng: -48.4772,
+      surflineUrl: 'https://www.surfline.com/surf-report/campeche/5842041f4e65fad6a77088a1'
     },
     {
-      id: 'joaquina',
-      name: 'Joaquina',
-      region: 'Leste',
-      score: 9.0,
-      waveHeight: 2.0,
-      windSpeed: 12,
-      windDirection: 'NW (Terral)',
-      swellDirection: 'S',
-      swellPeriod: 14,
-      tide: 'Estofo',
-      tideHeight: 1.2,
-      level: 'Avançado',
-      boardSuggestion: 'Shortboard 5\'10" - 6\'0"',
-      crowdLevel: 'Cheio',
-      bestTimeWindow: 'Agora até 11h',
-      lat: -27.6214,
-      lng: -48.4433
-    },
-    {
-      id: 'mole',
-      name: 'Praia Mole',
-      region: 'Leste',
-      score: 7.5,
-      waveHeight: 1.2,
+      id: 'morro-pedras',
+      name: 'Morro das Pedras',
+      region: 'Sul',
+      subRegions: [
+        { id: 'canto-direito', name: 'Canto Direito', description: 'Ondas mais fortes' },
+        { id: 'meio', name: 'Meio da Praia', description: 'Beach break mais tranquilo' }
+      ],
+      score: 8.2,
+      waveHeight: 1.8,
       windSpeed: 10,
       windDirection: 'N (Terral)',
+      swellDirection: 'S',
+      swellPeriod: 13,
+      tide: 'Estofo',
+      tideHeight: 1.1,
+      level: 'Intermediário',
+      boardSuggestion: 'Shortboard 5\'10" - 6\'2"',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Pouca gente',
+      bestTimeWindow: '07h - 10h',
+      lat: -27.6761,
+      lng: -48.4842,
+      surflineUrl: 'https://www.surfline.com/surf-report/morro-das-pedras/584204204e65fad6a7709c32'
+    },
+    {
+      id: 'matadeiro',
+      name: 'Matadeiro',
+      region: 'Sul',
+      score: 7.8,
+      waveHeight: 1.6,
+      windSpeed: 11,
+      windDirection: 'NW (Terral)',
       swellDirection: 'SE',
-      swellPeriod: 10,
+      swellPeriod: 11,
       tide: 'Enchente',
       tideHeight: 0.9,
       level: 'Intermediário',
-      boardSuggestion: 'Fish 5\'8" ou Funboard',
-      crowdLevel: 'Pouca gente',
-      bestTimeWindow: '07h - 10h',
-      lat: -27.5989,
-      lng: -48.4381
-    },
-    {
-      id: 'santinho',
-      name: 'Santinho',
-      region: 'Norte',
-      score: 5.0,
-      waveHeight: 0.8,
-      windSpeed: 18,
-      windDirection: 'NE (Lateral)',
-      swellDirection: 'E',
-      swellPeriod: 8,
-      tide: 'Vazante',
-      tideHeight: 0.5,
-      level: 'Iniciante',
-      boardSuggestion: 'Longboard ou Funboard 7\'0"+',
+      boardSuggestion: 'Fish 5\'8" ou Shortboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
       crowdLevel: 'Vazio',
-      bestTimeWindow: '15h - 17h',
-      lat: -27.4433,
-      lng: -48.3917
+      bestTimeWindow: '06h - 09h',
+      lat: -27.7342,
+      lng: -48.5167,
+      surflineUrl: 'https://www.surfline.com/surf-report/matadeiro/584204204e65fad6a7709c40'
     },
     {
-      id: 'mocambique',
-      name: 'Moçambique',
-      region: 'Leste',
-      score: 6.5,
-      waveHeight: 1.0,
-      windSpeed: 14,
+      id: 'lagoinha-leste',
+      name: 'Lagoinha do Leste',
+      region: 'Sul',
+      score: 9.2,
+      waveHeight: 2.1,
+      windSpeed: 8,
+      windDirection: 'N (Terral)',
+      swellDirection: 'S',
+      swellPeriod: 15,
+      tide: 'Estofo',
+      tideHeight: 1.3,
+      level: 'Avançado',
+      boardSuggestion: 'Shortboard 5\'8" - 6\'0" (tubos)',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Vazio',
+      bestTimeWindow: 'Dia todo (acesso por trilha)',
+      lat: -27.7892,
+      lng: -48.5289,
+      surflineUrl: 'https://www.surfline.com/surf-report/lagoinha-do-leste/5842041f4e65fad6a77088b2'
+    },
+    {
+      id: 'acores',
+      name: 'Açores',
+      region: 'Sul',
+      subRegions: [
+        { id: 'ponta-esquerda', name: 'Ponta Esquerda', description: 'Point break clássico' },
+        { id: 'meio', name: 'Meio', description: 'Beach break mais acessível' }
+      ],
+      score: 8.7,
+      waveHeight: 1.9,
+      windSpeed: 9,
+      windDirection: 'N (Terral)',
+      swellDirection: 'SE',
+      swellPeriod: 14,
+      tide: 'Estofo',
+      tideHeight: 1.0,
+      level: 'Intermediário',
+      boardSuggestion: 'Shortboard 6\'0" - 6\'2"',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Pouca gente',
+      bestTimeWindow: '07h - 11h',
+      lat: -27.7572,
+      lng: -48.5125,
+      surflineUrl: 'https://www.surfline.com/surf-report/acores/584204204e65fad6a7709c45'
+    },
+    {
+      id: 'solidao',
+      name: 'Solidão',
+      region: 'Sul',
+      score: 7.5,
+      waveHeight: 1.4,
+      windSpeed: 12,
       windDirection: 'NW (Terral)',
       swellDirection: 'S',
-      swellPeriod: 11,
+      swellPeriod: 12,
       tide: 'Enchente',
-      tideHeight: 0.7,
-      level: 'Iniciante',
-      boardSuggestion: 'Longboard 8\'0"+ ou Funboard',
+      tideHeight: 0.8,
+      level: 'Intermediário',
+      boardSuggestion: 'Fish ou Shortboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
       crowdLevel: 'Vazio',
       bestTimeWindow: '08h - 11h',
-      lat: -27.5647,
-      lng: -48.4208
-    },
-    {
-      id: 'barra-lagoa',
-      name: 'Barra da Lagoa',
-      region: 'Leste',
-      score: 4.5,
-      waveHeight: 0.6,
-      windSpeed: 20,
-      windDirection: 'E (Frontal)',
-      swellDirection: 'SE',
-      swellPeriod: 7,
-      tide: 'Vazante',
-      tideHeight: 0.4,
-      level: 'Iniciante',
-      boardSuggestion: 'Longboard ou Prancha de Iniciante',
-      crowdLevel: 'Pouca gente',
-      bestTimeWindow: 'Não recomendado hoje',
-      lat: -27.5767,
-      lng: -48.4194
+      lat: -27.7456,
+      lng: -48.5089,
+      surflineUrl: 'https://www.surfline.com/surf-report/solidao/584204204e65fad6a7709c48'
     },
     {
       id: 'armacao',
       name: 'Armação',
       region: 'Sul',
+      subRegions: [
+        { id: 'canto-esquerdo', name: 'Canto Esquerdo', description: 'Point break na pedra' },
+        { id: 'centro', name: 'Centro', description: 'Beach break principal' },
+        { id: 'matadouro', name: 'Matadouro', description: 'Pico clássico avançado' }
+      ],
       score: 7.0,
       waveHeight: 1.3,
       windSpeed: 9,
@@ -155,10 +236,233 @@ export function getCurrentConditions(): BeachCondition[] {
       tideHeight: 1.0,
       level: 'Intermediário',
       boardSuggestion: 'Fish 5\'10" ou Shortboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
       crowdLevel: 'Pouca gente',
       bestTimeWindow: '06h - 09h e 16h - 18h',
       lat: -27.7447,
-      lng: -48.5044
+      lng: -48.5044,
+      surflineUrl: 'https://www.surfline.com/surf-report/armacao/584204204e65fad6a7709c55'
+    },
+    {
+      id: 'naufragados',
+      name: 'Naufragados',
+      region: 'Sul',
+      score: 8.9,
+      waveHeight: 2.3,
+      windSpeed: 7,
+      windDirection: 'NW (Terral)',
+      swellDirection: 'S',
+      swellPeriod: 16,
+      tide: 'Estofo',
+      tideHeight: 1.4,
+      level: 'Avançado',
+      boardSuggestion: 'Shortboard 5\'10" - 6\'0" (tubos)',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Vazio',
+      bestTimeWindow: 'Depende da maré (acesso por trilha)',
+      lat: -27.8456,
+      lng: -48.5623,
+      surflineUrl: 'https://www.surfline.com/surf-report/naufragados/5842041f4e65fad6a77088c1'
+    },
+
+    // ========== LESTE ==========
+    {
+      id: 'joaquina',
+      name: 'Joaquina',
+      region: 'Leste',
+      subRegions: [
+        { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', description: 'Pico clássico heavy' },
+        { id: 'meio', name: 'Meio da Praia', description: 'Beach break mais tranquilo' },
+        { id: 'canto-direito', name: 'Canto Direito', description: 'Point break na pedra' }
+      ],
+      score: 9.0,
+      waveHeight: 2.0,
+      windSpeed: 12,
+      windDirection: 'NW (Terral)',
+      swellDirection: 'S',
+      swellPeriod: 14,
+      tide: 'Estofo',
+      tideHeight: 1.2,
+      level: 'Avançado',
+      boardSuggestion: 'Shortboard 5\'10" - 6\'0"',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Cheio',
+      bestTimeWindow: 'Agora até 11h',
+      lat: -27.6214,
+      lng: -48.4433,
+      surflineUrl: 'https://www.surfline.com/surf-report/joaquina/5842041f4e65fad6a77088a8'
+    },
+    {
+      id: 'mole',
+      name: 'Praia Mole',
+      region: 'Leste',
+      subRegions: [
+        { id: 'gruta', name: 'Gruta', description: 'Lado esquerdo, mais protegido' },
+        { id: 'meio', name: 'Meio da Praia', description: 'Pico principal' }
+      ],
+      score: 7.5,
+      waveHeight: 1.2,
+      windSpeed: 10,
+      windDirection: 'N (Terral)',
+      swellDirection: 'SE',
+      swellPeriod: 10,
+      tide: 'Enchente',
+      tideHeight: 0.9,
+      level: 'Intermediário',
+      boardSuggestion: 'Fish 5\'8" ou Funboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Pouca gente',
+      bestTimeWindow: '07h - 10h',
+      lat: -27.5989,
+      lng: -48.4381,
+      surflineUrl: 'https://www.surfline.com/surf-report/praia-mole/5842041f4e65fad6a77088a5'
+    },
+    {
+      id: 'mocambique',
+      name: 'Moçambique',
+      region: 'Leste',
+      subRegions: [
+        { id: 'norte', name: 'Norte (Barra)', description: 'Perto da Barra da Lagoa' },
+        { id: 'meio', name: 'Meio da Praia', description: 'Extensão enorme' },
+        { id: 'sul', name: 'Sul', description: 'Mais isolado' }
+      ],
+      score: 6.5,
+      waveHeight: 1.0,
+      windSpeed: 14,
+      windDirection: 'NW (Terral)',
+      swellDirection: 'S',
+      swellPeriod: 11,
+      tide: 'Enchente',
+      tideHeight: 0.7,
+      level: 'Iniciante',
+      boardSuggestion: 'Longboard 8\'0"+ ou Funboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Vazio',
+      bestTimeWindow: '08h - 11h',
+      lat: -27.5647,
+      lng: -48.4208,
+      surflineUrl: 'https://www.surfline.com/surf-report/mocambique/5842041f4e65fad6a77088a2'
+    },
+    {
+      id: 'barra-lagoa',
+      name: 'Barra da Lagoa',
+      region: 'Leste',
+      subRegions: [
+        { id: 'canal', name: 'Canal da Barra', description: 'Point break na barra do rio' },
+        { id: 'prainha', name: 'Prainha', description: 'Beach break ao lado' }
+      ],
+      score: 4.5,
+      waveHeight: 0.6,
+      windSpeed: 20,
+      windDirection: 'E (Frontal)',
+      swellDirection: 'SE',
+      swellPeriod: 7,
+      tide: 'Vazante',
+      tideHeight: 0.4,
+      level: 'Iniciante',
+      boardSuggestion: 'Longboard ou Prancha de Iniciante',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Pouca gente',
+      bestTimeWindow: 'Não recomendado hoje',
+      lat: -27.5767,
+      lng: -48.4194,
+      surflineUrl: 'https://www.surfline.com/surf-report/barra-da-lagoa/5842041f4e65fad6a77088a3'
+    },
+
+    // ========== NORTE ==========
+    {
+      id: 'santinho',
+      name: 'Santinho',
+      region: 'Norte',
+      subRegions: [
+        { id: 'costao', name: 'Costão do Santinho', description: 'Point break direito' },
+        { id: 'centro', name: 'Centro', description: 'Beach break principal' }
+      ],
+      score: 5.0,
+      waveHeight: 0.8,
+      windSpeed: 18,
+      windDirection: 'NE (Lateral)',
+      swellDirection: 'E',
+      swellPeriod: 8,
+      tide: 'Vazante',
+      tideHeight: 0.5,
+      level: 'Iniciante',
+      boardSuggestion: 'Longboard ou Funboard 7\'0"+',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Vazio',
+      bestTimeWindow: '15h - 17h',
+      lat: -27.4433,
+      lng: -48.3917,
+      surflineUrl: 'https://www.surfline.com/surf-report/santinho/5842041f4e65fad6a77088a0'
+    },
+    {
+      id: 'ponta-aranhas',
+      name: 'Ponta das Aranhas',
+      region: 'Norte',
+      score: 6.8,
+      waveHeight: 1.1,
+      windSpeed: 13,
+      windDirection: 'NW (Terral)',
+      swellDirection: 'NE',
+      swellPeriod: 9,
+      tide: 'Enchente',
+      tideHeight: 0.7,
+      level: 'Intermediário',
+      boardSuggestion: 'Fish ou Funboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Vazio',
+      bestTimeWindow: '09h - 12h',
+      lat: -27.4256,
+      lng: -48.3889,
+      surflineUrl: 'https://www.surfline.com/surf-report/ponta-das-aranhas/5842041f4e65fad6a77088a4'
+    },
+    {
+      id: 'canajure',
+      name: 'Canajurê',
+      region: 'Norte',
+      score: 5.5,
+      waveHeight: 0.9,
+      windSpeed: 16,
+      windDirection: 'E (Lateral)',
+      swellDirection: 'NE',
+      swellPeriod: 8,
+      tide: 'Vazante',
+      tideHeight: 0.6,
+      level: 'Iniciante',
+      boardSuggestion: 'Longboard ou Funboard',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
+      crowdLevel: 'Vazio',
+      bestTimeWindow: '10h - 13h',
+      lat: -27.4189,
+      lng: -48.3945,
+      surflineUrl: 'https://www.surfline.com/surf-report/canajure/5842041f4e65fad6a77088a6'
     },
     {
       id: 'cachoeira',
@@ -174,6 +478,10 @@ export function getCurrentConditions(): BeachCondition[] {
       tideHeight: 0.3,
       level: 'Iniciante',
       boardSuggestion: 'Não recomendado surfar',
+      waterConditions: {
+        temperature: waterTemp,
+        wetsuit: getWetsuitInfo(waterTemp)
+      },
       crowdLevel: 'Vazio',
       bestTimeWindow: 'Condições ruins',
       lat: -27.4122,
