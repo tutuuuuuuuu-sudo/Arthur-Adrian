@@ -46,7 +46,7 @@ export default function Home() {
                 <Waves className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Surf IA</h1>
+                <h1 className="text-2xl font-bold">Surf AI</h1>
                 <p className="text-xs text-muted-foreground">Florianópolis, SC</p>
               </div>
             </div>
