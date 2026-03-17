@@ -1,17 +1,41 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
 import SpotDetails from './pages/SpotDetails'
+import LoginPage from './pages/LoginPage'
 
-export function App() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
+    <div className="text-[#5dcaa5] text-sm">Carregando...</div>
+  </div>
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+function AppRoutes() {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
+    <div className="text-[#5dcaa5] text-sm">Carregando...</div>
+  </div>
   return (
     <>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/spot/:id" element={<SpotDetails />} />
+        <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/spot/:id" element={<ProtectedRoute><SpotDetails /></ProtectedRoute>} />
       </Routes>
       <Toaster position="top-center" />
     </>
+  )
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   )
 }
 
