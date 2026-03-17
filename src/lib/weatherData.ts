@@ -10,24 +10,20 @@ export interface WeatherForecast {
   score: number
 }
 
-export function getWeatherForecast(spotId: string): WeatherForecast[] {
+export function getWeatherForecast(_spotId: string): WeatherForecast[] {
   const today = new Date()
   const forecasts: WeatherForecast[] = []
 
-  // Simular previsão para os próximos 7 dias
   for (let i = 0; i < 7; i++) {
     const date = new Date(today)
     date.setDate(today.getDate() + i)
-
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
     const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
 
-    // Simular variação de condições ao longo da semana
     const baseWave = 1.0 + Math.random() * 1.5
     const baseWind = 8 + Math.random() * 10
     const basePeriod = 9 + Math.random() * 6
     const baseTemp = 21 + Math.random() * 6
-
     const score = calculateForecastScore(baseWave, baseWind, basePeriod)
     const condition = getConditionFromScore(score)
 
@@ -43,27 +39,19 @@ export function getWeatherForecast(spotId: string): WeatherForecast[] {
       score: Number(score.toFixed(1))
     })
   }
-
   return forecasts
 }
 
 function calculateForecastScore(wave: number, wind: number, period: number): number {
-  let score = 5 // base score
-
-  // Ondas
+  let score = 5
   if (wave >= 1.5) score += 2
   else if (wave >= 1.0) score += 1.5
   else if (wave >= 0.8) score += 1
-
-  // Vento
   if (wind <= 10) score += 2
   else if (wind <= 15) score += 1
   else score -= 1
-
-  // Período
   if (period >= 12) score += 2
   else if (period >= 10) score += 1
-
   return Math.min(10, Math.max(0, score))
 }
 
