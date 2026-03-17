@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,7 +8,7 @@ import { SpotCard } from '@/components/surf/SpotCard'
 import { RegionFilter } from '@/components/surf/RegionFilter'
 import { getCurrentConditions, getTopSpots, getSpotsByRegion, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getFavorites } from '@/lib/favorites'
-import { Waves, TrendingUp, MapPin, Info, Heart } from 'lucide-react'
+import { Waves, TrendingUp, MapPin, Info, Heart, Settings } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
   const [spots, setSpots] = useState<BeachCondition[]>([])
   const [topSpot, setTopSpot] = useState<BeachCondition | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const navigate = useNavigate()
 
   useEffect(() => {
     const updateData = () => {
@@ -28,7 +30,6 @@ export default function Home() {
         allSpots = getSpotsByRegion(activeRegion as BeachCondition['region'])
       }
 
-      // Filtrar favoritos se necessário
       if (showOnlyFavorites) {
         const favorites = getFavorites()
         allSpots = allSpots.filter(spot => favorites.includes(spot.id))
@@ -42,7 +43,6 @@ export default function Home() {
 
     updateData()
 
-    // Atualizar a cada minuto
     const interval = setInterval(updateData, 60000)
     return () => clearInterval(interval)
   }, [activeRegion, showOnlyFavorites])
@@ -62,7 +62,12 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground">Florianópolis, SC</p>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
