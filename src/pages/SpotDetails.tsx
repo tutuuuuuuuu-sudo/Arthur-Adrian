@@ -120,4 +120,3 @@ export default function SpotDetails() {
         <Tabs defaultValue="now" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsT
-              
