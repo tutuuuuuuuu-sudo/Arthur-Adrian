@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { SpotCard } from '@/components/surf/SpotCard'
 import { RegionFilter } from '@/components/surf/RegionFilter'
-import { getCurrentConditions, getTopSpots, getSpotsByRegion, analyzeConditions, BeachCondition } from '@/lib/surfData'
+import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getFavorites } from '@/lib/favorites'
 import { Waves, TrendingUp, MapPin, Info, Heart, Settings } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -17,17 +17,17 @@ export default function Home() {
   const [spots, setSpots] = useState<BeachCondition[]>([])
   const [topSpot, setTopSpot] = useState<BeachCondition | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-    const updateData = () => {
+    const updateData = async () => {
       setCurrentTime(new Date())
 
-      let allSpots: BeachCondition[]
-      if (activeRegion === 'all') {
-        allSpots = getCurrentConditions()
-      } else {
-        allSpots = getSpotsByRegion(activeRegion as BeachCondition['region'])
+      let allSpots = await fetchCurrentConditions()
+
+      if (activeRegion !== 'all') {
+        allSpots = allSpots.filter(spot => spot.region === activeRegion)
       }
 
       if (showOnlyFavorites) {
@@ -35,15 +35,16 @@ export default function Home() {
         allSpots = allSpots.filter(spot => favorites.includes(spot.id))
       }
 
-      setSpots(allSpots)
+      allSpots = allSpots.sort((a, b) => b.score - a.score)
 
-      const top = getTopSpots(1)[0]
-      setTopSpot(top)
+      setSpots(allSpots)
+      setTopSpot(allSpots[0] ?? null)
+      setLoading(false)
     }
 
     updateData()
 
-    const interval = setInterval(updateData, 60000)
+    const interval = setInterval(updateData, 15 * 60 * 1000)
     return () => clearInterval(interval)
   }, [activeRegion, showOnlyFavorites])
 
@@ -79,6 +80,7 @@ export default function Home() {
             <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <span>Atualizado às {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
+          {loading && <span className="text-xs">Buscando dados reais...</span>}
         </div>
 
         {/* Melhor Pico Agora */}
@@ -134,38 +136,52 @@ export default function Home() {
           </Card>
         )}
 
+        {/* Loading state */}
+        {loading && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Waves className="h-8 w-8 mx-auto mb-3 opacity-40 animate-bounce" />
+            <p className="text-sm">Buscando condições em tempo real...</p>
+          </div>
+        )}
+
         {/* Info sobre IA */}
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            A Inteligência Artificial analisa vento, swell, maré, batimetria e orientação das praias para indicar onde está melhor para surfar agora.
-          </AlertDescription>
-        </Alert>
+        {!loading && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              A Inteligência Artificial analisa vento, swell, maré, batimetria e orientação das praias para indicar onde está melhor para surfar agora.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Filtro de Região */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Todas as Praias</h2>
-            <Button
-              variant={showOnlyFavorites ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-            >
-              <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? 'fill-current' : ''}`} />
-              {showOnlyFavorites ? 'Mostrando Favoritas' : 'Ver Favoritas'}
-            </Button>
+        {!loading && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Todas as Praias</h2>
+              <Button
+                variant={showOnlyFavorites ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              >
+                <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? 'fill-current' : ''}`} />
+                {showOnlyFavorites ? 'Mostrando Favoritas' : 'Ver Favoritas'}
+              </Button>
+            </div>
+            <RegionFilter activeRegion={activeRegion} onRegionChange={setActiveRegion} />
           </div>
-          <RegionFilter activeRegion={activeRegion} onRegionChange={setActiveRegion} />
-        </div>
+        )}
 
         {/* Lista de Spots */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {spots.map((spot) => (
-            <SpotCard key={spot.id} spot={spot} />
-          ))}
-        </div>
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {spots.map((spot) => (
+              <SpotCard key={spot.id} spot={spot} />
+            ))}
+          </div>
+        )}
 
-        {spots.length === 0 && (
+        {!loading && spots.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <Waves className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <p>
