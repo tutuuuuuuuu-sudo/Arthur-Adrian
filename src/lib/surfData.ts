@@ -131,4 +131,189 @@ const BEACHES = [
   },
   { id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const, lat: -27.7342, lng: -48.5167, orientation: 110, bestTimeWindow: '06h - 09h' },
   { id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const, lat: -27.7892, lng: -48.5289, orientation: 180, bestTimeWindow: 'Dia todo (acesso por trilha)' },
-  { id: 'acores', name: 'Açores', region: 'Sul' as const, lat: -27.
+  { id: 'acores', name: 'Açores', region: 'Sul' as const, lat: -27.7572, lng: -48.5125, orientation: 120,
+    subRegions: [
+      { id: 'ponta-esquerda', name: 'Ponta Esquerda', description: 'Point break clássico' },
+      { id: 'meio', name: 'Meio', description: 'Beach break mais acessível' }
+    ],
+    bestTimeWindow: '07h - 11h'
+  },
+  { id: 'solidao', name: 'Solidão', region: 'Sul' as const, lat: -27.7456, lng: -48.5089, orientation: 130, bestTimeWindow: '08h - 11h' },
+  { id: 'armacao', name: 'Armação', region: 'Sul' as const, lat: -27.7447, lng: -48.5044, orientation: 115,
+    subRegions: [
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo', description: 'Point break na pedra' },
+      { id: 'centro', name: 'Centro', description: 'Beach break principal' },
+      { id: 'matadouro', name: 'Matadouro', description: 'Pico clássico avançado' }
+    ],
+    bestTimeWindow: '06h - 09h e 16h - 18h'
+  },
+  { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const, lat: -27.8456, lng: -48.5623, orientation: 180, bestTimeWindow: 'Depende da maré (acesso por trilha)' },
+
+  // LESTE
+  { id: 'joaquina', name: 'Joaquina', region: 'Leste' as const, lat: -27.6214, lng: -48.4433, orientation: 90,
+    subRegions: [
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', description: 'Pico clássico heavy' },
+      { id: 'meio', name: 'Meio da Praia', description: 'Beach break mais tranquilo' },
+      { id: 'canto-direito', name: 'Canto Direito', description: 'Point break na pedra' }
+    ],
+    bestTimeWindow: 'Agora até 11h'
+  },
+  { id: 'mole', name: 'Praia Mole', region: 'Leste' as const, lat: -27.5989, lng: -48.4381, orientation: 85,
+    subRegions: [
+      { id: 'gruta', name: 'Gruta', description: 'Lado esquerdo, mais protegido' },
+      { id: 'meio', name: 'Meio da Praia', description: 'Pico principal' }
+    ],
+    bestTimeWindow: '07h - 10h'
+  },
+  { id: 'mocambique', name: 'Moçambique', region: 'Leste' as const, lat: -27.5647, lng: -48.4208, orientation: 80,
+    subRegions: [
+      { id: 'norte', name: 'Norte (Barra)', description: 'Perto da Barra da Lagoa' },
+      { id: 'meio', name: 'Meio da Praia', description: 'Extensão enorme' },
+      { id: 'sul', name: 'Sul', description: 'Mais isolado' }
+    ],
+    bestTimeWindow: '08h - 11h'
+  },
+  { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const, lat: -27.5767, lng: -48.4194, orientation: 75,
+    subRegions: [
+      { id: 'canal', name: 'Canal da Barra', description: 'Point break na barra do rio' },
+      { id: 'prainha', name: 'Prainha', description: 'Beach break ao lado' }
+    ],
+    bestTimeWindow: 'Melhor na maré enchente'
+  },
+
+  // NORTE
+  { id: 'santinho', name: 'Santinho', region: 'Norte' as const, lat: -27.4433, lng: -48.3917, orientation: 70,
+    subRegions: [
+      { id: 'costao', name: 'Costão do Santinho', description: 'Point break direito' },
+      { id: 'centro', name: 'Centro', description: 'Beach break principal' }
+    ],
+    bestTimeWindow: '15h - 17h'
+  },
+  { id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const, lat: -27.4256, lng: -48.3889, orientation: 65, bestTimeWindow: '09h - 12h' },
+  { id: 'canajure', name: 'Canajurê', region: 'Norte' as const, lat: -27.4189, lng: -48.3945, orientation: 60, bestTimeWindow: '10h - 13h' },
+  { id: 'cachoeira', name: 'Cachoeira do Bom Jesus', region: 'Norte' as const, lat: -27.4122, lng: -48.4006, orientation: 55, bestTimeWindow: 'Melhor no verão' },
+]
+
+let cachedConditions: BeachCondition[] | null = null
+let lastFetchTime = 0
+const CACHE_DURATION = 15 * 60 * 1000 // 15 minutos
+
+export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
+  const now = Date.now()
+  if (cachedConditions && (now - lastFetchTime) < CACHE_DURATION) {
+    return cachedConditions
+  }
+
+  const waterTemp = getWaterTemp()
+  const tide = getTide()
+
+  const conditions = await Promise.all(
+    BEACHES.map(async (beach) => {
+      const windyData = await getWindyForecast(beach.lat, beach.lng, beach.orientation)
+
+      const waveHeight = windyData?.waveHeight ?? 1.0 + Math.random() * 0.5
+      const windSpeed = windyData?.windSpeed ?? 10 + Math.floor(Math.random() * 10)
+      const windDirection = windyData?.windDirection ?? 'N (Terral)'
+      const swellPeriod = windyData?.swellPeriod ?? 10 + Math.floor(Math.random() * 4)
+      const swellDirection = windyData?.swellDirection ?? 'SE'
+
+      const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection)
+      const level = getLevel(waveHeight, swellPeriod)
+
+      return {
+        id: beach.id,
+        name: beach.name,
+        region: beach.region,
+        subRegions: beach.subRegions,
+        score,
+        waveHeight,
+        windSpeed,
+        windDirection,
+        swellDirection,
+        swellPeriod,
+        tide,
+        tideHeight: 0.8 + Math.random() * 0.6,
+        level,
+        boardSuggestion: getBoardSuggestion(waveHeight, level),
+        waterConditions: {
+          temperature: waterTemp,
+          wetsuit: getWetsuitInfo(waterTemp)
+        },
+        crowdLevel: getCrowdLevel(score),
+        bestTimeWindow: beach.bestTimeWindow,
+        lat: beach.lat,
+        lng: beach.lng,
+        cameraUrl: (beach as any).cameraUrl,
+        cameraEmbed: (beach as any).cameraEmbed,
+      } as BeachCondition
+    })
+  )
+
+  cachedConditions = conditions
+  lastFetchTime = now
+  return conditions
+}
+
+// Funções síncronas com fallback para dados em cache ou simulados
+export function getCurrentConditions(): BeachCondition[] {
+  if (cachedConditions) return cachedConditions
+  return BEACHES.map(beach => ({
+    id: beach.id,
+    name: beach.name,
+    region: beach.region,
+    subRegions: beach.subRegions,
+    score: 5 + Math.random() * 3,
+    waveHeight: 1.0 + Math.random() * 1.0,
+    windSpeed: 10 + Math.floor(Math.random() * 10),
+    windDirection: 'N (Terral)',
+    swellDirection: 'SE',
+    swellPeriod: 10,
+    tide: getTide(),
+    tideHeight: 0.8,
+    level: 'Intermediário' as const,
+    boardSuggestion: 'Shortboard 6\'0"',
+    waterConditions: { temperature: getWaterTemp(), wetsuit: getWetsuitInfo(getWaterTemp()) },
+    crowdLevel: 'Pouca gente' as const,
+    bestTimeWindow: beach.bestTimeWindow,
+    lat: beach.lat,
+    lng: beach.lng,
+  }))
+}
+
+export function getTopSpots(limit: number = 3): BeachCondition[] {
+  return getCurrentConditions().sort((a, b) => b.score - a.score).slice(0, limit)
+}
+
+export function getSpotsByRegion(region: BeachCondition['region']): BeachCondition[] {
+  return getCurrentConditions().filter(spot => spot.region === region).sort((a, b) => b.score - a.score)
+}
+
+export function getSpotById(id: string): BeachCondition | undefined {
+  return getCurrentConditions().find(spot => spot.id === id)
+}
+
+export function analyzeConditions(spot: BeachCondition): string {
+  let analysis = ''
+  if (spot.score >= 8) analysis = '🔥 Condições EXCELENTES! '
+  else if (spot.score >= 6.5) analysis = '✅ Boas condições para surfar. '
+  else if (spot.score >= 5) analysis = '⚠️ Condições medianas. '
+  else analysis = '❌ Condições fracas. '
+
+  if (spot.windDirection.includes('Terral')) {
+    analysis += `Vento terral ${spot.windSpeed}km/h deixando o mar limpo e organizado. `
+  } else if (spot.windDirection.includes('Lateral')) {
+    analysis += `Vento lateral ${spot.windSpeed}km/h pode atrapalhar um pouco. `
+  } else {
+    analysis += `Vento frontal ${spot.windSpeed}km/h bagunçando as ondas. `
+  }
+
+  if (spot.swellPeriod >= 12) analysis += `Período de ${spot.swellPeriod}s trazendo ondas longas e bem formadas. `
+  else if (spot.swellPeriod >= 9) analysis += `Período médio de ${spot.swellPeriod}s, ondas razoáveis. `
+  else analysis += `Período curto de ${spot.swellPeriod}s, ondas fracas e desorganizadas. `
+
+  if (spot.tide === 'Estofo') analysis += 'Maré no estofo, momento ideal para pegar as melhores ondas.'
+  else if (spot.tide === 'Enchente') analysis += 'Maré enchendo, ainda bom para surfar.'
+  else analysis += 'Maré vazando, condições podem mudar.'
+
+  return analysis
+}
