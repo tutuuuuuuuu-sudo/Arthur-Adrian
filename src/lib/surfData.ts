@@ -25,12 +25,13 @@ export interface BeachCondition {
   windDirection: string
   swellDirection: string
   swellPeriod: number
-  tide: 'Enchente' | 'Vazante' | 'Estofo'
+  tide: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia'
   tideHeight: number
   level: 'Iniciante' | 'Intermediário' | 'Avançado'
   boardSuggestion: string
   waterConditions: WaterConditions
   crowdLevel: 'Vazio' | 'Pouca gente' | 'Cheio'
+  crowdMessage: string
   bestTimeWindow: string
   lat: number
   lng: number
@@ -78,13 +79,13 @@ const calculateScore = (waveHeight: number, windSpeed: number, swellPeriod: numb
   return Math.min(10, Math.max(0, Number(score.toFixed(1))))
 }
 
-const getTide = (): 'Enchente' | 'Vazante' | 'Estofo' => {
+const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
   const hour = new Date().getHours()
-  if (hour >= 6 && hour <= 9) return 'Enchente'
-  if (hour >= 10 && hour <= 13) return 'Estofo'
-  if (hour >= 14 && hour <= 17) return 'Vazante'
-  if (hour >= 18 && hour <= 21) return 'Enchente'
-  return 'Estofo'
+  if (hour >= 6 && hour <= 9) return 'Enchendo'
+  if (hour >= 10 && hour <= 13) return 'Cheia'
+  if (hour >= 14 && hour <= 17) return 'Secando'
+  if (hour >= 18 && hour <= 21) return 'Enchendo'
+  return 'Vazia'
 }
 
 const getCrowdLevel = (score: number): 'Vazio' | 'Pouca gente' | 'Cheio' => {
@@ -95,19 +96,26 @@ const getCrowdLevel = (score: number): 'Vazio' | 'Pouca gente' | 'Cheio' => {
   return 'Vazio'
 }
 
-const getLevel = (waveHeight: number, swellPeriod: number): 'Iniciante' | 'Intermediário' | 'Avançado' => {
-  if (waveHeight >= 2.0 && swellPeriod >= 13) return 'Avançado'
-  if (waveHeight >= 1.2 && swellPeriod >= 10) return 'Intermediário'
+const getCrowdMessage = (crowdLevel: string, score: number): string => {
+  if (crowdLevel === 'Cheio') {
+    if (score >= 8) return 'Mar bom atrai galera'
+    return 'Bastante gente na água'
+  }
+  if (crowdLevel === 'Pouca gente') return 'Bom momento para surfar'
+  return 'Água tranquila, quase ninguém'
+}
+
+const getLevel = (waveHeight: number): 'Iniciante' | 'Intermediário' | 'Avançado' => {
+  if (waveHeight > 1.0) return 'Avançado'
+  if (waveHeight >= 0.5) return 'Intermediário'
   return 'Iniciante'
 }
 
-const getBoardSuggestion = (waveHeight: number, level: string): string => {
-  if (level === 'Avançado') return 'Shortboard 5\'8" - 6\'0" (tubos)'
-  if (level === 'Intermediário') {
-    if (waveHeight >= 1.5) return 'Shortboard 6\'0" - 6\'2"'
-    return 'Fish 5\'8" ou Shortboard'
-  }
-  return 'Longboard 8\'0"+ ou Funboard'
+const getBoardSuggestion = (waveHeight: number): string => {
+  if (waveHeight > 1.5) return 'Shortboard 5\'10" - 6\'2"'
+  if (waveHeight > 1.0) return 'Shortboard 6\'2" - 6\'4"'
+  if (waveHeight >= 0.5) return 'Fish 6\'0" ou Funboard 7\'0"'
+  return 'Longboard 8\'0"+'
 }
 
 const BEACHES = [
@@ -216,7 +224,8 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const swellDirection = windyData?.swellDirection ?? 'SE'
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection)
-      const level = getLevel(waveHeight, swellPeriod)
+      const level = getLevel(waveHeight)
+      const crowdLevel = getCrowdLevel(score)
 
       return {
         id: beach.id,
@@ -232,12 +241,13 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         tide,
         tideHeight: Number((0.8 + Math.random() * 0.6).toFixed(1)),
         level,
-        boardSuggestion: getBoardSuggestion(waveHeight, level),
+        boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: {
           temperature: waterTemp,
           wetsuit: getWetsuitInfo(waterTemp)
         },
-        crowdLevel: getCrowdLevel(score),
+        crowdLevel,
+        crowdMessage: getCrowdMessage(crowdLevel, score),
         bestTimeWindow: beach.bestTimeWindow,
         lat: beach.lat,
         lng: beach.lng,
@@ -260,7 +270,7 @@ export function getCurrentConditions(): BeachCondition[] {
     region: beach.region,
     subRegions: beach.subRegions,
     score: Number((5 + Math.random() * 3).toFixed(1)),
-    waveHeight: Number((1.0 + Math.random() * 1.0).toFixed(1)),
+    waveHeight: Number((0.5 + Math.random() * 1.0).toFixed(1)),
     windSpeed: Math.round(10 + Math.random() * 10),
     windDirection: 'N (Terral)',
     swellDirection: 'SE',
@@ -268,9 +278,10 @@ export function getCurrentConditions(): BeachCondition[] {
     tide: getTide(),
     tideHeight: Number((0.8 + Math.random() * 0.6).toFixed(1)),
     level: 'Intermediário' as const,
-    boardSuggestion: 'Shortboard 6\'0"',
+    boardSuggestion: getBoardSuggestion(1.0),
     waterConditions: { temperature: getWaterTemp(), wetsuit: getWetsuitInfo(getWaterTemp()) },
     crowdLevel: 'Pouca gente' as const,
+    crowdMessage: 'Bom momento para surfar',
     bestTimeWindow: beach.bestTimeWindow,
     lat: beach.lat,
     lng: beach.lng,
@@ -308,9 +319,10 @@ export function analyzeConditions(spot: BeachCondition): string {
   else if (spot.swellPeriod >= 9) analysis += `Período médio de ${spot.swellPeriod}s, ondas razoáveis. `
   else analysis += `Período curto de ${spot.swellPeriod}s, ondas fracas e desorganizadas. `
 
-  if (spot.tide === 'Estofo') analysis += 'Maré no estofo, momento ideal para pegar as melhores ondas.'
-  else if (spot.tide === 'Enchente') analysis += 'Maré enchendo, ainda bom para surfar.'
-  else analysis += 'Maré vazando, condições podem mudar.'
+  if (spot.tide === 'Cheia') analysis += 'Maré cheia, momento ideal para pegar as melhores ondas.'
+  else if (spot.tide === 'Enchendo') analysis += 'Maré enchendo, ainda bom para surfar.'
+  else if (spot.tide === 'Secando') analysis += 'Maré secando, condições podem mudar.'
+  else analysis += 'Maré vazia, cuidado com as pedras.'
 
   return analysis
 }
