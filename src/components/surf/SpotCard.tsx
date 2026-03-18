@@ -59,7 +59,7 @@ export function SpotCard({ spot }: SpotCardProps) {
           </div>
           <div className="text-right">
             <div className={`text-3xl font-bold ${getScoreColor(spot.score)}`}>
-              {spot.score.toFixed(1)}
+              {Number(spot.score).toFixed(1)}
             </div>
             <div className="text-xs text-muted-foreground">Score</div>
           </div>
@@ -71,7 +71,7 @@ export function SpotCard({ spot }: SpotCardProps) {
           <div className="flex items-center gap-2">
             <Waves className="h-4 w-4 text-primary" />
             <div>
-              <div className="text-sm font-semibold">{spot.waveHeight}m</div>
+              <div className="text-sm font-semibold">{Number(spot.waveHeight).toFixed(1)}m</div>
               <div className="text-xs text-muted-foreground">Altura</div>
             </div>
           </div>
@@ -79,7 +79,7 @@ export function SpotCard({ spot }: SpotCardProps) {
           <div className="flex items-center gap-2">
             <Wind className="h-4 w-4 text-accent" />
             <div>
-              <div className="text-sm font-semibold">{spot.windSpeed}km/h</div>
+              <div className="text-sm font-semibold">{Math.round(spot.windSpeed)}km/h</div>
               <div className="text-xs text-muted-foreground">{spot.windDirection}</div>
             </div>
           </div>
