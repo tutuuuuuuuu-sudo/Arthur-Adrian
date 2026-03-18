@@ -1,38 +1,54 @@
-// Gerenciamento de praias favoritas usando localStorage
+import { supabase } from './supabase'
 
-const FAVORITES_KEY = 'surf-ai-favorites'
+export async function getFavorites(): Promise<string[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
 
-export function getFavorites(): string[] {
-  try {
-    const stored = localStorage.getItem(FAVORITES_KEY)
-    return stored ? JSON.parse(stored) : []
-  } catch {
-    return []
-  }
+  const { data } = await supabase
+    .from('favorites')
+    .select('beach_id')
+    .eq('user_id', user.id)
+
+  return data?.map(f => f.beach_id) ?? []
 }
 
-export function isFavorite(spotId: string): boolean {
-  const favorites = getFavorites()
+export async function isFavorite(spotId: string): Promise<boolean> {
+  const favorites = await getFavorites()
   return favorites.includes(spotId)
 }
 
-export function toggleFavorite(spotId: string): boolean {
-  const favorites = getFavorites()
-  const index = favorites.indexOf(spotId)
+export async function toggleFavorite(spotId: string, spotName: string): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
 
-  if (index > -1) {
-    // Remove dos favoritos
-    favorites.splice(index, 1)
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
+  const { data: existing } = await supabase
+    .from('favorites')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('beach_id', spotId)
+    .single()
+
+  if (existing) {
+    await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('beach_id', spotId)
     return false
   } else {
-    // Adiciona aos favoritos
-    favorites.push(spotId)
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
+    await supabase
+      .from('favorites')
+      .insert({ user_id: user.id, beach_id: spotId, beach_name: spotName })
     return true
   }
 }
 
-export function clearFavorites(): void {
-  localStorage.removeItem(FAVORITES_KEY)
+export async function clearFavorites(): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('favorites')
+    .delete()
+    .eq('user_id', user.id)
 }
