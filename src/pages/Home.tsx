@@ -31,7 +31,7 @@ export default function Home() {
       }
 
       if (showOnlyFavorites) {
-        const favorites = getFavorites()
+        const favorites = await getFavorites()
         allSpots = allSpots.filter(spot => favorites.includes(spot.id))
       }
 
@@ -50,7 +50,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -74,7 +73,6 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Atualização em tempo real */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -83,7 +81,6 @@ export default function Home() {
           {loading && <span className="text-xs">Buscando dados reais...</span>}
         </div>
 
-        {/* Melhor Pico Agora */}
         {topSpot && (
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
@@ -105,7 +102,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="text-center bg-card rounded-lg p-4 border">
-                  <div className="text-4xl font-bold text-primary">{topSpot.score.toFixed(1)}</div>
+                  <div className="text-4xl font-bold text-primary">{Number(topSpot.score).toFixed(1)}</div>
                   <div className="text-xs text-muted-foreground">Score IA</div>
                 </div>
               </div>
@@ -113,11 +110,11 @@ export default function Home() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t">
                 <div>
                   <div className="text-xs text-muted-foreground">Ondas</div>
-                  <div className="text-lg font-semibold">{topSpot.waveHeight}m</div>
+                  <div className="text-lg font-semibold">{Number(topSpot.waveHeight).toFixed(1)}m</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Período</div>
-                  <div className="text-lg font-semibold">{topSpot.swellPeriod}s</div>
+                  <div className="text-lg font-semibold">{Math.round(topSpot.swellPeriod)}s</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Maré</div>
@@ -136,7 +133,6 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Loading state */}
         {loading && (
           <div className="text-center py-8 text-muted-foreground">
             <Waves className="h-8 w-8 mx-auto mb-3 opacity-40 animate-bounce" />
@@ -144,7 +140,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Info sobre IA */}
         {!loading && (
           <Alert>
             <Info className="h-4 w-4" />
@@ -154,7 +149,6 @@ export default function Home() {
           </Alert>
         )}
 
-        {/* Filtro de Região */}
         {!loading && (
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -172,7 +166,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Lista de Spots */}
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {spots.map((spot) => (
@@ -186,7 +179,7 @@ export default function Home() {
             <Waves className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <p>
               {showOnlyFavorites
-                ? 'Você ainda não tem praias favoritas. Clique no coração em uma praia para adicionar aos favoritos!'
+                ? 'Você ainda não tem praias favoritas. Clique no coração em uma praia para adicionar!'
                 : 'Nenhuma praia encontrada nesta região.'}
             </p>
           </div>
