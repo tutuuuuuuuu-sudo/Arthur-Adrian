@@ -1,44 +1,36 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import https from 'https'
+export const config = { runtime: 'edge' }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { lat, lng } = req.query
-
-  const body = JSON.stringify({
-    lat: Number(lat),
-    lon: Number(lng),
-    model: 'gfs',
-    parameters: ['wind', 'waves', 'swell1'],
-    levels: ['surface'],
-    key: process.env.WINDY_API_KEY
-  })
-
-  const options = {
-    hostname: 'api.windy.com',
-    path: '/api/point-forecast/v2',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body)
-    }
-  }
-
-  const data = await new Promise<string>((resolve, reject) => {
-    const reqHttp = https.request(options, (response) => {
-      let raw = ''
-      response.on('data', chunk => raw += chunk)
-      response.on('end', () => resolve(raw))
-    })
-    reqHttp.on('error', reject)
-    reqHttp.write(body)
-    reqHttp.end()
-  })
+export default async function handler(req: Request) {
+  const url = new URL(req.url)
+  const lat = url.searchParams.get('lat')
+  const lng = url.searchParams.get('lng')
 
   try {
-    const parsed = JSON.parse(data)
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.json(parsed)
-  } catch {
-    res.status(500).json({ error: 'Failed to parse response' })
+    const response = await fetch('https://api.windy.com/api/point-forecast/v2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lat: Number(lat),
+        lon: Number(lng),
+        model: 'gfs',
+        parameters: ['wind', 'waves', 'swell1'],
+        levels: ['surface'],
+        key: process.env.WINDY_API_KEY
+      })
+    })
+
+    const data = await response.json()
+
+    return new Response(JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Failed to fetch' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
