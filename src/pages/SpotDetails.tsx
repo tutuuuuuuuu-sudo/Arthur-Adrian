@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getSpotById, analyzeConditions } from '@/lib/surfData'
+import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getWeatherForecast } from '@/lib/weatherData'
 import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import {
@@ -21,18 +21,35 @@ import { toast } from 'sonner'
 export default function SpotDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const spot = id ? getSpotById(id) : null
+  const [spot, setSpot] = useState<BeachCondition | null>(null)
+  const [loadingSpot, setLoadingSpot] = useState(true)
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(true)
 
   useEffect(() => {
     if (id) {
+      fetchCurrentConditions().then(spots => {
+        const found = spots.find(s => s.id === id) ?? null
+        setSpot(found)
+        setLoadingSpot(false)
+      })
       isFavorite(id).then(val => {
         setFavorite(val)
         setLoadingFav(false)
       })
     }
   }, [id])
+
+  if (loadingSpot) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Waves className="h-12 w-12 mx-auto mb-4 text-primary animate-bounce" />
+          <p className="text-muted-foreground text-sm">Buscando condições em tempo real...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!spot) {
     return (
