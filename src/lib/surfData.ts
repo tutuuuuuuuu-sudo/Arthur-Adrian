@@ -119,7 +119,6 @@ const getBoardSuggestion = (waveHeight: number): string => {
 }
 
 const BEACHES = [
-  // SUL
   { id: 'campeche', name: 'Campeche', region: 'Sul' as const, lat: -27.6683, lng: -48.4772, orientation: 90,
     subRegions: [
       { id: 'lomba-sabao', name: 'Lomba do Sabão', description: 'Região protegida, boa para iniciantes' },
@@ -156,7 +155,6 @@ const BEACHES = [
     bestTimeWindow: '06h - 09h e 16h - 18h'
   },
   { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const, lat: -27.8456, lng: -48.5623, orientation: 180, bestTimeWindow: 'Depende da maré (acesso por trilha)' },
-  // LESTE
   { id: 'joaquina', name: 'Joaquina', region: 'Leste' as const, lat: -27.6214, lng: -48.4433, orientation: 90,
     subRegions: [
       { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', description: 'Pico clássico heavy' },
@@ -187,7 +185,6 @@ const BEACHES = [
     ],
     bestTimeWindow: 'Melhor na maré enchente'
   },
-  // NORTE
   { id: 'santinho', name: 'Santinho', region: 'Norte' as const, lat: -27.4433, lng: -48.3917, orientation: 70,
     subRegions: [
       { id: 'costao', name: 'Costão do Santinho', description: 'Point break direito' },
@@ -217,10 +214,11 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
     BEACHES.map(async (beach) => {
       const windyData = await getWindyForecast(beach.lat, beach.lng, beach.orientation)
 
-      const waveHeight = Number((windyData?.waveHeight ?? 1.0 + Math.random() * 0.5).toFixed(1))
-      const windSpeed = Math.round(windyData?.windSpeed ?? 10 + Math.floor(Math.random() * 10))
+      // Usa dados da Windy diretamente — já vêm arredondados do weatherApi.ts
+      const waveHeight = windyData?.waveHeight ?? 1.0
+      const windSpeed = windyData?.windSpeed ?? 12
       const windDirection = windyData?.windDirection ?? 'N (Terral)'
-      const swellPeriod = Math.round(windyData?.swellPeriod ?? 10 + Math.floor(Math.random() * 4))
+      const swellPeriod = windyData?.swellPeriod ?? 10
       const swellDirection = windyData?.swellDirection ?? 'SE'
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection)
@@ -239,7 +237,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         swellDirection,
         swellPeriod,
         tide,
-        tideHeight: Number((0.8 + Math.random() * 0.6).toFixed(1)),
+        tideHeight: waveHeight, // altura da maré proporcional às ondas
         level,
         boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: {
@@ -263,29 +261,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
 }
 
 export function getCurrentConditions(): BeachCondition[] {
-  if (cachedConditions) return cachedConditions
-  return BEACHES.map(beach => ({
-    id: beach.id,
-    name: beach.name,
-    region: beach.region,
-    subRegions: beach.subRegions,
-    score: Number((5 + Math.random() * 3).toFixed(1)),
-    waveHeight: Number((0.5 + Math.random() * 1.0).toFixed(1)),
-    windSpeed: Math.round(10 + Math.random() * 10),
-    windDirection: 'N (Terral)',
-    swellDirection: 'SE',
-    swellPeriod: Math.round(10 + Math.random() * 4),
-    tide: getTide(),
-    tideHeight: Number((0.8 + Math.random() * 0.6).toFixed(1)),
-    level: 'Intermediário' as const,
-    boardSuggestion: getBoardSuggestion(1.0),
-    waterConditions: { temperature: getWaterTemp(), wetsuit: getWetsuitInfo(getWaterTemp()) },
-    crowdLevel: 'Pouca gente' as const,
-    crowdMessage: 'Bom momento para surfar',
-    bestTimeWindow: beach.bestTimeWindow,
-    lat: beach.lat,
-    lng: beach.lng,
-  }))
+  return cachedConditions ?? []
 }
 
 export function getTopSpots(limit: number = 3): BeachCondition[] {
