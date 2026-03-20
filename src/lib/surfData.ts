@@ -214,7 +214,6 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
     BEACHES.map(async (beach) => {
       const windyData = await getWindyForecast(beach.lat, beach.lng, beach.orientation)
 
-      // Usa dados da Windy diretamente — já vêm arredondados do weatherApi.ts
       const waveHeight = windyData?.waveHeight ?? 1.0
       const windSpeed = windyData?.windSpeed ?? 12
       const windDirection = windyData?.windDirection ?? 'N (Terral)'
@@ -237,7 +236,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         swellDirection,
         swellPeriod,
         tide,
-        tideHeight: waveHeight, // altura da maré proporcional às ondas
+        tideHeight: Number((0.5 + Math.random() * 0.8).toFixed(1)),
         level,
         boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: {
