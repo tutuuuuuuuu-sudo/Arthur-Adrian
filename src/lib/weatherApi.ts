@@ -1,5 +1,3 @@
-const WINDY_API_KEY = import.meta.env.VITE_WINDY_API_KEY
-
 export interface WindyForecast {
   waveHeight: number
   windSpeed: number
@@ -33,21 +31,8 @@ export async function getWindyForecast(
   beachOrientation: number = 180
 ): Promise<WindyForecast | null> {
   try {
-    const response = await fetch('https://api.windy.com/api/point-forecast/v2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lat,
-        lon: lng,
-        model: 'gfs',
-        parameters: ['wind', 'waves', 'swell1'],
-        levels: ['surface'],
-        key: WINDY_API_KEY
-      })
-    })
-
-    if (!response.ok) throw new Error('Erro na Windy API')
-
+    const response = await fetch(`/api/surf?lat=${lat}&lng=${lng}`)
+    if (!response.ok) throw new Error('API error')
     const data = await response.json()
 
     const windU = data['wind_u-surface']?.[0] ?? 0
@@ -56,24 +41,24 @@ export async function getWindyForecast(
     const windDeg = (Math.atan2(windU, windV) * 180 / Math.PI + 360) % 360
     const windDir = windDirectionFromDegrees(windDeg)
 
-    const rawWaveHeight = data['waves_height-surface']?.[0]
-    const waveHeight = rawWaveHeight != null ? Number(rawWaveHeight.toFixed(1)) : null
+    const rawWave = data['waves_height-surface']?.[0]
+    const waveHeight = rawWave != null ? Number(rawWave.toFixed(1)) : 1.0
 
     const rawPeriod = data['swell1_period-surface']?.[0]
-    const swellPeriod = rawPeriod != null ? Math.round(rawPeriod) : null
+    const swellPeriod = rawPeriod != null ? Math.round(rawPeriod) : 10
 
     const swellDeg = data['swell1_direction-surface']?.[0] ?? 180
     const swellDirection = windDirectionFromDegrees(swellDeg)
 
     return {
-      waveHeight: waveHeight ?? 1.0,
+      waveHeight,
       windSpeed,
       windDirection: classifyWind(windDir, beachOrientation),
-      swellPeriod: swellPeriod ?? 10,
+      swellPeriod,
       swellDirection
     }
   } catch (error) {
-    console.error('Erro ao buscar dados da Windy:', error)
+    console.error('Erro ao buscar dados:', error)
     return null
   }
 }
