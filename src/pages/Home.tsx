@@ -21,10 +21,13 @@ export default function Home() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    setLoading(true)
     const updateData = async () => {
       setCurrentTime(new Date())
 
-      let allSpots = await fetchCurrentConditions()
+      const allConditions = await fetchCurrentConditions()
+
+      let allSpots = [...allConditions]
 
       if (activeRegion !== 'all') {
         allSpots = allSpots.filter(spot => spot.region === activeRegion)
@@ -38,7 +41,7 @@ export default function Home() {
       allSpots = allSpots.sort((a, b) => b.score - a.score)
 
       setSpots(allSpots)
-      setTopSpot(allSpots[0] ?? null)
+      setTopSpot(allConditions.sort((a, b) => b.score - a.score)[0] ?? null)
       setLoading(false)
     }
 
@@ -47,6 +50,38 @@ export default function Home() {
     const interval = setInterval(updateData, 15 * 60 * 1000)
     return () => clearInterval(interval)
   }, [activeRegion, showOnlyFavorites])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Waves className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Surf AI</h1>
+                  <p className="text-xs text-muted-foreground">Florianópolis, SC</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Waves className="h-12 w-12 text-primary animate-bounce" />
+          <p className="text-muted-foreground text-sm">Buscando condições em tempo real...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,12 +108,9 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <span>Atualizado às {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-          {loading && <span className="text-xs">Buscando dados reais...</span>}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+          <span>Atualizado às {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
 
         {topSpot && (
@@ -133,48 +165,35 @@ export default function Home() {
           </Card>
         )}
 
-        {loading && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Waves className="h-8 w-8 mx-auto mb-3 opacity-40 animate-bounce" />
-            <p className="text-sm">Buscando condições em tempo real...</p>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            A Inteligência Artificial analisa vento, swell, maré, batimetria e orientação das praias para indicar onde está melhor para surfar agora.
+          </AlertDescription>
+        </Alert>
+
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Todas as Praias</h2>
+            <Button
+              variant={showOnlyFavorites ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+            >
+              <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? 'fill-current' : ''}`} />
+              {showOnlyFavorites ? 'Mostrando Favoritas' : 'Ver Favoritas'}
+            </Button>
           </div>
-        )}
+          <RegionFilter activeRegion={activeRegion} onRegionChange={setActiveRegion} />
+        </div>
 
-        {!loading && (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              A Inteligência Artificial analisa vento, swell, maré, batimetria e orientação das praias para indicar onde está melhor para surfar agora.
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {spots.map((spot) => (
+            <SpotCard key={spot.id} spot={spot} />
+          ))}
+        </div>
 
-        {!loading && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Todas as Praias</h2>
-              <Button
-                variant={showOnlyFavorites ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              >
-                <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? 'fill-current' : ''}`} />
-                {showOnlyFavorites ? 'Mostrando Favoritas' : 'Ver Favoritas'}
-              </Button>
-            </div>
-            <RegionFilter activeRegion={activeRegion} onRegionChange={setActiveRegion} />
-          </div>
-        )}
-
-        {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {spots.map((spot) => (
-              <SpotCard key={spot.id} spot={spot} />
-            ))}
-          </div>
-        )}
-
-        {!loading && spots.length === 0 && (
+        {spots.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <Waves className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <p>
