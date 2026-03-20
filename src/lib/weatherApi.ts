@@ -22,7 +22,6 @@ const classifyWind = (direction: string, beachOrientation: number): string => {
   const windDeg = dirMap[direction] ?? 0
   const diff = Math.abs(windDeg - beachOrientation) % 360
   const angle = diff > 180 ? 360 - diff : diff
-
   if (angle <= 45) return `${direction} (Terral)`
   if (angle <= 90) return `${direction} (Lateral)`
   return `${direction} (Frontal)`
@@ -57,16 +56,20 @@ export async function getWindyForecast(
     const windDeg = (Math.atan2(windU, windV) * 180 / Math.PI + 360) % 360
     const windDir = windDirectionFromDegrees(windDeg)
 
-    const waveHeight = Number((data['waves_height-surface']?.[0] ?? 1.0).toFixed(1))
-    const swellPeriod = Math.round(data['swell1_period-surface']?.[0] ?? 10)
+    const rawWaveHeight = data['waves_height-surface']?.[0]
+    const waveHeight = rawWaveHeight != null ? Number(rawWaveHeight.toFixed(1)) : null
+
+    const rawPeriod = data['swell1_period-surface']?.[0]
+    const swellPeriod = rawPeriod != null ? Math.round(rawPeriod) : null
+
     const swellDeg = data['swell1_direction-surface']?.[0] ?? 180
     const swellDirection = windDirectionFromDegrees(swellDeg)
 
     return {
-      waveHeight,
+      waveHeight: waveHeight ?? 1.0,
       windSpeed,
       windDirection: classifyWind(windDir, beachOrientation),
-      swellPeriod,
+      swellPeriod: swellPeriod ?? 10,
       swellDirection
     }
   } catch (error) {
