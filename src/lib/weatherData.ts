@@ -10,38 +10,6 @@ export interface WeatherForecast {
   score: number
 }
 
-export function getWeatherForecast(_spotId: string): WeatherForecast[] {
-  const today = new Date()
-  const forecasts: WeatherForecast[] = []
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today)
-    date.setDate(today.getDate() + i)
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-    const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
-
-    const baseWave = 1.0 + Math.random() * 1.5
-    const baseWind = 8 + Math.random() * 10
-    const basePeriod = 9 + Math.random() * 6
-    const baseTemp = 21 + Math.random() * 6
-    const score = calculateForecastScore(baseWave, baseWind, basePeriod)
-    const condition = getConditionFromScore(score)
-
-    forecasts.push({
-      date: date.toISOString().split('T')[0],
-      dayName,
-      waveHeight: Number(baseWave.toFixed(1)),
-      windSpeed: Number(baseWind.toFixed(0)),
-      windDirection: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(Math.random() * 8)],
-      swellPeriod: Number(basePeriod.toFixed(0)),
-      temperature: Number(baseTemp.toFixed(0)),
-      condition,
-      score: Number(score.toFixed(1))
-    })
-  }
-  return forecasts
-}
-
 function calculateForecastScore(wave: number, wind: number, period: number): number {
   let score = 5
   if (wave >= 1.5) score += 2
@@ -60,4 +28,111 @@ function getConditionFromScore(score: number): 'Excelente' | 'Bom' | 'Regular' |
   if (score >= 6.5) return 'Bom'
   if (score >= 5) return 'Regular'
   return 'Ruim'
+}
+
+const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
+  'campeche': { lat: -27.6683, lng: -48.4772 },
+  'morro-pedras': { lat: -27.6761, lng: -48.4842 },
+  'matadeiro': { lat: -27.7342, lng: -48.5167 },
+  'lagoinha-leste': { lat: -27.7892, lng: -48.5289 },
+  'acores': { lat: -27.7572, lng: -48.5125 },
+  'solidao': { lat: -27.7456, lng: -48.5089 },
+  'armacao': { lat: -27.7447, lng: -48.5044 },
+  'naufragados': { lat: -27.8456, lng: -48.5623 },
+  'joaquina': { lat: -27.6214, lng: -48.4433 },
+  'mole': { lat: -27.5989, lng: -48.4381 },
+  'mocambique': { lat: -27.5647, lng: -48.4208 },
+  'barra-lagoa': { lat: -27.5767, lng: -48.4194 },
+  'santinho': { lat: -27.4433, lng: -48.3917 },
+  'ponta-aranhas': { lat: -27.4256, lng: -48.3889 },
+  'canajure': { lat: -27.4189, lng: -48.3945 },
+  'cachoeira': { lat: -27.4122, lng: -48.4006 },
+}
+
+const forecastCache: Record<string, { data: WeatherForecast[], time: number }> = {}
+const CACHE_DURATION = 60 * 60 * 1000 // 1 hora
+
+export async function getWeatherForecast(spotId: string): Promise<WeatherForecast[]> {
+  const now = Date.now()
+  if (forecastCache[spotId] && (now - forecastCache[spotId].time) < CACHE_DURATION) {
+    return forecastCache[spotId].data
+  }
+
+  const coords = BEACH_COORDS[spotId]
+  if (!coords) return getFallbackForecast()
+
+  try {
+    const [marineRes, weatherRes] = await Promise.all([
+      fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${coords.lat}&longitude=${coords.lng}&daily=wave_height_max,wave_period_max,swell_wave_height_max,swell_wave_period_max&length_unit=metric&timezone=America%2FSao_Paulo`),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=wind_speed_10m_max,wind_direction_10m_dominant,temperature_2m_max&wind_speed_unit=kmh&timezone=America%2FSao_Paulo`)
+    ])
+
+    const marine = await marineRes.json() as any
+    const weather = await weatherRes.json() as any
+
+    const days = marine.daily?.time ?? []
+    const forecasts: WeatherForecast[] = []
+
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+    for (let i = 0; i < Math.min(7, days.length); i++) {
+      const date = new Date(days[i] + 'T12:00:00')
+      const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
+
+      const waveHeight = Number((marine.daily?.swell_wave_height_max?.[i] ?? marine.daily?.wave_height_max?.[i] ?? 1.0).toFixed(1))
+      const swellPeriod = Math.round(marine.daily?.swell_wave_period_max?.[i] ?? marine.daily?.wave_period_max?.[i] ?? 10)
+      const windSpeed = Math.round(weather.daily?.wind_speed_10m_max?.[i] ?? 12)
+      const windDeg = weather.daily?.wind_direction_10m_dominant?.[i] ?? 0
+      const temperature = Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+
+      const dirs = ['N', 'NE', 'NE', 'E', 'E', 'SE', 'SE', 'S', 'S', 'SW', 'SW', 'W', 'W', 'NW', 'NW', 'N']
+      const windDirection = dirs[Math.round(windDeg / 22.5) % 16]
+
+      const score = calculateForecastScore(waveHeight, windSpeed, swellPeriod)
+      const condition = getConditionFromScore(score)
+
+      forecasts.push({
+        date: days[i],
+        dayName,
+        waveHeight,
+        windSpeed,
+        windDirection,
+        swellPeriod,
+        temperature,
+        condition,
+        score: Number(score.toFixed(1))
+      })
+    }
+
+    forecastCache[spotId] = { data: forecasts, time: now }
+    return forecasts
+  } catch (error) {
+    console.error('Erro ao buscar previsão:', error)
+    return getFallbackForecast()
+  }
+}
+
+function getFallbackForecast(): WeatherForecast[] {
+  const today = new Date()
+  const forecasts: WeatherForecast[] = []
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today)
+    date.setDate(today.getDate() + i)
+    const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
+    const score = calculateForecastScore(1.0, 12, 10)
+    forecasts.push({
+      date: date.toISOString().split('T')[0],
+      dayName,
+      waveHeight: 1.0,
+      windSpeed: 12,
+      windDirection: 'N',
+      swellPeriod: 10,
+      temperature: 24,
+      condition: getConditionFromScore(score),
+      score: Number(score.toFixed(1))
+    })
+  }
+  return forecasts
 }
