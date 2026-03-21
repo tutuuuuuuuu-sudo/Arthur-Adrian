@@ -4,6 +4,9 @@ export interface SubRegion {
   id: string
   name: string
   description?: string
+  lat: number
+  lng: number
+  bestNow?: boolean
 }
 
 export interface WaterConditions {
@@ -121,9 +124,9 @@ const getBoardSuggestion = (waveHeight: number): string => {
 const BEACHES = [
   { id: 'campeche', name: 'Campeche', region: 'Sul' as const, lat: -27.6683, lng: -48.4772, orientation: 90,
     subRegions: [
-      { id: 'lomba-sabao', name: 'Lomba do Sabão', description: 'Região protegida, boa para iniciantes' },
-      { id: 'palanque', name: 'Palanque', description: 'Pico famoso, ondas tubulares' },
-      { id: 'principal', name: 'Principal', description: 'Faixa central, mais movimentada' }
+      { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.6720, lng: -48.4780 },
+      { id: 'palanque', name: 'Palanque', lat: -27.6683, lng: -48.4772 },
+      { id: 'principal', name: 'Principal', lat: -27.6650, lng: -48.4760 },
     ],
     bestTimeWindow: '06h - 09h',
     cameraUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
@@ -131,8 +134,8 @@ const BEACHES = [
   },
   { id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const, lat: -27.6761, lng: -48.4842, orientation: 100,
     subRegions: [
-      { id: 'canto-direito', name: 'Canto Direito', description: 'Ondas mais fortes' },
-      { id: 'meio', name: 'Meio da Praia', description: 'Beach break mais tranquilo' }
+      { id: 'canto-direito', name: 'Canto Direito', lat: -27.6750, lng: -48.4830 },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.6761, lng: -48.4842 },
     ],
     bestTimeWindow: '07h - 10h'
   },
@@ -140,55 +143,55 @@ const BEACHES = [
   { id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const, lat: -27.7892, lng: -48.5289, orientation: 180, bestTimeWindow: 'Dia todo (acesso por trilha)' },
   { id: 'acores', name: 'Açores', region: 'Sul' as const, lat: -27.7572, lng: -48.5125, orientation: 120,
     subRegions: [
-      { id: 'ponta-esquerda', name: 'Ponta Esquerda', description: 'Point break clássico' },
-      { id: 'meio', name: 'Meio', description: 'Beach break mais acessível' }
+      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7565, lng: -48.5110 },
+      { id: 'meio', name: 'Meio', lat: -27.7572, lng: -48.5125 },
     ],
     bestTimeWindow: '07h - 11h'
   },
   { id: 'solidao', name: 'Solidão', region: 'Sul' as const, lat: -27.7456, lng: -48.5089, orientation: 130, bestTimeWindow: '08h - 11h' },
   { id: 'armacao', name: 'Armação', region: 'Sul' as const, lat: -27.7447, lng: -48.5044, orientation: 115,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo', description: 'Point break na pedra' },
-      { id: 'centro', name: 'Centro', description: 'Beach break principal' },
-      { id: 'matadouro', name: 'Matadouro', description: 'Pico clássico avançado' }
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7440, lng: -48.5035 },
+      { id: 'centro', name: 'Centro', lat: -27.7447, lng: -48.5044 },
+      { id: 'matadouro', name: 'Matadouro', lat: -27.7455, lng: -48.5055 },
     ],
     bestTimeWindow: '06h - 09h e 16h - 18h'
   },
   { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const, lat: -27.8456, lng: -48.5623, orientation: 180, bestTimeWindow: 'Depende da maré (acesso por trilha)' },
   { id: 'joaquina', name: 'Joaquina', region: 'Leste' as const, lat: -27.6214, lng: -48.4433, orientation: 90,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', description: 'Pico clássico heavy' },
-      { id: 'meio', name: 'Meio da Praia', description: 'Beach break mais tranquilo' },
-      { id: 'canto-direito', name: 'Canto Direito', description: 'Point break na pedra' }
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', lat: -27.6230, lng: -48.4440 },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.6214, lng: -48.4433 },
+      { id: 'canto-direito', name: 'Canto Direito', lat: -27.6195, lng: -48.4420 },
     ],
     bestTimeWindow: 'Agora até 11h'
   },
   { id: 'mole', name: 'Praia Mole', region: 'Leste' as const, lat: -27.5989, lng: -48.4381, orientation: 85,
     subRegions: [
-      { id: 'gruta', name: 'Gruta', description: 'Lado esquerdo, mais protegido' },
-      { id: 'meio', name: 'Meio da Praia', description: 'Pico principal' }
+      { id: 'gruta', name: 'Gruta', lat: -27.5995, lng: -48.4390 },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.5989, lng: -48.4381 },
     ],
     bestTimeWindow: '07h - 10h'
   },
   { id: 'mocambique', name: 'Moçambique', region: 'Leste' as const, lat: -27.5647, lng: -48.4208, orientation: 80,
     subRegions: [
-      { id: 'norte', name: 'Norte (Barra)', description: 'Perto da Barra da Lagoa' },
-      { id: 'meio', name: 'Meio da Praia', description: 'Extensão enorme' },
-      { id: 'sul', name: 'Sul', description: 'Mais isolado' }
+      { id: 'norte', name: 'Norte (Barra)', lat: -27.5600, lng: -48.4195 },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.5647, lng: -48.4208 },
+      { id: 'sul', name: 'Sul', lat: -27.5700, lng: -48.4220 },
     ],
     bestTimeWindow: '08h - 11h'
   },
   { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const, lat: -27.5767, lng: -48.4194, orientation: 75,
     subRegions: [
-      { id: 'canal', name: 'Canal da Barra', description: 'Point break na barra do rio' },
-      { id: 'prainha', name: 'Prainha', description: 'Beach break ao lado' }
+      { id: 'canal', name: 'Canal da Barra', lat: -27.5760, lng: -48.4185 },
+      { id: 'prainha', name: 'Prainha', lat: -27.5775, lng: -48.4200 },
     ],
     bestTimeWindow: 'Melhor na maré enchente'
   },
   { id: 'santinho', name: 'Santinho', region: 'Norte' as const, lat: -27.4433, lng: -48.3917, orientation: 70,
     subRegions: [
-      { id: 'costao', name: 'Costão do Santinho', description: 'Point break direito' },
-      { id: 'centro', name: 'Centro', description: 'Beach break principal' }
+      { id: 'costao', name: 'Costão do Santinho', lat: -27.4420, lng: -48.3905 },
+      { id: 'centro', name: 'Centro', lat: -27.4433, lng: -48.3917 },
     ],
     bestTimeWindow: '15h - 17h'
   },
@@ -224,11 +227,40 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const level = getLevel(waveHeight)
       const crowdLevel = getCrowdLevel(score)
 
+      // Busca dados das sub-regiões e marca qual está melhor
+      let subRegions = undefined
+      if ((beach as any).subRegions && (beach as any).subRegions.length > 0) {
+        const subData = await Promise.all(
+          (beach as any).subRegions.map(async (sub: any) => {
+            const data = await getWindyForecast(sub.lat, sub.lng, beach.orientation)
+            return {
+              id: sub.id,
+              name: sub.name,
+              lat: sub.lat,
+              lng: sub.lng,
+              waveHeight: data?.waveHeight ?? waveHeight,
+              score: calculateScore(data?.waveHeight ?? waveHeight, data?.windSpeed ?? windSpeed, data?.swellPeriod ?? swellPeriod, data?.windDirection ?? windDirection)
+            }
+          })
+        )
+        const bestSub = subData.reduce((a, b) => a.score > b.score ? a : b)
+        subRegions = subData.map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          lat: sub.lat,
+          lng: sub.lng,
+          description: sub.id === bestSub.id
+            ? `🔥 Melhor agora! ${sub.waveHeight.toFixed(1)}m de onda`
+            : `${sub.waveHeight.toFixed(1)}m de onda`,
+          bestNow: sub.id === bestSub.id
+        }))
+      }
+
       return {
         id: beach.id,
         name: beach.name,
         region: beach.region,
-        subRegions: beach.subRegions,
+        subRegions,
         score,
         waveHeight,
         windSpeed,
