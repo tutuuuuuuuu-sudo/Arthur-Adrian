@@ -8,12 +8,12 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
-import { getWeatherForecast } from '@/lib/weatherData'
+import { getWeatherForecast, WeatherForecast } from '@/lib/weatherData'
 import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import {
   ArrowLeft, Waves, Wind, Navigation, Clock, Users,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
-  Video, Heart, Calendar
+  Video, Heart, Calendar, Star
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
@@ -25,6 +25,7 @@ export default function SpotDetails() {
   const [loadingSpot, setLoadingSpot] = useState(true)
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(true)
+  const [forecast, setForecast] = useState<WeatherForecast[]>([])
 
   useEffect(() => {
     if (id) {
@@ -32,6 +33,9 @@ export default function SpotDetails() {
         const found = spots.find(s => s.id === id) ?? null
         setSpot(found)
         setLoadingSpot(false)
+        if (found) {
+          getWeatherForecast(found.id).then(setForecast)
+        }
       })
       isFavorite(id).then(val => {
         setFavorite(val)
@@ -65,8 +69,6 @@ export default function SpotDetails() {
       </div>
     )
   }
-
-  const forecast = getWeatherForecast(spot.id)
 
   const handleToggleFavorite = async () => {
     const newState = await toggleFavorite(spot.id, spot.name)
@@ -147,16 +149,24 @@ export default function SpotDetails() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-accent" />
-                    Regiões da Praia
+                    Picos da Praia — Qual está melhor agora?
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {spot.subRegions.map((subRegion) => (
-                      <div key={subRegion.id} className="flex items-start gap-3">
-                        <div className="h-2 w-2 rounded-full bg-accent mt-2 flex-shrink-0" />
-                        <div>
-                          <div className="font-semibold">{subRegion.name}</div>
+                      <div key={subRegion.id} className={`flex items-start gap-3 p-3 rounded-lg ${subRegion.bestNow ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`}>
+                        <div className="flex-shrink-0 mt-0.5">
+                          {subRegion.bestNow
+                            ? <Star className="h-4 w-4 text-primary fill-primary" />
+                            : <div className="h-2 w-2 rounded-full bg-muted-foreground mt-1" />
+                          }
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold flex items-center gap-2">
+                            {subRegion.name}
+                            {subRegion.bestNow && <Badge className="text-xs bg-primary text-primary-foreground">Melhor agora</Badge>}
+                          </div>
                           {subRegion.description && (
                             <div className="text-sm text-muted-foreground">{subRegion.description}</div>
                           )}
@@ -339,39 +349,46 @@ export default function SpotDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {forecast.map((day, index) => (
-                    <div key={day.date} className={`flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}>
-                      <div className="flex items-center gap-4">
-                        <div className="text-center min-w-[60px]">
-                          <div className="font-bold">{day.dayName}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(day.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                {forecast.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Waves className="h-6 w-6 text-primary animate-bounce mr-2" />
+                    <span className="text-muted-foreground text-sm">Carregando previsão...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {forecast.map((day, index) => (
+                      <div key={day.date} className={`flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className="text-center min-w-[60px]">
+                            <div className="font-bold">{day.dayName}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(day.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                            </div>
+                          </div>
+                          <Separator orientation="vertical" className="h-12" />
+                          <div className="flex items-center gap-6">
+                            <div className="text-center">
+                              <Waves className="h-4 w-4 mx-auto mb-1 text-primary" />
+                              <div className="text-sm font-semibold">{Number(day.waveHeight).toFixed(1)}m</div>
+                            </div>
+                            <div className="text-center">
+                              <Wind className="h-4 w-4 mx-auto mb-1 text-accent" />
+                              <div className="text-sm font-semibold">{Math.round(day.windSpeed)}km/h</div>
+                            </div>
+                            <div className="text-center hidden md:block">
+                              <Thermometer className="h-4 w-4 mx-auto mb-1 text-chart-2" />
+                              <div className="text-sm font-semibold">{day.temperature}°C</div>
+                            </div>
                           </div>
                         </div>
-                        <Separator orientation="vertical" className="h-12" />
-                        <div className="flex items-center gap-6">
-                          <div className="text-center">
-                            <Waves className="h-4 w-4 mx-auto mb-1 text-primary" />
-                            <div className="text-sm font-semibold">{Number(day.waveHeight).toFixed(1)}m</div>
-                          </div>
-                          <div className="text-center">
-                            <Wind className="h-4 w-4 mx-auto mb-1 text-accent" />
-                            <div className="text-sm font-semibold">{Math.round(day.windSpeed)}km/h</div>
-                          </div>
-                          <div className="text-center hidden md:block">
-                            <Thermometer className="h-4 w-4 mx-auto mb-1 text-chart-2" />
-                            <div className="text-sm font-semibold">{day.temperature}°C</div>
-                          </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-primary">{Number(day.score).toFixed(1)}</div>
+                          <div className="text-xs text-muted-foreground">{day.condition}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-primary">{Number(day.score).toFixed(1)}</div>
-                        <div className="text-xs text-muted-foreground">{day.condition}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
