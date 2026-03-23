@@ -13,7 +13,7 @@ import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import {
   ArrowLeft, Waves, Wind, Navigation, Clock, Users,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
-  Video, Heart, Calendar, Star
+  Video, Heart, Calendar, Star, Sun
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
@@ -313,6 +313,29 @@ export default function SpotDetails() {
                 </CardContent>
               </Card>
             </div>
+
+            {(spot.sunrise || spot.sunset) && (
+              <Card className="bg-yellow-500/5 border-yellow-500/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sun className="h-5 w-5 text-yellow-500" />
+                    Luz do Dia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground">🌅 Nascer do Sol</div>
+                      <div className="text-lg font-semibold">{spot.sunrise}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">🌇 Pôr do Sol</div>
+                      <div className="text-lg font-semibold">{spot.sunset}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="bg-secondary/5">
               <CardHeader>
