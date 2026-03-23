@@ -34,7 +34,14 @@ export default function SpotDetails() {
         setSpot(found)
         setLoadingSpot(false)
         if (found) {
-          getWeatherForecast(found.id).then(setForecast)
+          // Passa as condições atuais para o "Hoje" da previsão ser consistente
+          getWeatherForecast(found.id, {
+            waveHeight: found.waveHeight,
+            windSpeed: found.windSpeed,
+            swellPeriod: found.swellPeriod,
+            windDirection: found.windDirection,
+            waterTemperature: found.waterConditions.temperature
+          }).then(setForecast)
         }
       })
       isFavorite(id).then(val => {
@@ -231,7 +238,7 @@ export default function SpotDetails() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Waves className="h-5 w-5 text-primary" />
-                    Ondas
+                    Ondulação
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
