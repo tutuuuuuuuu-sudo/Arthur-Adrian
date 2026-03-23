@@ -112,13 +112,11 @@ const TideChart = ({ tide }: { tide: string }) => {
 
   const handleMouseLeave = () => setTooltip(null)
 
-  // Determina faixas boas/ruins para surf baseado na maré
   const goodTideStart = tideEvents.find(e => e.type === 'baixa')?.hour ?? 0
   const goodTideEnd = tideEvents.find(e => e.type === 'alta')?.hour ?? 6
 
   return (
     <div className="space-y-4">
-      {/* Altura atual em destaque */}
       <div className="flex items-center gap-4">
         <div>
           <div className="text-xs text-muted-foreground">Estado Atual</div>
@@ -131,7 +129,6 @@ const TideChart = ({ tide }: { tide: string }) => {
         </div>
       </div>
 
-      {/* Gráfico SVG interativo */}
       <div className="relative rounded-lg overflow-hidden bg-muted/10 border border-border/30 p-1">
         <svg
           ref={svgRef}
@@ -152,7 +149,6 @@ const TideChart = ({ tide }: { tide: string }) => {
             </linearGradient>
           </defs>
 
-          {/* Faixa de maré favorável ao surf (enchendo) */}
           {goodTideStart < goodTideEnd && (
             <rect
               x={xScale(goodTideStart)}
@@ -164,34 +160,24 @@ const TideChart = ({ tide }: { tide: string }) => {
             />
           )}
 
-          {/* Grid horizontal */}
           {[minH + (maxH - minH) * 0.25, midLevel, minH + (maxH - minH) * 0.75].map((h, i) => (
             <line
               key={i}
-              x1={padding.left}
-              y1={yScale(h)}
-              x2={viewWidth - padding.right}
-              y2={yScale(h)}
-              stroke="#ffffff"
-              strokeWidth="0.3"
-              opacity="0.1"
+              x1={padding.left} y1={yScale(h)}
+              x2={viewWidth - padding.right} y2={yScale(h)}
+              stroke="#ffffff" strokeWidth="0.3" opacity="0.1"
             />
           ))}
 
-          {/* Área preenchida */}
           <path d={areaData} fill="url(#tideGrad)" />
-
-          {/* Linha principal da curva */}
           <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Marcadores de Alta e Baixa no gráfico */}
           {tideEvents.map((event, i) => (
             <g key={i}>
               <text
                 x={xScale(event.hour)}
                 y={event.type === 'alta' ? yScale(event.height) - 8 : yScale(event.height) + 14}
-                textAnchor="middle"
-                fontSize="10"
+                textAnchor="middle" fontSize="10"
                 fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
                 fontWeight="bold"
               >
@@ -200,8 +186,7 @@ const TideChart = ({ tide }: { tide: string }) => {
               <text
                 x={xScale(event.hour)}
                 y={event.type === 'alta' ? yScale(event.height) - 18 : yScale(event.height) + 24}
-                textAnchor="middle"
-                fontSize="7"
+                textAnchor="middle" fontSize="7"
                 fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
               >
                 ~{formatHour(event.hour)}
@@ -209,8 +194,7 @@ const TideChart = ({ tide }: { tide: string }) => {
               <text
                 x={xScale(event.hour)}
                 y={event.type === 'alta' ? yScale(event.height) - 27 : yScale(event.height) + 33}
-                textAnchor="middle"
-                fontSize="7"
+                textAnchor="middle" fontSize="7"
                 fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
               >
                 ~{event.height.toFixed(1)}m
@@ -218,14 +202,12 @@ const TideChart = ({ tide }: { tide: string }) => {
             </g>
           ))}
 
-          {/* Escala Y */}
           {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (
             <text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">
               {h.toFixed(1)}
             </text>
           ))}
 
-          {/* Marcadores de hora */}
           {[0, 6, 12, 18, 24].map(h => (
             <g key={h}>
               <line
@@ -239,37 +221,28 @@ const TideChart = ({ tide }: { tide: string }) => {
             </g>
           ))}
 
-          {/* Linha vertical do momento atual */}
           <line
             x1={currentX} y1={padding.top}
             x2={currentX} y2={chartHeight + padding.top}
             stroke="#ffffff" strokeWidth="1" strokeDasharray="3,2" opacity="0.4"
           />
 
-          {/* Label "Agora" com fundo */}
           <rect
             x={Math.min(currentX - 16, viewWidth - padding.right - 32)}
             y={padding.top - 14}
-            width="32" height="13"
-            rx="3"
-            fill="#06b6d4"
-            opacity="0.9"
+            width="32" height="13" rx="3"
+            fill="#06b6d4" opacity="0.9"
           />
           <text
             x={Math.min(currentX, viewWidth - padding.right - 16)}
             y={padding.top - 4}
-            textAnchor="middle"
-            fontSize="8"
-            fill="white"
-            fontWeight="bold"
+            textAnchor="middle" fontSize="8" fill="white" fontWeight="bold"
           >
             Agora
           </text>
 
-          {/* Ponto atual */}
           <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
 
-          {/* Linha vertical do tooltip */}
           {tooltip && (
             <line
               x1={tooltip.x} y1={padding.top}
@@ -278,19 +251,10 @@ const TideChart = ({ tide }: { tide: string }) => {
             />
           )}
 
-          {/* Ponto do tooltip */}
           {tooltip && (
-            <circle
-              cx={tooltip.x}
-              cy={tooltip.y}
-              r="4"
-              fill="white"
-              stroke="#06b6d4"
-              strokeWidth="2"
-            />
+            <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" />
           )}
 
-          {/* Tooltip box */}
           {tooltip && (() => {
             const tipW = 72
             const tipH = 32
@@ -311,7 +275,6 @@ const TideChart = ({ tide }: { tide: string }) => {
         </svg>
       </div>
 
-      {/* Aviso */}
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
         <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
         <span>Dados aproximados baseados no padrão semi-diurno de Florianópolis. Para dados precisos consulte a Marinha do Brasil.</span>
@@ -584,12 +547,11 @@ export default function SpotDetails() {
               </Card>
             </div>
 
-            {/* Gráfico de Maré Interativo */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
                   <Navigation className="h-5 w-5 text-cyan-500" />
-                  Maré do Dia
+                  Como vai estar o mar hoje?
                   <Badge variant="outline" className="text-xs ml-1 text-yellow-500 border-yellow-500/30">Aproximado</Badge>
                 </CardTitle>
               </CardHeader>
