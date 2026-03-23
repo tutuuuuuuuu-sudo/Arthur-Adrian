@@ -4,6 +4,7 @@ export interface WindyForecast {
   windDirection: string
   swellPeriod: number
   swellDirection: string
+  waterTemperature?: number
   sunrise?: string
   sunset?: string
 }
