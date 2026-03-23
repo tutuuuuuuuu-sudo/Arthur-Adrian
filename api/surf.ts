@@ -21,8 +21,6 @@ const classifyWind = (direction: string, beachOrientation: number): string => {
 
 const formatTimeBrasilia = (isoString: string): string => {
   if (!isoString) return ''
-  // A Open-Meteo retorna no formato "2026-03-23T06:19" já no fuso solicitado
-  // Extrai apenas HH:MM da string diretamente sem converter timezone
   const timePart = isoString.split('T')[1]
   if (!timePart) return ''
   return timePart.substring(0, 5)
@@ -36,7 +34,7 @@ export default async function handler(req: Request) {
 
   try {
     const [marineRes, weatherRes] = await Promise.all([
-      fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction&length_unit=metric`),
+      fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,sea_surface_temperature&length_unit=metric`),
       fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&wind_speed_unit=kmh&timezone=America%2FSao_Paulo`)
     ])
 
@@ -53,9 +51,12 @@ export default async function handler(req: Request) {
     const windDir = windDirectionFromDegrees(windDeg)
     const windDirection = classifyWind(windDir, orientation)
 
+    // Temperatura real da água da API
+    const rawSeaTemp = marine.current?.sea_surface_temperature
+    const waterTemperature = rawSeaTemp != null ? Math.round(rawSeaTemp) : null
+
     const sunriseRaw = weather.daily?.sunrise?.[0] ?? ''
     const sunsetRaw = weather.daily?.sunset?.[0] ?? ''
-
     const sunrise = formatTimeBrasilia(sunriseRaw)
     const sunset = formatTimeBrasilia(sunsetRaw)
 
@@ -65,6 +66,7 @@ export default async function handler(req: Request) {
       windDirection,
       swellPeriod,
       swellDirection,
+      waterTemperature,
       sunrise,
       sunset
     }), {
