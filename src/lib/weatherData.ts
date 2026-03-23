@@ -15,11 +15,13 @@ function calculateForecastScore(wave: number, wind: number, period: number): num
   if (wave >= 1.5) score += 2
   else if (wave >= 1.0) score += 1.5
   else if (wave >= 0.8) score += 1
+  else score -= 1
   if (wind <= 10) score += 2
   else if (wind <= 15) score += 1
   else score -= 1
   if (period >= 12) score += 2
   else if (period >= 10) score += 1
+  else if (period < 8) score -= 1
   return Math.min(10, Math.max(0, score))
 }
 
@@ -50,7 +52,7 @@ const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
 }
 
 const forecastCache: Record<string, { data: WeatherForecast[], time: number }> = {}
-const CACHE_DURATION = 15 * 60 * 1000 // 15 minutos — mesmo ritmo que os dados atuais
+const CACHE_DURATION = 15 * 60 * 1000
 
 export interface CurrentConditionsForForecast {
   waveHeight: number
@@ -58,6 +60,7 @@ export interface CurrentConditionsForForecast {
   swellPeriod: number
   windDirection: string
   waterTemperature?: number
+  score: number
 }
 
 export async function getWeatherForecast(
@@ -66,22 +69,16 @@ export async function getWeatherForecast(
 ): Promise<WeatherForecast[]> {
   const now = Date.now()
   if (forecastCache[spotId] && (now - forecastCache[spotId].time) < CACHE_DURATION) {
-    // Mesmo com cache, atualiza o "Hoje" com dados em tempo real
     if (currentConditions && forecastCache[spotId].data.length > 0) {
       const cached = [...forecastCache[spotId].data]
-      const todayScore = calculateForecastScore(
-        currentConditions.waveHeight,
-        currentConditions.windSpeed,
-        currentConditions.swellPeriod
-      )
       cached[0] = {
         ...cached[0],
         waveHeight: currentConditions.waveHeight,
         windSpeed: currentConditions.windSpeed,
         swellPeriod: currentConditions.swellPeriod,
         temperature: currentConditions.waterTemperature ?? cached[0].temperature,
-        score: Number(todayScore.toFixed(1)),
-        condition: getConditionFromScore(todayScore)
+        score: currentConditions.score,
+        condition: getConditionFromScore(currentConditions.score)
       }
       return cached
     }
@@ -108,29 +105,31 @@ export async function getWeatherForecast(
       const date = new Date(days[i] + 'T12:00:00')
       const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
 
-      // Para "Hoje" usa dados em tempo real se disponíveis
       let waveHeight: number
       let windSpeed: number
       let swellPeriod: number
       let temperature: number
+      let score: number
 
       if (i === 0 && currentConditions) {
+        // "Hoje" usa exatamente os dados e score em tempo real
         waveHeight = currentConditions.waveHeight
         windSpeed = currentConditions.windSpeed
         swellPeriod = currentConditions.swellPeriod
         temperature = currentConditions.waterTemperature ?? Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+        score = currentConditions.score
       } else {
         waveHeight = Number((marine.daily?.swell_wave_height_max?.[i] ?? marine.daily?.wave_height_max?.[i] ?? 1.0).toFixed(1))
         swellPeriod = Math.round(marine.daily?.swell_wave_period_max?.[i] ?? marine.daily?.wave_period_max?.[i] ?? 10)
         windSpeed = Math.round(weather.daily?.wind_speed_10m_max?.[i] ?? 12)
         temperature = Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+        score = calculateForecastScore(waveHeight, windSpeed, swellPeriod)
       }
 
       const windDeg = weather.daily?.wind_direction_10m_dominant?.[i] ?? 0
       const dirs = ['N', 'NE', 'NE', 'E', 'E', 'SE', 'SE', 'S', 'S', 'SW', 'SW', 'W', 'W', 'NW', 'NW', 'N']
       const windDirection = dirs[Math.round(windDeg / 22.5) % 16]
 
-      const score = calculateForecastScore(waveHeight, windSpeed, swellPeriod)
       const condition = getConditionFromScore(score)
 
       forecasts.push({
