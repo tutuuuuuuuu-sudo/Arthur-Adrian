@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getWeatherForecast, WeatherForecast } from '@/lib/weatherData'
+import { getWindyForecast, TidePoint } from '@/lib/weatherApi'
 import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import {
   ArrowLeft, Waves, Wind, Navigation, Clock, Users,
@@ -26,54 +27,73 @@ const getRatingInfo = (score: number) => {
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
 }
 
-const generateTideData = () => {
-  const now = new Date()
+// Gera curva suave interpolando os extremos reais da Stormglass
+const generateRealTideCurve = (tideEvents: TidePoint[]) => {
   const points: { hour: number, height: number }[] = []
-  const amplitude = 0.35
-  const midLevel = 0.5
-  const period = 12.4
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
-  const phaseOffset = (dayOfYear * 0.8) % period
 
-  for (let h = 0; h <= 24; h += 0.25) {
-    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (h + phaseOffset)) / period)
-    points.push({ hour: h, height: Number(height.toFixed(2)) })
+  if (tideEvents.length === 0) return points
+
+  // Converte os extremos para horas do dia
+  const events = tideEvents.map(e => {
+    const d = new Date(e.time)
+    const hour = d.getHours() + d.getMinutes() / 60
+    return { hour, height: e.height, type: e.type }
+  }).sort((a, b) => a.hour - b.hour)
+
+  // Adiciona pontos extras antes e depois para a curva ficar contínua
+  const first = events[0]
+  const last = events[events.length - 1]
+
+  // Ponto antes do início (espelha o primeiro)
+  const prevType = first.type === 'high' ? 'low' : 'high'
+  const prevHeight = prevType === 'high'
+    ? Math.max(...events.map(e => e.height))
+    : Math.min(...events.map(e => e.height))
+  const extendedEvents = [
+    { hour: first.hour - 6.2, height: prevHeight, type: prevType },
+    ...events,
+    { hour: last.hour + 6.2, height: last.type === 'high' ? Math.min(...events.map(e => e.height)) : Math.max(...events.map(e => e.height)), type: last.type === 'high' ? 'low' : 'high' }
+  ]
+
+  // Interpola com seno entre cada par de extremos
+  for (let i = 0; i < extendedEvents.length - 1; i++) {
+    const a = extendedEvents[i]
+    const b = extendedEvents[i + 1]
+    const steps = Math.round((b.hour - a.hour) / 0.25)
+
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps
+      const hour = a.hour + (b.hour - a.hour) * t
+      if (hour < 0 || hour > 24) continue
+      // Interpolação cosseno para curva suave
+      const cosT = (1 - Math.cos(t * Math.PI)) / 2
+      const height = a.height + (b.height - a.height) * cosT
+      points.push({ hour, height: Number(height.toFixed(2)) })
+    }
   }
 
-  const tideEvents: { hour: number, type: 'alta' | 'baixa', height: number }[] = []
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = points[i - 1].height
-    const curr = points[i].height
-    const next = points[i + 1].height
-    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.7) {
-      tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
-    }
-    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.7) {
-      tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
-    }
-  }
-
-  const currentHeight = midLevel + amplitude * Math.cos((2 * Math.PI * (now.getHours() + now.getMinutes() / 60 + phaseOffset)) / period)
-
-  return { points, amplitude, midLevel, phaseOffset, period, tideEvents, currentHeight: Number(currentHeight.toFixed(2)) }
+  return points.filter(p => p.hour >= 0 && p.hour <= 24).sort((a, b) => a.hour - b.hour)
 }
 
-const TideChart = ({ tide }: { tide: string }) => {
+const TideChart = ({ tide, tideData }: { tide: string, tideData: TidePoint[] }) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const [tooltip, setTooltip] = useState<{ x: number, y: number, hour: number, height: number } | null>(null)
-  const { points, midLevel, amplitude, phaseOffset, period, tideEvents, currentHeight } = generateTideData()
 
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
+
+  const points = generateRealTideCurve(tideData)
+  const hasRealData = points.length > 0
+
+  const allHeights = points.map(p => p.height)
+  const minH = hasRealData ? Math.min(...allHeights) - 0.1 : 0.1
+  const maxH = hasRealData ? Math.max(...allHeights) + 0.1 : 0.9
 
   const viewWidth = 340
   const viewHeight = 120
   const padding = { top: 20, bottom: 24, left: 28, right: 12 }
   const chartWidth = viewWidth - padding.left - padding.right
   const chartHeight = viewHeight - padding.top - padding.bottom
-
-  const minH = midLevel - amplitude - 0.08
-  const maxH = midLevel + amplitude + 0.08
 
   const xScale = (hour: number) => (hour / 24) * chartWidth + padding.left
   const yScale = (h: number) => chartHeight - ((h - minH) / (maxH - minH)) * chartHeight + padding.top
@@ -82,12 +102,27 @@ const TideChart = ({ tide }: { tide: string }) => {
     `${i === 0 ? 'M' : 'L'} ${xScale(p.hour).toFixed(1)} ${yScale(p.height).toFixed(1)}`
   ).join(' ')
 
-  const areaData = pathData +
-    ` L ${xScale(24).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)}` +
-    ` L ${xScale(0).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)} Z`
+  const areaData = points.length > 0
+    ? pathData +
+      ` L ${xScale(points[points.length - 1].hour).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)}` +
+      ` L ${xScale(points[0].hour).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)} Z`
+    : ''
 
+  // Altura atual interpolada
+  const getCurrentHeight = () => {
+    if (points.length === 0) return null
+    const before = points.filter(p => p.hour <= currentHour)
+    const after = points.filter(p => p.hour > currentHour)
+    if (before.length === 0 || after.length === 0) return null
+    const a = before[before.length - 1]
+    const b = after[0]
+    const t = (currentHour - a.hour) / (b.hour - a.hour)
+    return Number((a.height + (b.height - a.height) * t).toFixed(2))
+  }
+
+  const currentHeight = getCurrentHeight()
   const currentX = xScale(currentHour)
-  const currentY = yScale(currentHeight)
+  const currentY = currentHeight != null ? yScale(currentHeight) : null
 
   const formatHour = (h: number) => {
     const hh = Math.floor(h)
@@ -96,24 +131,25 @@ const TideChart = ({ tide }: { tide: string }) => {
   }
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return
+    if (!svgRef.current || points.length === 0) return
     const rect = svgRef.current.getBoundingClientRect()
     const scaleX = viewWidth / rect.width
     const rawX = (e.clientX - rect.left) * scaleX
     const hour = Math.max(0, Math.min(24, (rawX - padding.left) / chartWidth * 24))
-    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (hour + phaseOffset)) / period)
-    setTooltip({
-      x: rawX,
-      y: yScale(height),
-      hour,
-      height: Number(height.toFixed(2))
-    })
+
+    const before = points.filter(p => p.hour <= hour)
+    const after = points.filter(p => p.hour > hour)
+    if (before.length === 0 || after.length === 0) return
+
+    const a = before[before.length - 1]
+    const b = after[0]
+    const t = (hour - a.hour) / (b.hour - a.hour)
+    const height = a.height + (b.height - a.height) * t
+
+    setTooltip({ x: rawX, y: yScale(height), hour, height: Number(height.toFixed(2)) })
   }
 
   const handleMouseLeave = () => setTooltip(null)
-
-  const goodTideStart = tideEvents.find(e => e.type === 'baixa')?.hour ?? 0
-  const goodTideEnd = tideEvents.find(e => e.type === 'alta')?.hour ?? 6
 
   return (
     <div className="space-y-4">
@@ -122,11 +158,15 @@ const TideChart = ({ tide }: { tide: string }) => {
           <div className="text-xs text-muted-foreground">Estado Atual</div>
           <div className="text-xl font-bold">{tide}</div>
         </div>
-        <Separator orientation="vertical" className="h-10" />
-        <div>
-          <div className="text-xs text-muted-foreground">Altura Agora</div>
-          <div className="text-xl font-bold text-primary">~{currentHeight}m</div>
-        </div>
+        {currentHeight != null && (
+          <>
+            <Separator orientation="vertical" className="h-10" />
+            <div>
+              <div className="text-xs text-muted-foreground">Altura da Maré Agora</div>
+              <div className="text-xl font-bold text-cyan-500">{currentHeight}m</div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="relative rounded-lg overflow-hidden bg-muted/10 border border-border/30 p-1">
@@ -143,94 +183,83 @@ const TideChart = ({ tide }: { tide: string }) => {
               <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.5" />
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.03" />
             </linearGradient>
-            <linearGradient id="goodTideGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#22c55e" stopOpacity="0.03" />
-            </linearGradient>
           </defs>
 
-          {goodTideStart < goodTideEnd && (
-            <rect
-              x={xScale(goodTideStart)}
-              y={padding.top}
-              width={xScale(goodTideEnd) - xScale(goodTideStart)}
-              height={chartHeight}
-              fill="url(#goodTideGrad)"
-              rx="2"
-            />
-          )}
-
-          {[minH + (maxH - minH) * 0.25, midLevel, minH + (maxH - minH) * 0.75].map((h, i) => (
-            <line
-              key={i}
-              x1={padding.left} y1={yScale(h)}
-              x2={viewWidth - padding.right} y2={yScale(h)}
+          {/* Grid */}
+          {[0.25, 0.5, 0.75].map((t, i) => (
+            <line key={i}
+              x1={padding.left} y1={yScale(minH + (maxH - minH) * t)}
+              x2={viewWidth - padding.right} y2={yScale(minH + (maxH - minH) * t)}
               stroke="#ffffff" strokeWidth="0.3" opacity="0.1"
             />
           ))}
 
-          <path d={areaData} fill="url(#tideGrad)" />
-          <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {hasRealData && <path d={areaData} fill="url(#tideGrad)" />}
+          {hasRealData && <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
 
-          {tideEvents.map((event, i) => (
-            <g key={i}>
-              <text
-                x={xScale(event.hour)}
-                y={event.type === 'alta' ? yScale(event.height) - 8 : yScale(event.height) + 14}
-                textAnchor="middle" fontSize="10"
-                fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
-                fontWeight="bold"
-              >
-                {event.type === 'alta' ? '▲' : '▼'}
-              </text>
-              <text
-                x={xScale(event.hour)}
-                y={event.type === 'alta' ? yScale(event.height) - 18 : yScale(event.height) + 24}
-                textAnchor="middle" fontSize="7"
-                fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
-              >
-                ~{formatHour(event.hour)}
-              </text>
-              <text
-                x={xScale(event.hour)}
-                y={event.type === 'alta' ? yScale(event.height) - 27 : yScale(event.height) + 33}
-                textAnchor="middle" fontSize="7"
-                fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
-              >
-                ~{event.height.toFixed(1)}m
-              </text>
-            </g>
-          ))}
+          {/* Marcadores de extremos reais */}
+          {tideData.map((event, i) => {
+            const d = new Date(event.time)
+            const hour = d.getHours() + d.getMinutes() / 60
+            if (hour < 0 || hour > 24) return null
+            const isHigh = event.type === 'high'
+            const y = yScale(event.height)
+            return (
+              <g key={i}>
+                <text x={xScale(hour)} y={isHigh ? y - 8 : y + 14}
+                  textAnchor="middle" fontSize="10"
+                  fill={isHigh ? '#22c55e' : '#f59e0b'} fontWeight="bold"
+                >
+                  {isHigh ? '▲' : '▼'}
+                </text>
+                <text x={xScale(hour)} y={isHigh ? y - 18 : y + 24}
+                  textAnchor="middle" fontSize="7"
+                  fill={isHigh ? '#22c55e' : '#f59e0b'}
+                >
+                  {formatHour(hour)}
+                </text>
+                <text x={xScale(hour)} y={isHigh ? y - 27 : y + 33}
+                  textAnchor="middle" fontSize="7"
+                  fill={isHigh ? '#22c55e' : '#f59e0b'}
+                >
+                  {event.height.toFixed(2)}m
+                </text>
+              </g>
+            )
+          })}
 
-          {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (
-            <text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">
+          {/* Escala Y */}
+          {[minH, (minH + maxH) / 2, maxH].map((h, i) => (
+            <text key={i} x={padding.left - 4} y={yScale(h) + 3}
+              textAnchor="end" fontSize="7" fill="#6b7280"
+            >
               {h.toFixed(1)}
             </text>
           ))}
 
+          {/* Horas */}
           {[0, 6, 12, 18, 24].map(h => (
             <g key={h}>
-              <line
-                x1={xScale(h)} y1={chartHeight + padding.top}
+              <line x1={xScale(h)} y1={chartHeight + padding.top}
                 x2={xScale(h)} y2={chartHeight + padding.top + 3}
                 stroke="#6b7280" strokeWidth="0.8"
               />
-              <text x={xScale(h)} y={viewHeight - 4} textAnchor="middle" fontSize="8" fill="#6b7280">
+              <text x={xScale(h)} y={viewHeight - 4}
+                textAnchor="middle" fontSize="8" fill="#6b7280"
+              >
                 {h === 24 ? '00h' : `${h}h`}
               </text>
             </g>
           ))}
 
-          <line
-            x1={currentX} y1={padding.top}
+          {/* Linha Agora */}
+          <line x1={currentX} y1={padding.top}
             x2={currentX} y2={chartHeight + padding.top}
             stroke="#ffffff" strokeWidth="1" strokeDasharray="3,2" opacity="0.4"
           />
-
           <rect
             x={Math.min(currentX - 16, viewWidth - padding.right - 32)}
-            y={padding.top - 14}
-            width="32" height="13" rx="3"
+            y={padding.top - 14} width="32" height="13" rx="3"
             fill="#06b6d4" opacity="0.9"
           />
           <text
@@ -241,43 +270,56 @@ const TideChart = ({ tide }: { tide: string }) => {
             Agora
           </text>
 
-          <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
-
-          {tooltip && (
-            <line
-              x1={tooltip.x} y1={padding.top}
-              x2={tooltip.x} y2={chartHeight + padding.top}
-              stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.5"
-            />
+          {currentY != null && (
+            <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
           )}
 
+          {/* Tooltip */}
           {tooltip && (
-            <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" />
+            <>
+              <line x1={tooltip.x} y1={padding.top}
+                x2={tooltip.x} y2={chartHeight + padding.top}
+                stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.5"
+              />
+              <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" />
+              {(() => {
+                const tipW = 80
+                const tipH = 36
+                const tipX = Math.min(Math.max(tooltip.x - tipW / 2, padding.left), viewWidth - padding.right - tipW)
+                const tipY = tooltip.y < viewHeight / 2 ? tooltip.y + 10 : tooltip.y - tipH - 10
+                return (
+                  <g>
+                    <rect x={tipX} y={tipY} width={tipW} height={tipH} rx="5" fill="#1e293b" opacity="0.95" />
+                    <text x={tipX + tipW / 2} y={tipY + 13} textAnchor="middle" fontSize="9" fill="white" fontWeight="bold">
+                      {formatHour(tooltip.hour)}
+                    </text>
+                    <text x={tipX + tipW / 2} y={tipY + 26} textAnchor="middle" fontSize="9" fill="#06b6d4">
+                      Maré: {tooltip.height.toFixed(2)}m
+                    </text>
+                  </g>
+                )
+              })()}
+            </>
           )}
-
-          {tooltip && (() => {
-            const tipW = 72
-            const tipH = 32
-            const tipX = Math.min(Math.max(tooltip.x - tipW / 2, padding.left), viewWidth - padding.right - tipW)
-            const tipY = tooltip.y < viewHeight / 2 ? tooltip.y + 10 : tooltip.y - tipH - 10
-            return (
-              <g>
-                <rect x={tipX} y={tipY} width={tipW} height={tipH} rx="5" fill="#1e293b" opacity="0.95" />
-                <text x={tipX + tipW / 2} y={tipY + 12} textAnchor="middle" fontSize="9" fill="white" fontWeight="bold">
-                  {formatHour(tooltip.hour)}
-                </text>
-                <text x={tipX + tipW / 2} y={tipY + 24} textAnchor="middle" fontSize="9" fill="#06b6d4">
-                  ~{tooltip.height.toFixed(2)}m
-                </text>
-              </g>
-            )
-          })()}
         </svg>
       </div>
 
+      {/* Legenda */}
+      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1">
+          <span className="text-green-500 font-bold">▲</span>
+          <span>Maré Alta</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-yellow-500 font-bold">▼</span>
+          <span>Maré Baixa</span>
+        </div>
+      </div>
+
+      {/* Aviso */}
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
         <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
-        <span>Dados aproximados baseados no padrão semi-diurno de Florianópolis. Para dados precisos consulte a Marinha do Brasil.</span>
+        <span>Este gráfico mostra a variação da <strong>maré</strong> ao longo do dia — não o tamanho das ondas. Dados fornecidos pela Stormglass.</span>
       </div>
     </div>
   )
@@ -291,10 +333,11 @@ export default function SpotDetails() {
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(true)
   const [forecast, setForecast] = useState<WeatherForecast[]>([])
+  const [tideData, setTideData] = useState<TidePoint[]>([])
 
   useEffect(() => {
     if (id) {
-      fetchCurrentConditions().then(spots => {
+      fetchCurrentConditions().then(async spots => {
         const found = spots.find(s => s.id === id) ?? null
         setSpot(found)
         setLoadingSpot(false)
@@ -307,6 +350,12 @@ export default function SpotDetails() {
             waterTemperature: found.waterConditions.temperature,
             score: found.score
           }).then(setForecast)
+
+          // Busca dados reais de maré
+          const tideRes = await getWindyForecast(found.lat, found.lng, found.lat, true)
+          if (tideRes?.tideData) {
+            setTideData(tideRes.tideData)
+          }
         }
       })
       isFavorite(id).then(val => {
@@ -547,16 +596,16 @@ export default function SpotDetails() {
               </Card>
             </div>
 
+            {/* Gráfico de Maré Real */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Navigation className="h-5 w-5 text-cyan-500" />
                   Como vai estar o mar hoje?
-                  <Badge variant="outline" className="text-xs ml-1 text-yellow-500 border-yellow-500/30">Aproximado</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <TideChart tide={spot.tide} />
+                <TideChart tide={spot.tide} tideData={tideData} />
               </CardContent>
             </Card>
 
