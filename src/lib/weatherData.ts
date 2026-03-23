@@ -50,11 +50,41 @@ const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
 }
 
 const forecastCache: Record<string, { data: WeatherForecast[], time: number }> = {}
-const CACHE_DURATION = 60 * 60 * 1000 // 1 hora
+const CACHE_DURATION = 15 * 60 * 1000 // 15 minutos — mesmo ritmo que os dados atuais
 
-export async function getWeatherForecast(spotId: string): Promise<WeatherForecast[]> {
+export interface CurrentConditionsForForecast {
+  waveHeight: number
+  windSpeed: number
+  swellPeriod: number
+  windDirection: string
+  waterTemperature?: number
+}
+
+export async function getWeatherForecast(
+  spotId: string,
+  currentConditions?: CurrentConditionsForForecast
+): Promise<WeatherForecast[]> {
   const now = Date.now()
   if (forecastCache[spotId] && (now - forecastCache[spotId].time) < CACHE_DURATION) {
+    // Mesmo com cache, atualiza o "Hoje" com dados em tempo real
+    if (currentConditions && forecastCache[spotId].data.length > 0) {
+      const cached = [...forecastCache[spotId].data]
+      const todayScore = calculateForecastScore(
+        currentConditions.waveHeight,
+        currentConditions.windSpeed,
+        currentConditions.swellPeriod
+      )
+      cached[0] = {
+        ...cached[0],
+        waveHeight: currentConditions.waveHeight,
+        windSpeed: currentConditions.windSpeed,
+        swellPeriod: currentConditions.swellPeriod,
+        temperature: currentConditions.waterTemperature ?? cached[0].temperature,
+        score: Number(todayScore.toFixed(1)),
+        condition: getConditionFromScore(todayScore)
+      }
+      return cached
+    }
     return forecastCache[spotId].data
   }
 
@@ -72,19 +102,31 @@ export async function getWeatherForecast(spotId: string): Promise<WeatherForecas
 
     const days = marine.daily?.time ?? []
     const forecasts: WeatherForecast[] = []
-
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
     for (let i = 0; i < Math.min(7, days.length); i++) {
       const date = new Date(days[i] + 'T12:00:00')
       const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
 
-      const waveHeight = Number((marine.daily?.swell_wave_height_max?.[i] ?? marine.daily?.wave_height_max?.[i] ?? 1.0).toFixed(1))
-      const swellPeriod = Math.round(marine.daily?.swell_wave_period_max?.[i] ?? marine.daily?.wave_period_max?.[i] ?? 10)
-      const windSpeed = Math.round(weather.daily?.wind_speed_10m_max?.[i] ?? 12)
-      const windDeg = weather.daily?.wind_direction_10m_dominant?.[i] ?? 0
-      const temperature = Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+      // Para "Hoje" usa dados em tempo real se disponíveis
+      let waveHeight: number
+      let windSpeed: number
+      let swellPeriod: number
+      let temperature: number
 
+      if (i === 0 && currentConditions) {
+        waveHeight = currentConditions.waveHeight
+        windSpeed = currentConditions.windSpeed
+        swellPeriod = currentConditions.swellPeriod
+        temperature = currentConditions.waterTemperature ?? Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+      } else {
+        waveHeight = Number((marine.daily?.swell_wave_height_max?.[i] ?? marine.daily?.wave_height_max?.[i] ?? 1.0).toFixed(1))
+        swellPeriod = Math.round(marine.daily?.swell_wave_period_max?.[i] ?? marine.daily?.wave_period_max?.[i] ?? 10)
+        windSpeed = Math.round(weather.daily?.wind_speed_10m_max?.[i] ?? 12)
+        temperature = Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+      }
+
+      const windDeg = weather.daily?.wind_direction_10m_dominant?.[i] ?? 0
       const dirs = ['N', 'NE', 'NE', 'E', 'E', 'SE', 'SE', 'S', 'S', 'SW', 'SW', 'W', 'W', 'NW', 'NW', 'N']
       const windDirection = dirs[Math.round(windDeg / 22.5) % 16]
 
