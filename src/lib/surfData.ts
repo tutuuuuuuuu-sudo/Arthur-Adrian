@@ -36,6 +36,8 @@ export interface BeachCondition {
   crowdLevel: 'Vazio' | 'Pouca gente' | 'Cheio'
   crowdMessage: string
   bestTimeWindow: string
+  sunrise?: string
+  sunset?: string
   lat: number
   lng: number
   cameraUrl?: string
@@ -227,7 +229,6 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const level = getLevel(waveHeight)
       const crowdLevel = getCrowdLevel(score)
 
-      // Busca dados das sub-regiões e marca qual está melhor
       let subRegions = undefined
       if ((beach as any).subRegions && (beach as any).subRegions.length > 0) {
         const subData = await Promise.all(
@@ -278,6 +279,8 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         crowdLevel,
         crowdMessage: getCrowdMessage(crowdLevel, score),
         bestTimeWindow: beach.bestTimeWindow,
+        sunrise: windyData?.sunrise,
+        sunset: windyData?.sunset,
         lat: beach.lat,
         lng: beach.lng,
         cameraUrl: (beach as any).cameraUrl,
