@@ -18,6 +18,14 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
 
+const getRatingInfo = (score: number) => {
+  if (score >= 8.5) return { label: 'ÉPICO', color: 'text-purple-500', bg: 'bg-purple-500', bars: 5 }
+  if (score >= 7) return { label: 'EXCELENTE', color: 'text-primary', bg: 'bg-primary', bars: 4 }
+  if (score >= 5.5) return { label: 'BOM', color: 'text-accent', bg: 'bg-accent', bars: 3 }
+  if (score >= 4) return { label: 'REGULAR', color: 'text-yellow-500', bg: 'bg-yellow-500', bars: 2 }
+  return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
+}
+
 export default function SpotDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -83,20 +91,13 @@ export default function SpotDetails() {
     toast.success(newState ? '❤️ Adicionado aos favoritos!' : '💔 Removido dos favoritos')
   }
 
-  const getScoreQuality = (score: number) => {
-    if (score >= 8) return { text: 'EXCELENTE', color: 'text-primary' }
-    if (score >= 6.5) return { text: 'BOM', color: 'text-accent' }
-    if (score >= 5) return { text: 'REGULAR', color: 'text-muted-foreground' }
-    return { text: 'RUIM', color: 'text-destructive' }
-  }
-
   const getCrowdMessage = (crowd: string) => {
     if (crowd === 'Vazio') return 'Água tranquila, quase ninguém'
     if (crowd === 'Pouca gente') return 'Bom momento para surfar'
     return 'Mar bom atrai galera'
   }
 
-  const quality = getScoreQuality(spot.score)
+  const rating = getRatingInfo(spot.score)
 
   return (
     <div className="min-h-screen bg-background">
@@ -124,21 +125,29 @@ export default function SpotDetails() {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{spot.name}</h1>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-sm">{spot.region} da Ilha</Badge>
-                <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
-              </div>
+
+        {/* Header com nome e rating visual */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-4xl font-bold mb-2">{spot.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-sm">{spot.region} da Ilha</Badge>
+              <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
             </div>
-            <div className="text-center bg-card rounded-xl p-6 border shadow-sm">
-              <div className={`text-5xl font-bold ${quality.color}`}>
-                {Number(spot.score).toFixed(1)}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">Score AI</div>
-              <div className={`text-xs font-semibold mt-2 ${quality.color}`}>{quality.text}</div>
+          </div>
+          <div className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px]">
+            <div className={`text-5xl font-bold ${rating.color}`}>
+              {Number(spot.score).toFixed(1)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Score AI</div>
+            <div className={`text-xs font-bold mt-1 ${rating.color}`}>{rating.label}</div>
+            <div className="flex gap-0.5 mt-2 justify-center">
+              {[1,2,3,4,5].map(i => (
+                <div
+                  key={i}
+                  className={`h-2 w-5 rounded-full ${i <= rating.bars ? rating.bg : 'bg-muted'}`}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -359,7 +368,7 @@ export default function SpotDetails() {
               </CardContent>
             </Card>
 
-            {spot.score < 5 && (
+            {spot.score < 4 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Condições não ideais</AlertTitle>
@@ -386,37 +395,45 @@ export default function SpotDetails() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {forecast.map((day, index) => (
-                      <div key={day.date} className={`flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}>
-                        <div className="flex items-center gap-4">
-                          <div className="text-center min-w-[60px]">
-                            <div className="font-bold">{day.dayName}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {new Date(day.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                    {forecast.map((day, index) => {
+                      const dayRating = getRatingInfo(day.score)
+                      return (
+                        <div key={day.date} className={`flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}>
+                          <div className="flex items-center gap-4">
+                            <div className="text-center min-w-[60px]">
+                              <div className="font-bold">{day.dayName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(day.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                              </div>
+                            </div>
+                            <Separator orientation="vertical" className="h-12" />
+                            <div className="flex items-center gap-6">
+                              <div className="text-center">
+                                <Waves className="h-4 w-4 mx-auto mb-1 text-primary" />
+                                <div className="text-sm font-semibold">{Number(day.waveHeight).toFixed(1)}m</div>
+                              </div>
+                              <div className="text-center">
+                                <Wind className="h-4 w-4 mx-auto mb-1 text-accent" />
+                                <div className="text-sm font-semibold">{Math.round(day.windSpeed)}km/h</div>
+                              </div>
+                              <div className="text-center hidden md:block">
+                                <Thermometer className="h-4 w-4 mx-auto mb-1 text-chart-2" />
+                                <div className="text-sm font-semibold">{day.temperature}°C</div>
+                              </div>
                             </div>
                           </div>
-                          <Separator orientation="vertical" className="h-12" />
-                          <div className="flex items-center gap-6">
-                            <div className="text-center">
-                              <Waves className="h-4 w-4 mx-auto mb-1 text-primary" />
-                              <div className="text-sm font-semibold">{Number(day.waveHeight).toFixed(1)}m</div>
-                            </div>
-                            <div className="text-center">
-                              <Wind className="h-4 w-4 mx-auto mb-1 text-accent" />
-                              <div className="text-sm font-semibold">{Math.round(day.windSpeed)}km/h</div>
-                            </div>
-                            <div className="text-center hidden md:block">
-                              <Thermometer className="h-4 w-4 mx-auto mb-1 text-chart-2" />
-                              <div className="text-sm font-semibold">{day.temperature}°C</div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-bold ${dayRating.color}`}>{Number(day.score).toFixed(1)}</div>
+                            <div className={`text-xs font-bold ${dayRating.color}`}>{dayRating.label}</div>
+                            <div className="flex gap-0.5 mt-1 justify-end">
+                              {[1,2,3,4,5].map(i => (
+                                <div key={i} className={`h-1 w-3 rounded-full ${i <= dayRating.bars ? dayRating.bg : 'bg-muted'}`} />
+                              ))}
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-primary">{Number(day.score).toFixed(1)}</div>
-                          <div className="text-xs text-muted-foreground">{day.condition}</div>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
