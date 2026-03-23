@@ -13,7 +13,7 @@ import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import {
   ArrowLeft, Waves, Wind, Navigation, Clock, Users,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
-  Video, Heart, Calendar, Star, Sun
+  Video, Heart, Calendar, Star, Sun, Info
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
@@ -24,6 +24,208 @@ const getRatingInfo = (score: number) => {
   if (score >= 5.5) return { label: 'BOM', color: 'text-accent', bg: 'bg-accent', bars: 3 }
   if (score >= 4) return { label: 'REGULAR', color: 'text-yellow-500', bg: 'bg-yellow-500', bars: 2 }
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
+}
+
+// Gera dados de maré simulados baseados no padrão semi-diurno de Florianópolis
+const generateTideData = () => {
+  const now = new Date()
+  const points: { hour: number, height: number }[] = []
+
+  // Florianópolis tem maré semi-diurna com período de ~12.4h
+  // Amplitude típica: ~0.5m a 1.0m
+  const amplitude = 0.35
+  const midLevel = 0.5
+  const period = 12.4 // horas
+
+  // Offset baseado no dia do ano para variar os horários de pico
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+  const phaseOffset = (dayOfYear * 0.8) % period
+
+  for (let h = 0; h <= 24; h += 0.5) {
+    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (h + phaseOffset)) / period)
+    points.push({ hour: h, height: Number(height.toFixed(2)) })
+  }
+
+  return { points, amplitude, midLevel, phaseOffset, period }
+}
+
+const TideChart = () => {
+  const { points, midLevel, amplitude, phaseOffset, period } = generateTideData()
+  const now = new Date()
+  const currentHour = now.getHours() + now.getMinutes() / 60
+
+  const width = 320
+  const height = 100
+  const padding = { top: 10, bottom: 20, left: 30, right: 10 }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+
+  const minHeight = midLevel - amplitude - 0.05
+  const maxHeight = midLevel + amplitude + 0.05
+
+  const xScale = (hour: number) => (hour / 24) * chartWidth
+  const yScale = (h: number) => chartHeight - ((h - minHeight) / (maxHeight - minHeight)) * chartHeight
+
+  // Gera o path da curva
+  const pathData = points.map((p, i) => {
+    const x = xScale(p.hour) + padding.left
+    const y = yScale(p.height) + padding.top
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`
+  }).join(' ')
+
+  // Área preenchida
+  const areaData = pathData +
+    ` L ${(xScale(24) + padding.left).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)}` +
+    ` L ${padding.left} ${(chartHeight + padding.top).toFixed(1)} Z`
+
+  // Posição atual
+  const currentX = xScale(currentHour) + padding.left
+  const currentHeight = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
+  const currentY = yScale(currentHeight) + padding.top
+
+  // Calcula horários de alta e baixa
+  const tideEvents: { hour: number, type: 'alta' | 'baixa', height: number }[] = []
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1].height
+    const curr = points[i].height
+    const next = points[i + 1].height
+    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.8) {
+      tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
+    }
+    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.8) {
+      tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
+    }
+  }
+
+  const formatHour = (h: number) => {
+    const hh = Math.floor(h)
+    const mm = Math.round((h - hh) * 60)
+    return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+          {/* Área preenchida */}
+          <defs>
+            <linearGradient id="tideGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+          <path d={areaData} fill="url(#tideGradient)" />
+
+          {/* Linha da curva */}
+          <path d={pathData} fill="none" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" />
+
+          {/* Linha do nível médio */}
+          <line
+            x1={padding.left}
+            y1={yScale(midLevel) + padding.top}
+            x2={chartWidth + padding.left}
+            y2={yScale(midLevel) + padding.top}
+            stroke="hsl(var(--muted-foreground))"
+            strokeWidth="0.5"
+            strokeDasharray="3,3"
+            opacity="0.5"
+          />
+
+          {/* Marcadores de hora */}
+          {[0, 6, 12, 18, 24].map(h => (
+            <g key={h}>
+              <line
+                x1={xScale(h) + padding.left}
+                y1={chartHeight + padding.top}
+                x2={xScale(h) + padding.left}
+                y2={chartHeight + padding.top + 4}
+                stroke="hsl(var(--muted-foreground))"
+                strokeWidth="1"
+              />
+              <text
+                x={xScale(h) + padding.left}
+                y={height - 2}
+                textAnchor="middle"
+                fontSize="8"
+                fill="hsl(var(--muted-foreground))"
+              >
+                {h === 24 ? '00h' : `${h}h`}
+              </text>
+            </g>
+          ))}
+
+          {/* Escala Y */}
+          {[midLevel - amplitude, midLevel, midLevel + amplitude].map(h => (
+            <text
+              key={h}
+              x={padding.left - 4}
+              y={yScale(h) + padding.top + 3}
+              textAnchor="end"
+              fontSize="7"
+              fill="hsl(var(--muted-foreground))"
+            >
+              {h.toFixed(1)}
+            </text>
+          ))}
+
+          {/* Linha do momento atual */}
+          <line
+            x1={currentX}
+            y1={padding.top}
+            x2={currentX}
+            y2={chartHeight + padding.top}
+            stroke="hsl(var(--foreground))"
+            strokeWidth="1"
+            strokeDasharray="3,2"
+            opacity="0.6"
+          />
+
+          {/* Ponto atual */}
+          <circle
+            cx={currentX}
+            cy={currentY}
+            r="4"
+            fill="hsl(var(--primary))"
+            stroke="hsl(var(--background))"
+            strokeWidth="2"
+          />
+
+          {/* Label "Agora" */}
+          <text
+            x={Math.min(currentX, chartWidth + padding.left - 20)}
+            y={padding.top - 2}
+            textAnchor="middle"
+            fontSize="8"
+            fill="hsl(var(--primary))"
+            fontWeight="bold"
+          >
+            Agora
+          </text>
+        </svg>
+      </div>
+
+      {/* Eventos de maré */}
+      {tideEvents.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {tideEvents.slice(0, 4).map((event, i) => (
+            <div key={i} className={`flex items-center gap-2 p-2 rounded-lg ${event.type === 'alta' ? 'bg-primary/10' : 'bg-muted/30'}`}>
+              <span className="text-sm">{event.type === 'alta' ? '▲' : '▼'}</span>
+              <div>
+                <div className="text-xs font-semibold">{event.type === 'alta' ? 'Alta' : 'Baixa'}</div>
+                <div className="text-xs text-muted-foreground">~{formatHour(event.hour)} · ~{event.height.toFixed(1)}m</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Aviso de dados aproximados */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
+        <Info className="h-3 w-3 flex-shrink-0" />
+        <span>Dados aproximados baseados no padrão semi-diurno de Florianópolis. Para dados precisos consulte a Marinha do Brasil.</span>
+      </div>
+    </div>
+  )
 }
 
 export default function SpotDetails() {
@@ -126,7 +328,6 @@ export default function SpotDetails() {
 
       <main className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
 
-        {/* Header com nome e rating visual */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-4xl font-bold mb-2">{spot.name}</h1>
@@ -143,10 +344,7 @@ export default function SpotDetails() {
             <div className={`text-xs font-bold mt-1 ${rating.color}`}>{rating.label}</div>
             <div className="flex gap-0.5 mt-2 justify-center">
               {[1,2,3,4,5].map(i => (
-                <div
-                  key={i}
-                  className={`h-2 w-5 rounded-full ${i <= rating.bars ? rating.bg : 'bg-muted'}`}
-                />
+                <div key={i} className={`h-2 w-5 rounded-full ${i <= rating.bars ? rating.bg : 'bg-muted'}`} />
               ))}
             </div>
           </div>
@@ -292,43 +490,42 @@ export default function SpotDetails() {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Navigation className="h-5 w-5 text-chart-2" />
-                    Maré
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Estado</div>
-                      <div className="text-lg font-semibold">{spot.tide}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Altura</div>
-                      <div className="text-lg font-semibold">{Number(spot.tideHeight).toFixed(1)}m</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Users className="h-5 w-5 text-chart-3" />
-                    Crowd
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="text-lg font-semibold">{spot.crowdLevel}</div>
-                    <span className="text-xs text-muted-foreground">{getCrowdMessage(spot.crowdLevel)}</span>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
+
+            {/* Gráfico de Maré */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Navigation className="h-5 w-5 text-chart-2" />
+                  Maré do Dia
+                  <Badge variant="outline" className="text-xs ml-1">Aproximado</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 mb-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Estado Atual</div>
+                    <div className="text-lg font-semibold">{spot.tide}</div>
+                  </div>
+                </div>
+                <TideChart />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-5 w-5 text-chart-3" />
+                  Crowd
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-lg font-semibold">{spot.crowdLevel}</div>
+                  <span className="text-xs text-muted-foreground">{getCrowdMessage(spot.crowdLevel)}</span>
+                </div>
+              </CardContent>
+            </Card>
 
             {(spot.sunrise || spot.sunset) && (
               <Card className="bg-yellow-500/5 border-yellow-500/20">
