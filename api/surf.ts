@@ -19,6 +19,15 @@ const classifyWind = (direction: string, beachOrientation: number): string => {
   return `${direction} (Frontal)`
 }
 
+const formatTimeBrasilia = (isoString: string): string => {
+  if (!isoString) return ''
+  // A Open-Meteo retorna no formato "2026-03-23T06:19" já no fuso solicitado
+  // Extrai apenas HH:MM da string diretamente sem converter timezone
+  const timePart = isoString.split('T')[1]
+  if (!timePart) return ''
+  return timePart.substring(0, 5)
+}
+
 export default async function handler(req: Request) {
   const url = new URL(req.url)
   const lat = url.searchParams.get('lat')
@@ -44,18 +53,11 @@ export default async function handler(req: Request) {
     const windDir = windDirectionFromDegrees(windDeg)
     const windDirection = classifyWind(windDir, orientation)
 
-    // Nascer e pôr do sol
     const sunriseRaw = weather.daily?.sunrise?.[0] ?? ''
     const sunsetRaw = weather.daily?.sunset?.[0] ?? ''
 
-    const formatTime = (iso: string) => {
-      if (!iso) return ''
-      const date = new Date(iso)
-      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-    }
-
-    const sunrise = formatTime(sunriseRaw)
-    const sunset = formatTime(sunsetRaw)
+    const sunrise = formatTimeBrasilia(sunriseRaw)
+    const sunset = formatTimeBrasilia(sunsetRaw)
 
     return new Response(JSON.stringify({
       waveHeight,
