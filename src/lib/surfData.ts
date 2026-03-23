@@ -44,7 +44,7 @@ export interface BeachCondition {
   cameraEmbed?: string
 }
 
-const getWaterTemp = (): number => {
+const getWaterTempFallback = (): number => {
   const month = new Date().getMonth()
   if (month >= 11 || month <= 2) return 25
   if (month >= 3 && month <= 5) return 21
@@ -212,7 +212,6 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
     return cachedConditions
   }
 
-  const waterTemp = getWaterTemp()
   const tide = getTide()
 
   const conditions = await Promise.all(
@@ -224,6 +223,9 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const windDirection = windyData?.windDirection ?? 'N (Terral)'
       const swellPeriod = windyData?.swellPeriod ?? 10
       const swellDirection = windyData?.swellDirection ?? 'SE'
+
+      // Usa temperatura real da API, com fallback por época do ano
+      const waterTemp = windyData?.waterTemperature ?? getWaterTempFallback()
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection)
       const level = getLevel(waveHeight)
@@ -240,7 +242,12 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
               lat: sub.lat,
               lng: sub.lng,
               waveHeight: data?.waveHeight ?? waveHeight,
-              score: calculateScore(data?.waveHeight ?? waveHeight, data?.windSpeed ?? windSpeed, data?.swellPeriod ?? swellPeriod, data?.windDirection ?? windDirection)
+              score: calculateScore(
+                data?.waveHeight ?? waveHeight,
+                data?.windSpeed ?? windSpeed,
+                data?.swellPeriod ?? swellPeriod,
+                data?.windDirection ?? windDirection
+              )
             }
           })
         )
