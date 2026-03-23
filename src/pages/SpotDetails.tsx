@@ -34,13 +34,13 @@ export default function SpotDetails() {
         setSpot(found)
         setLoadingSpot(false)
         if (found) {
-          // Passa as condições atuais para o "Hoje" da previsão ser consistente
           getWeatherForecast(found.id, {
             waveHeight: found.waveHeight,
             windSpeed: found.windSpeed,
             swellPeriod: found.swellPeriod,
             windDirection: found.windDirection,
-            waterTemperature: found.waterConditions.temperature
+            waterTemperature: found.waterConditions.temperature,
+            score: found.score
           }).then(setForecast)
         }
       })
