@@ -31,6 +31,7 @@ export default async function handler(req: Request) {
   const lat = url.searchParams.get('lat')
   const lng = url.searchParams.get('lng')
   const orientation = Number(url.searchParams.get('orientation') ?? 180)
+  const fetchTide = url.searchParams.get('tide') === 'true'
 
   try {
     const [marineRes, weatherRes] = await Promise.all([
@@ -51,7 +52,6 @@ export default async function handler(req: Request) {
     const windDir = windDirectionFromDegrees(windDeg)
     const windDirection = classifyWind(windDir, orientation)
 
-    // Temperatura real da água da API
     const rawSeaTemp = marine.current?.sea_surface_temperature
     const waterTemperature = rawSeaTemp != null ? Math.round(rawSeaTemp) : null
 
@@ -59,6 +59,39 @@ export default async function handler(req: Request) {
     const sunsetRaw = weather.daily?.sunset?.[0] ?? ''
     const sunrise = formatTimeBrasilia(sunriseRaw)
     const sunset = formatTimeBrasilia(sunsetRaw)
+
+    // Busca dados de maré da Stormglass apenas quando solicitado
+    let tideData: { time: string, height: number, type?: string }[] = []
+
+    if (fetchTide) {
+      try {
+        const now = new Date()
+        const start = new Date(now)
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(now)
+        end.setHours(23, 59, 59, 999)
+
+        const tideRes = await fetch(
+          `https://api.stormglass.io/v2/tide/extremes/point?lat=${lat}&lng=${lng}&start=${start.toISOString()}&end=${end.toISOString()}`,
+          {
+            headers: {
+              'Authorization': process.env.STORMGLASS_API_KEY ?? ''
+            }
+          }
+        )
+
+        if (tideRes.ok) {
+          const tideJson = await tideRes.json() as any
+          tideData = (tideJson.data ?? []).map((item: any) => ({
+            time: item.time,
+            height: Number(item.height.toFixed(2)),
+            type: item.type // 'high' ou 'low'
+          }))
+        }
+      } catch (e) {
+        console.error('Erro ao buscar maré:', e)
+      }
+    }
 
     return new Response(JSON.stringify({
       waveHeight,
@@ -68,7 +101,8 @@ export default async function handler(req: Request) {
       swellDirection,
       waterTemperature,
       sunrise,
-      sunset
+      sunset,
+      tideData
     }), {
       headers: {
         'Content-Type': 'application/json',
