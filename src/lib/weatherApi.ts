@@ -4,6 +4,8 @@ export interface WindyForecast {
   windDirection: string
   swellPeriod: number
   swellDirection: string
+  sunrise?: string
+  sunset?: string
 }
 
 export async function getWindyForecast(
