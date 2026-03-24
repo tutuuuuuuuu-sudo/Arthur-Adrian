@@ -276,18 +276,6 @@ const CACHE_DURATION = 15 * 60 * 1000
 export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
   const now = Date.now()
 
-  // Tenta usar cache do sessionStorage primeiro (persiste entre logins)
-  try {
-    const cached = sessionStorage.getItem('surf_conditions')
-    const cachedTime = sessionStorage.getItem('surf_conditions_time')
-    if (cached && cachedTime && (now - Number(cachedTime)) < CACHE_DURATION) {
-      const parsed = JSON.parse(cached) as BeachCondition[]
-      cachedConditions = parsed
-      return parsed
-    }
-  } catch (_) {}
-
-  // Fallback para cache em memória
   if (cachedConditions && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedConditions
   }
@@ -298,10 +286,10 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
     BEACHES.map(async (beach) => {
       const windyData = await getWindyForecast(beach.lat, beach.lng, beach.orientation)
 
-      const waveHeight = windyData?.waveHeight ?? 1.0
-      const windSpeed = windyData?.windSpeed ?? 12
+      const waveHeight = Number((windyData?.waveHeight ?? 1.0).toFixed(1))
+      const windSpeed = Math.round(windyData?.windSpeed ?? 12)
       const windDirection = windyData?.windDirection ?? 'N (Terral)'
-      const swellPeriod = windyData?.swellPeriod ?? 10
+      const swellPeriod = Math.round(windyData?.swellPeriod ?? 10)
       const swellDirection = windyData?.swellDirection ?? 'SE'
       const waterTemp = windyData?.waterTemperature ?? getWaterTempFallback()
 
@@ -360,13 +348,6 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
 
   cachedConditions = conditions
   lastFetchTime = now
-
-  // Salva no sessionStorage para persistir entre logins
-  try {
-    sessionStorage.setItem('surf_conditions', JSON.stringify(conditions))
-    sessionStorage.setItem('surf_conditions_time', String(now))
-  } catch (_) {}
-
   return conditions
 }
 
