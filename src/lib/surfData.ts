@@ -128,7 +128,7 @@ const getBoardSuggestion = (waveHeight: number): string => {
 const getBestSubRegion = (
   subRegions: { id: string, swellDirections?: string[] }[],
   swellDirection: string,
-  windDirection: string
+  _windDirection: string
 ): string => {
   // Verifica qual pico é mais compatível com a direção do swell atual
   const scored = subRegions.map(sub => {
