@@ -414,7 +414,7 @@ export default function SpotDetails() {
             score: found.score
           }).then(setForecast)
 
-          const tideRes = await getWindyForecast(found.lat, found.lng, found.lat, true)
+          const tideRes = await getWindyForecast(found.lat, found.lng, 180, true)
           if (tideRes?.tideData) {
             setTideData(tideRes.tideData)
           }
