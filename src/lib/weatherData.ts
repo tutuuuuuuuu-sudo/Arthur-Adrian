@@ -34,6 +34,7 @@ function getConditionFromScore(score: number): 'Excelente' | 'Bom' | 'Regular' |
 
 const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
   'campeche': { lat: -27.6683, lng: -48.4772 },
+  'novo-campeche': { lat: -27.6450, lng: -48.4650 },
   'morro-pedras': { lat: -27.6761, lng: -48.4842 },
   'matadeiro': { lat: -27.7342, lng: -48.5167 },
   'lagoinha-leste': { lat: -27.7892, lng: -48.5289 },
@@ -48,7 +49,6 @@ const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
   'santinho': { lat: -27.4433, lng: -48.3917 },
   'ponta-aranhas': { lat: -27.4256, lng: -48.3889 },
   'canajure': { lat: -27.4189, lng: -48.3945 },
-  'cachoeira': { lat: -27.4122, lng: -48.4006 },
 }
 
 const forecastCache: Record<string, { data: WeatherForecast[], time: number }> = {}
@@ -112,7 +112,6 @@ export async function getWeatherForecast(
       let score: number
 
       if (i === 0 && currentConditions) {
-        // "Hoje" usa exatamente os dados e score em tempo real
         waveHeight = currentConditions.waveHeight
         windSpeed = currentConditions.windSpeed
         swellPeriod = currentConditions.swellPeriod
