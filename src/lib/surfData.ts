@@ -7,7 +7,7 @@ export interface SubRegion {
   lat: number
   lng: number
   bestNow?: boolean
-  swellDirections?: string[] // direções de swell que favorecem esse pico
+  swellDirections?: string[]
 }
 
 export interface WaterConditions {
@@ -124,13 +124,11 @@ const getBoardSuggestion = (waveHeight: number): string => {
   return 'Longboard 8\'0"+'
 }
 
-// Lógica de melhor pico baseada em conhecimento local + direção do swell
 const getBestSubRegion = (
   subRegions: { id: string, swellDirections?: string[] }[],
   swellDirection: string,
   _windDirection: string
 ): string => {
-  // Verifica qual pico é mais compatível com a direção do swell atual
   const scored = subRegions.map(sub => {
     let score = 0
     if (sub.swellDirections && sub.swellDirections.includes(swellDirection)) {
@@ -138,7 +136,6 @@ const getBestSubRegion = (
     }
     return { id: sub.id, score }
   })
-
   const best = scored.reduce((a, b) => a.score >= b.score ? a : b)
   return best.id
 }
@@ -278,6 +275,19 @@ const CACHE_DURATION = 15 * 60 * 1000
 
 export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
   const now = Date.now()
+
+  // Tenta usar cache do sessionStorage primeiro (persiste entre logins)
+  try {
+    const cached = sessionStorage.getItem('surf_conditions')
+    const cachedTime = sessionStorage.getItem('surf_conditions_time')
+    if (cached && cachedTime && (now - Number(cachedTime)) < CACHE_DURATION) {
+      const parsed = JSON.parse(cached) as BeachCondition[]
+      cachedConditions = parsed
+      return parsed
+    }
+  } catch (_) {}
+
+  // Fallback para cache em memória
   if (cachedConditions && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedConditions
   }
@@ -350,6 +360,13 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
 
   cachedConditions = conditions
   lastFetchTime = now
+
+  // Salva no sessionStorage para persistir entre logins
+  try {
+    sessionStorage.setItem('surf_conditions', JSON.stringify(conditions))
+    sessionStorage.setItem('surf_conditions_time', String(now))
+  } catch (_) {}
+
   return conditions
 }
 
