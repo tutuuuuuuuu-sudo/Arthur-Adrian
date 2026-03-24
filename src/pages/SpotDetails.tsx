@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getWeatherForecast, WeatherForecast } from '@/lib/weatherData'
-import { getWindyForecast, TidePoint } from '@/lib/weatherApi'
 import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import {
   ArrowLeft, Waves, Wind, Navigation, Clock, Users,
@@ -27,76 +26,60 @@ const getRatingInfo = (score: number) => {
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
 }
 
-const generateRealTideCurve = (tideEvents: TidePoint[]) => {
+const generateTideData = () => {
+  const now = new Date()
   const points: { hour: number, height: number }[] = []
-  if (tideEvents.length === 0) return points
+  const amplitude = 0.35
+  const midLevel = 0.5
+  const period = 12.4
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+  const phaseOffset = (dayOfYear * 0.8) % period
 
-  const events = tideEvents.map(e => {
-    const d = new Date(e.time)
-    const hour = d.getHours() + d.getMinutes() / 60
-    return { hour, height: e.height, type: e.type }
-  }).sort((a, b) => a.hour - b.hour)
+  for (let h = 0; h <= 24; h += 0.25) {
+    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (h + phaseOffset)) / period)
+    points.push({ hour: h, height: Number(height.toFixed(2)) })
+  }
 
-  const first = events[0]
-  const last = events[events.length - 1]
-  const prevType = first.type === 'high' ? 'low' : 'high'
-  const prevHeight = prevType === 'high'
-    ? Math.max(...events.map(e => e.height))
-    : Math.min(...events.map(e => e.height))
-
-  const extendedEvents = [
-    { hour: first.hour - 6.2, height: prevHeight, type: prevType },
-    ...events,
-    {
-      hour: last.hour + 6.2,
-      height: last.type === 'high'
-        ? Math.min(...events.map(e => e.height))
-        : Math.max(...events.map(e => e.height)),
-      type: last.type === 'high' ? 'low' : 'high'
+  const tideEvents: { hour: number, type: 'alta' | 'baixa', height: number }[] = []
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1].height
+    const curr = points[i].height
+    const next = points[i + 1].height
+    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.7) {
+      tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
     }
-  ]
-
-  for (let i = 0; i < extendedEvents.length - 1; i++) {
-    const a = extendedEvents[i]
-    const b = extendedEvents[i + 1]
-    const steps = Math.round((b.hour - a.hour) / 0.25)
-    for (let s = 0; s <= steps; s++) {
-      const t = s / steps
-      const hour = a.hour + (b.hour - a.hour) * t
-      if (hour < 0 || hour > 24) continue
-      const cosT = (1 - Math.cos(t * Math.PI)) / 2
-      const height = a.height + (b.height - a.height) * cosT
-      points.push({ hour, height: Number(height.toFixed(2)) })
+    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.7) {
+      tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
     }
   }
 
-  return points.filter(p => p.hour >= 0 && p.hour <= 24).sort((a, b) => a.hour - b.hour)
+  const currentHour = now.getHours() + now.getMinutes() / 60
+  const currentHeight = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
+
+  return { points, amplitude, midLevel, phaseOffset, period, tideEvents, currentHeight: Number(currentHeight.toFixed(2)) }
 }
 
 interface TideChartSVGProps {
   tide: string
-  tideData: TidePoint[]
   expanded?: boolean
 }
 
-const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) => {
+const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const [tooltip, setTooltip] = useState<{ x: number, y: number, hour: number, height: number } | null>(null)
+  const { points, midLevel, amplitude, phaseOffset, period, tideEvents, currentHeight } = generateTideData()
 
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
-  const points = generateRealTideCurve(tideData)
-  const hasRealData = points.length > 0
 
-  const allHeights = points.map(p => p.height)
-  const minH = hasRealData ? Math.min(...allHeights) - 0.05 : 0.1
-  const maxH = hasRealData ? Math.max(...allHeights) + 0.05 : 0.9
-
-  const viewWidth = expanded ? 600 : 340
-  const viewHeight = expanded ? 200 : 130
-  const padding = { top: 30, bottom: 24, left: 36, right: 12 }
+  const viewWidth = expanded ? 560 : 340
+  const viewHeight = expanded ? 180 : 130
+  const padding = { top: 30, bottom: 24, left: 32, right: 12 }
   const chartWidth = viewWidth - padding.left - padding.right
   const chartHeight = viewHeight - padding.top - padding.bottom
+
+  const minH = midLevel - amplitude - 0.08
+  const maxH = midLevel + amplitude + 0.08
 
   const xScale = (hour: number) => (hour / 24) * chartWidth + padding.left
   const yScale = (h: number) => chartHeight - ((h - minH) / (maxH - minH)) * chartHeight + padding.top
@@ -105,26 +88,12 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
     `${i === 0 ? 'M' : 'L'} ${xScale(p.hour).toFixed(1)} ${yScale(p.height).toFixed(1)}`
   ).join(' ')
 
-  const areaData = points.length > 0
-    ? pathData +
-      ` L ${xScale(points[points.length - 1].hour).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)}` +
-      ` L ${xScale(points[0].hour).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)} Z`
-    : ''
+  const areaData = pathData +
+    ` L ${xScale(24).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)}` +
+    ` L ${xScale(0).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)} Z`
 
-  const getCurrentHeight = () => {
-    if (points.length === 0) return null
-    const before = points.filter(p => p.hour <= currentHour)
-    const after = points.filter(p => p.hour > currentHour)
-    if (before.length === 0 || after.length === 0) return null
-    const a = before[before.length - 1]
-    const b = after[0]
-    const t = (currentHour - a.hour) / (b.hour - a.hour)
-    return Number((a.height + (b.height - a.height) * t).toFixed(2))
-  }
-
-  const currentHeight = getCurrentHeight()
   const currentX = xScale(currentHour)
-  const currentY = currentHeight != null ? yScale(currentHeight) : null
+  const currentY = yScale(currentHeight)
 
   const formatHour = (h: number) => {
     const hh = Math.floor(h)
@@ -133,30 +102,18 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
   }
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current || points.length === 0) return
+    if (!svgRef.current) return
     const rect = svgRef.current.getBoundingClientRect()
     const scaleX = viewWidth / rect.width
     const rawX = (e.clientX - rect.left) * scaleX
     const hour = Math.max(0, Math.min(24, (rawX - padding.left) / chartWidth * 24))
-    const before = points.filter(p => p.hour <= hour)
-    const after = points.filter(p => p.hour > hour)
-    if (before.length === 0 || after.length === 0) return
-    const a = before[before.length - 1]
-    const b = after[0]
-    const t = (hour - a.hour) / (b.hour - a.hour)
-    const height = a.height + (b.height - a.height) * t
+    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (hour + phaseOffset)) / period)
     setTooltip({ x: rawX, y: yScale(height), hour, height: Number(height.toFixed(2)) })
   }
 
   const handleMouseLeave = () => setTooltip(null)
 
-  const filteredTideData = tideData.filter((event, i) => {
-    if (i === 0) return true
-    const prev = tideData[i - 1]
-    const dPrev = new Date(prev.time)
-    const dCurr = new Date(event.time)
-    return Math.abs(dCurr.getHours() - dPrev.getHours()) >= 2
-  })
+  const gradId = expanded ? 'tideGradExp' : 'tideGrad'
 
   return (
     <div className="space-y-3">
@@ -165,15 +122,11 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
           <div className="text-xs text-muted-foreground">Estado Atual</div>
           <div className="text-xl font-bold">{tide}</div>
         </div>
-        {currentHeight != null && (
-          <>
-            <Separator orientation="vertical" className="h-10" />
-            <div>
-              <div className="text-xs text-muted-foreground">Nível da Maré Agora</div>
-              <div className="text-xl font-bold text-cyan-500">{currentHeight}m</div>
-            </div>
-          </>
-        )}
+        <Separator orientation="vertical" className="h-10" />
+        <div>
+          <div className="text-xs text-muted-foreground">Nível Aproximado Agora</div>
+          <div className="text-xl font-bold text-cyan-500">~{currentHeight}m</div>
+        </div>
       </div>
 
       <div className="relative rounded-lg overflow-hidden bg-muted/10 border border-border/30 p-1">
@@ -186,20 +139,11 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
           onMouseLeave={handleMouseLeave}
         >
           <defs>
-            <linearGradient id={`tideGrad${expanded ? 'Exp' : ''}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.5" />
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.03" />
             </linearGradient>
           </defs>
-
-          {/* Linha do nível zero para referência */}
-          {minH < 0 && (
-            <line
-              x1={padding.left} y1={yScale(0)}
-              x2={viewWidth - padding.right} y2={yScale(0)}
-              stroke="#ffffff" strokeWidth="0.5" strokeDasharray="4,3" opacity="0.2"
-            />
-          )}
 
           {[0.25, 0.5, 0.75].map((t, i) => (
             <line key={i}
@@ -209,48 +153,42 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
             />
           ))}
 
-          {hasRealData && <path d={areaData} fill={`url(#tideGrad${expanded ? 'Exp' : ''})`} />}
-          {hasRealData && <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+          <path d={areaData} fill={`url(#${gradId})`} />
+          <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-          {filteredTideData.map((event, i) => {
-            const d = new Date(event.time)
-            const hour = d.getHours() + d.getMinutes() / 60
-            if (hour < 0 || hour > 24) return null
-            const isHigh = event.type === 'high'
+          {tideEvents.map((event, i) => {
+            const labelX = Math.min(Math.max(xScale(event.hour), padding.left + 22), viewWidth - padding.right - 22)
             const y = yScale(event.height)
-            const labelX = Math.min(Math.max(xScale(hour), padding.left + 22), viewWidth - padding.right - 22)
             return (
               <g key={i}>
                 <line
-                  x1={xScale(hour)} y1={y}
-                  x2={xScale(hour)} y2={isHigh ? padding.top - 5 : chartHeight + padding.top + 5}
-                  stroke={isHigh ? '#22c55e' : '#f59e0b'}
+                  x1={xScale(event.hour)} y1={y}
+                  x2={xScale(event.hour)} y2={event.type === 'alta' ? padding.top - 5 : chartHeight + padding.top + 5}
+                  stroke={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
                   strokeWidth="0.5" strokeDasharray="2,2" opacity="0.5"
                 />
                 <text
                   x={labelX}
-                  y={isHigh ? padding.top - 18 : chartHeight + padding.top + 16}
+                  y={event.type === 'alta' ? padding.top - 18 : chartHeight + padding.top + 16}
                   textAnchor="middle" fontSize={expanded ? "10" : "9"}
-                  fill={isHigh ? '#22c55e' : '#f59e0b'} fontWeight="bold"
+                  fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'} fontWeight="bold"
                 >
-                  {isHigh ? '▲ Alta' : '▼ Baixa'}
+                  {event.type === 'alta' ? '▲ Alta' : '▼ Baixa'}
                 </text>
                 <text
                   x={labelX}
-                  y={isHigh ? padding.top - 8 : chartHeight + padding.top + 26}
+                  y={event.type === 'alta' ? padding.top - 8 : chartHeight + padding.top + 26}
                   textAnchor="middle" fontSize={expanded ? "9" : "8"}
-                  fill={isHigh ? '#22c55e' : '#f59e0b'}
+                  fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
                 >
-                  {formatHour(hour)} · {event.height.toFixed(2)}m
+                  ~{formatHour(event.hour)} · ~{event.height.toFixed(1)}m
                 </text>
               </g>
             )
           })}
 
-          {[minH, (minH + maxH) / 2, maxH].map((h, i) => (
-            <text key={i} x={padding.left - 4} y={yScale(h) + 3}
-              textAnchor="end" fontSize="7" fill="#6b7280"
-            >
+          {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (
+            <text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">
               {h.toFixed(1)}
             </text>
           ))}
@@ -261,16 +199,13 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
                 x2={xScale(h)} y2={chartHeight + padding.top + 3}
                 stroke="#6b7280" strokeWidth="0.8"
               />
-              <text x={xScale(h)} y={viewHeight - 4}
-                textAnchor="middle" fontSize="8" fill="#6b7280"
-              >
+              <text x={xScale(h)} y={viewHeight - 4} textAnchor="middle" fontSize="8" fill="#6b7280">
                 {h === 24 ? '00h' : `${h}h`}
               </text>
             </g>
           ))}
 
-          <line x1={currentX} y1={padding.top}
-            x2={currentX} y2={chartHeight + padding.top}
+          <line x1={currentX} y1={padding.top} x2={currentX} y2={chartHeight + padding.top}
             stroke="#ffffff" strokeWidth="1" strokeDasharray="3,2" opacity="0.4"
           />
           <rect
@@ -285,20 +220,16 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
           >
             Agora
           </text>
-
-          {currentY != null && (
-            <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
-          )}
+          <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
 
           {tooltip && (
             <>
-              <line x1={tooltip.x} y1={padding.top}
-                x2={tooltip.x} y2={chartHeight + padding.top}
+              <line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top}
                 stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.5"
               />
               <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" />
               {(() => {
-                const tipW = 80
+                const tipW = 88
                 const tipH = 36
                 const tipX = Math.min(Math.max(tooltip.x - tipW / 2, padding.left), viewWidth - padding.right - tipW)
                 const tipY = tooltip.y < viewHeight / 2 ? tooltip.y + 10 : tooltip.y - tipH - 10
@@ -309,7 +240,7 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
                       {formatHour(tooltip.hour)}
                     </text>
                     <text x={tipX + tipW / 2} y={tipY + 26} textAnchor="middle" fontSize="9" fill="#06b6d4">
-                      Nível: {tooltip.height.toFixed(2)}m
+                      ~{tooltip.height.toFixed(2)}m (aprox.)
                     </text>
                   </g>
                 )
@@ -333,22 +264,22 @@ const TideChartSVG = ({ tide, tideData, expanded = false }: TideChartSVGProps) =
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
         <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
         <span>
-          Este gráfico mostra o <strong>nível da maré</strong> ao longo do dia — não o tamanho das ondas.
-          Valores negativos são normais e indicam que a maré está abaixo do nível médio do mar.
-          Dados fornecidos pela Stormglass.
+          Dados aproximados baseados no padrão semi-diurno de Florianópolis.
+          Este gráfico mostra o <strong>nível da maré</strong>, não o tamanho das ondas.
+          Para dados precisos consulte a Marinha do Brasil.
         </span>
       </div>
     </div>
   )
 }
 
-const TideChart = ({ tide, tideData }: { tide: string, tideData: TidePoint[] }) => {
+const TideChart = ({ tide }: { tide: string }) => {
   const [expanded, setExpanded] = useState(false)
 
   return (
     <>
       <div className="relative">
-        <TideChartSVG tide={tide} tideData={tideData} expanded={false} />
+        <TideChartSVG tide={tide} expanded={false} />
         <button
           onClick={() => setExpanded(true)}
           className="absolute top-0 right-0 p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
@@ -358,7 +289,6 @@ const TideChart = ({ tide, tideData }: { tide: string, tideData: TidePoint[] }) 
         </button>
       </div>
 
-      {/* Modal expandido */}
       {expanded && (
         <div
           className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4"
@@ -380,7 +310,7 @@ const TideChart = ({ tide, tideData }: { tide: string, tideData: TidePoint[] }) 
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
-            <TideChartSVG tide={tide} tideData={tideData} expanded={true} />
+            <TideChartSVG tide={tide} expanded={true} />
           </div>
         </div>
       )}
@@ -396,7 +326,6 @@ export default function SpotDetails() {
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(true)
   const [forecast, setForecast] = useState<WeatherForecast[]>([])
-  const [tideData, setTideData] = useState<TidePoint[]>([])
 
   useEffect(() => {
     if (id) {
@@ -413,11 +342,6 @@ export default function SpotDetails() {
             waterTemperature: found.waterConditions.temperature,
             score: found.score
           }).then(setForecast)
-
-          const tideRes = await getWindyForecast(found.lat, found.lng, 180, true)
-          if (tideRes?.tideData) {
-            setTideData(tideRes.tideData)
-          }
         }
       })
       isFavorite(id).then(val => {
@@ -493,7 +417,6 @@ export default function SpotDetails() {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
-
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-4xl font-bold mb-2">{spot.name}</h1>
@@ -674,7 +597,7 @@ export default function SpotDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <TideChart tide={spot.tide} tideData={tideData} />
+                <TideChart tide={spot.tide} />
               </CardContent>
             </Card>
 
