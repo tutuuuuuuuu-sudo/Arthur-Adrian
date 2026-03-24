@@ -7,6 +7,7 @@ export interface SubRegion {
   lat: number
   lng: number
   bestNow?: boolean
+  swellDirections?: string[] // direções de swell que favorecem esse pico
 }
 
 export interface WaterConditions {
@@ -123,83 +124,152 @@ const getBoardSuggestion = (waveHeight: number): string => {
   return 'Longboard 8\'0"+'
 }
 
+// Lógica de melhor pico baseada em conhecimento local + direção do swell
+const getBestSubRegion = (
+  subRegions: { id: string, swellDirections?: string[] }[],
+  swellDirection: string,
+  windDirection: string
+): string => {
+  // Verifica qual pico é mais compatível com a direção do swell atual
+  const scored = subRegions.map(sub => {
+    let score = 0
+    if (sub.swellDirections && sub.swellDirections.includes(swellDirection)) {
+      score += 3
+    }
+    return { id: sub.id, score }
+  })
+
+  const best = scored.reduce((a, b) => a.score >= b.score ? a : b)
+  return best.id
+}
+
 const BEACHES = [
-  { id: 'campeche', name: 'Campeche', region: 'Sul' as const, lat: -27.6683, lng: -48.4772, orientation: 90,
+  {
+    id: 'campeche', name: 'Campeche', region: 'Sul' as const,
+    lat: -27.6683, lng: -48.4772, orientation: 90,
     subRegions: [
-      { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.6720, lng: -48.4780 },
-      { id: 'palanque', name: 'Palanque', lat: -27.6683, lng: -48.4772 },
-      { id: 'principal', name: 'Principal', lat: -27.6650, lng: -48.4760 },
+      { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.6720, lng: -48.4780, swellDirections: ['E', 'SE'] },
+      { id: 'palanque', name: 'Palanque', lat: -27.6683, lng: -48.4772, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'principal', name: 'Principal', lat: -27.6650, lng: -48.4760, swellDirections: ['E', 'NE'] },
     ],
     bestTimeWindow: '06h - 09h',
     cameraUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
     cameraEmbed: 'https://www.youtube.com/embed/5qap5aO4i9A'
   },
-  { id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const, lat: -27.6761, lng: -48.4842, orientation: 100,
+  {
+    id: 'novo-campeche', name: 'Novo Campeche', region: 'Sul' as const,
+    lat: -27.6450, lng: -48.4650, orientation: 90,
     subRegions: [
-      { id: 'canto-direito', name: 'Canto Direito', lat: -27.6750, lng: -48.4830 },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.6761, lng: -48.4842 },
+      { id: 'norte-novo-campeche', name: 'Lado Norte', lat: -27.6400, lng: -48.4630, swellDirections: ['E', 'NE'] },
+      { id: 'sul-novo-campeche', name: 'Lado Sul', lat: -27.6500, lng: -48.4670, swellDirections: ['SE', 'E'] },
+    ],
+    bestTimeWindow: '06h - 09h'
+  },
+  {
+    id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const,
+    lat: -27.6761, lng: -48.4842, orientation: 100,
+    subRegions: [
+      { id: 'canto-direito', name: 'Canto Direito', lat: -27.6750, lng: -48.4830, swellDirections: ['SE', 'S'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.6761, lng: -48.4842, swellDirections: ['E', 'SE'] },
     ],
     bestTimeWindow: '07h - 10h'
   },
-  { id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const, lat: -27.7342, lng: -48.5167, orientation: 110, bestTimeWindow: '06h - 09h' },
-  { id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const, lat: -27.7892, lng: -48.5289, orientation: 180, bestTimeWindow: 'Dia todo (acesso por trilha)' },
-  { id: 'acores', name: 'Açores', region: 'Sul' as const, lat: -27.7572, lng: -48.5125, orientation: 120,
+  {
+    id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const,
+    lat: -27.7342, lng: -48.5167, orientation: 110,
+    bestTimeWindow: '06h - 09h'
+  },
+  {
+    id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const,
+    lat: -27.7892, lng: -48.5289, orientation: 180,
+    bestTimeWindow: 'Dia todo (acesso por trilha)'
+  },
+  {
+    id: 'acores', name: 'Açores', region: 'Sul' as const,
+    lat: -27.7572, lng: -48.5125, orientation: 120,
     subRegions: [
-      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7565, lng: -48.5110 },
-      { id: 'meio', name: 'Meio', lat: -27.7572, lng: -48.5125 },
+      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7565, lng: -48.5110, swellDirections: ['SE', 'S'] },
+      { id: 'meio', name: 'Meio', lat: -27.7572, lng: -48.5125, swellDirections: ['E', 'SE'] },
     ],
     bestTimeWindow: '07h - 11h'
   },
-  { id: 'solidao', name: 'Solidão', region: 'Sul' as const, lat: -27.7456, lng: -48.5089, orientation: 130, bestTimeWindow: '08h - 11h' },
-  { id: 'armacao', name: 'Armação', region: 'Sul' as const, lat: -27.7447, lng: -48.5044, orientation: 115,
+  {
+    id: 'solidao', name: 'Solidão', region: 'Sul' as const,
+    lat: -27.7456, lng: -48.5089, orientation: 130,
+    bestTimeWindow: '08h - 11h'
+  },
+  {
+    id: 'armacao', name: 'Armação', region: 'Sul' as const,
+    lat: -27.7447, lng: -48.5044, orientation: 115,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7440, lng: -48.5035 },
-      { id: 'centro', name: 'Centro', lat: -27.7447, lng: -48.5044 },
-      { id: 'matadouro', name: 'Matadouro', lat: -27.7455, lng: -48.5055 },
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7440, lng: -48.5035, swellDirections: ['SE', 'S'] },
+      { id: 'centro', name: 'Centro', lat: -27.7447, lng: -48.5044, swellDirections: ['E', 'SE'] },
+      { id: 'matadouro', name: 'Matadouro', lat: -27.7455, lng: -48.5055, swellDirections: ['S', 'SW'] },
     ],
     bestTimeWindow: '06h - 09h e 16h - 18h'
   },
-  { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const, lat: -27.8456, lng: -48.5623, orientation: 180, bestTimeWindow: 'Depende da maré (acesso por trilha)' },
-  { id: 'joaquina', name: 'Joaquina', region: 'Leste' as const, lat: -27.6214, lng: -48.4433, orientation: 90,
+  {
+    id: 'naufragados', name: 'Naufragados', region: 'Sul' as const,
+    lat: -27.8456, lng: -48.5623, orientation: 180,
+    bestTimeWindow: 'Depende da maré (acesso por trilha)'
+  },
+  {
+    id: 'joaquina', name: 'Joaquina', region: 'Leste' as const,
+    lat: -27.6214, lng: -48.4433, orientation: 90,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', lat: -27.6230, lng: -48.4440 },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.6214, lng: -48.4433 },
-      { id: 'canto-direito', name: 'Canto Direito', lat: -27.6195, lng: -48.4420 },
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', lat: -27.6230, lng: -48.4440, swellDirections: ['SE', 'S'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.6214, lng: -48.4433, swellDirections: ['E', 'SE'] },
+      { id: 'canto-direito', name: 'Canto Direito', lat: -27.6195, lng: -48.4420, swellDirections: ['NE', 'E'] },
     ],
     bestTimeWindow: 'Agora até 11h'
   },
-  { id: 'mole', name: 'Praia Mole', region: 'Leste' as const, lat: -27.5989, lng: -48.4381, orientation: 85,
+  {
+    id: 'mole', name: 'Praia Mole', region: 'Leste' as const,
+    lat: -27.5989, lng: -48.4381, orientation: 85,
     subRegions: [
-      { id: 'gruta', name: 'Gruta', lat: -27.5995, lng: -48.4390 },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.5989, lng: -48.4381 },
+      { id: 'gruta', name: 'Gruta', lat: -27.5995, lng: -48.4390, swellDirections: ['SE', 'E'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.5989, lng: -48.4381, swellDirections: ['E', 'NE'] },
     ],
     bestTimeWindow: '07h - 10h'
   },
-  { id: 'mocambique', name: 'Moçambique', region: 'Leste' as const, lat: -27.5647, lng: -48.4208, orientation: 80,
+  {
+    id: 'mocambique', name: 'Moçambique', region: 'Leste' as const,
+    lat: -27.5647, lng: -48.4208, orientation: 80,
     subRegions: [
-      { id: 'norte', name: 'Norte (Barra)', lat: -27.5600, lng: -48.4195 },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.5647, lng: -48.4208 },
-      { id: 'sul', name: 'Sul', lat: -27.5700, lng: -48.4220 },
+      { id: 'norte', name: 'Norte (Barra)', lat: -27.5600, lng: -48.4195, swellDirections: ['NE', 'E'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.5647, lng: -48.4208, swellDirections: ['E', 'SE'] },
+      { id: 'sul', name: 'Sul', lat: -27.5700, lng: -48.4220, swellDirections: ['SE', 'S'] },
     ],
     bestTimeWindow: '08h - 11h'
   },
-  { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const, lat: -27.5767, lng: -48.4194, orientation: 75,
+  {
+    id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const,
+    lat: -27.5767, lng: -48.4194, orientation: 75,
     subRegions: [
-      { id: 'canal', name: 'Canal da Barra', lat: -27.5760, lng: -48.4185 },
-      { id: 'prainha', name: 'Prainha', lat: -27.5775, lng: -48.4200 },
+      { id: 'canal', name: 'Canal da Barra', lat: -27.5760, lng: -48.4185, swellDirections: ['NE', 'E'] },
+      { id: 'prainha', name: 'Prainha', lat: -27.5775, lng: -48.4200, swellDirections: ['E', 'SE'] },
     ],
     bestTimeWindow: 'Melhor na maré enchente'
   },
-  { id: 'santinho', name: 'Santinho', region: 'Norte' as const, lat: -27.4433, lng: -48.3917, orientation: 70,
+  {
+    id: 'santinho', name: 'Santinho', region: 'Norte' as const,
+    lat: -27.4433, lng: -48.3917, orientation: 70,
     subRegions: [
-      { id: 'costao', name: 'Costão do Santinho', lat: -27.4420, lng: -48.3905 },
-      { id: 'centro', name: 'Centro', lat: -27.4433, lng: -48.3917 },
+      { id: 'costao', name: 'Costão do Santinho', lat: -27.4420, lng: -48.3905, swellDirections: ['NE', 'E'] },
+      { id: 'centro', name: 'Centro', lat: -27.4433, lng: -48.3917, swellDirections: ['E', 'SE'] },
     ],
     bestTimeWindow: '15h - 17h'
   },
-  { id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const, lat: -27.4256, lng: -48.3889, orientation: 65, bestTimeWindow: '09h - 12h' },
-  { id: 'canajure', name: 'Canajurê', region: 'Norte' as const, lat: -27.4189, lng: -48.3945, orientation: 60, bestTimeWindow: '10h - 13h' },
-  { id: 'cachoeira', name: 'Cachoeira do Bom Jesus', region: 'Norte' as const, lat: -27.4122, lng: -48.4006, orientation: 55, bestTimeWindow: 'Melhor no verão' },
+  {
+    id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const,
+    lat: -27.4256, lng: -48.3889, orientation: 65,
+    bestTimeWindow: '09h - 12h'
+  },
+  {
+    id: 'canajure', name: 'Canajurê', region: 'Norte' as const,
+    lat: -27.4189, lng: -48.3945, orientation: 60,
+    bestTimeWindow: '10h - 13h'
+  },
 ]
 
 let cachedConditions: BeachCondition[] | null = null
@@ -223,8 +293,6 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const windDirection = windyData?.windDirection ?? 'N (Terral)'
       const swellPeriod = windyData?.swellPeriod ?? 10
       const swellDirection = windyData?.swellDirection ?? 'SE'
-
-      // Usa temperatura real da API, com fallback por época do ano
       const waterTemp = windyData?.waterTemperature ?? getWaterTempFallback()
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection)
@@ -233,34 +301,18 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
 
       let subRegions = undefined
       if ((beach as any).subRegions && (beach as any).subRegions.length > 0) {
-        const subData = await Promise.all(
-          (beach as any).subRegions.map(async (sub: any) => {
-            const data = await getWindyForecast(sub.lat, sub.lng, beach.orientation)
-            return {
-              id: sub.id,
-              name: sub.name,
-              lat: sub.lat,
-              lng: sub.lng,
-              waveHeight: data?.waveHeight ?? waveHeight,
-              score: calculateScore(
-                data?.waveHeight ?? waveHeight,
-                data?.windSpeed ?? windSpeed,
-                data?.swellPeriod ?? swellPeriod,
-                data?.windDirection ?? windDirection
-              )
-            }
-          })
-        )
-        const bestSub = subData.reduce((a, b) => a.score > b.score ? a : b)
-        subRegions = subData.map(sub => ({
+        const beachSubs = (beach as any).subRegions
+        const bestSubId = getBestSubRegion(beachSubs, swellDirection, windDirection)
+
+        subRegions = beachSubs.map((sub: any) => ({
           id: sub.id,
           name: sub.name,
           lat: sub.lat,
           lng: sub.lng,
-          description: sub.id === bestSub.id
-            ? `🔥 Melhor agora! ${sub.waveHeight.toFixed(1)}m de onda`
-            : `${sub.waveHeight.toFixed(1)}m de onda`,
-          bestNow: sub.id === bestSub.id
+          description: sub.id === bestSubId
+            ? `🔥 Melhor com swell de ${swellDirection}`
+            : `Funciona melhor com swell de ${sub.swellDirections?.join(', ') ?? 'E'}`,
+          bestNow: sub.id === bestSubId
         }))
       }
 
