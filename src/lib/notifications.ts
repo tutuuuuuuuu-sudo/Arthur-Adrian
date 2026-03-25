@@ -1,5 +1,3 @@
-import { supabase } from './supabase'
-
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) return false
   if (Notification.permission === 'granted') return true
@@ -18,7 +16,7 @@ export async function subscribeToNotifications(): Promise<boolean> {
   if (!('serviceWorker' in navigator)) return false
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.register('/sw.js')
     await navigator.serviceWorker.ready
 
     const granted = await requestNotificationPermission()
@@ -45,7 +43,6 @@ export async function sendLocalNotification(title: string, body: string, url?: s
       tag: 'surf-alert',
     })
   } catch {
-    // Fallback para notificação simples
     new Notification(title, { body })
   }
 }
@@ -83,7 +80,6 @@ export async function checkAndNotifyGoodConditions(
   const lastNotified = localStorage.getItem('last_notified_time')
   const now = Date.now()
 
-  // Só notifica a cada 1 hora no máximo
   if (lastNotified && now - Number(lastNotified) < 60 * 60 * 1000) return
 
   const goodSpots = spots.filter(s => {
