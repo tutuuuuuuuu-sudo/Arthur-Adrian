@@ -250,7 +250,6 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
             const isHigh = event.type === 'alta'
             const labelX = Math.min(Math.max(ex, padding.left + 24), viewWidth - padding.right - 24)
             // Alta: label acima do pico | Baixa: label abaixo do vale
-            const labelY = isHigh ? ey - 14 : ey + 14
             const arrowY = isHigh ? ey - 6 : ey + 6
 
             return (
