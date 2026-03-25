@@ -26,7 +26,6 @@ const getRatingInfo = (score: number) => {
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
 }
 
-// Mapa de siglas para nomes completos em português
 const directionNames: Record<string, string> = {
   'N': 'Norte', 'NNE': 'Norte-Nordeste', 'NE': 'Nordeste', 'ENE': 'Leste-Nordeste',
   'E': 'Leste', 'ESE': 'Leste-Sudeste', 'SE': 'Sudeste', 'SSE': 'Sul-Sudeste',
@@ -34,12 +33,8 @@ const directionNames: Record<string, string> = {
   'W': 'Oeste', 'WNW': 'Oeste-Noroeste', 'NW': 'Noroeste', 'NNW': 'Norte-Noroeste'
 }
 
-// Extrai só a sigla da direção (remove o sufixo entre parênteses)
-const getWindDirectionCode = (direction: string): string => {
-  return direction.split(' ')[0]
-}
+const getWindDirectionCode = (direction: string): string => direction.split(' ')[0]
 
-// Retorna nome completo + classificação legível
 const formatWindDirection = (direction: string): { code: string, name: string, type: string, isOffshore: boolean } => {
   const code = getWindDirectionCode(direction)
   const name = directionNames[code] ?? code
@@ -49,7 +44,6 @@ const formatWindDirection = (direction: string): { code: string, name: string, t
   return { code, name, type, isOffshore }
 }
 
-// Converte direção de texto para graus
 const directionToDegrees = (direction: string): number => {
   const base = getWindDirectionCode(direction)
   const map: Record<string, number> = {
@@ -61,23 +55,20 @@ const directionToDegrees = (direction: string): number => {
   return map[base] ?? 0
 }
 
-// Rosa dos ventos SVG
 const WindCompass = ({ direction, speed }: { direction: string, speed: number }) => {
   const degrees = directionToDegrees(direction)
   const { code, name, type, isOffshore } = formatWindDirection(direction)
-
   const getWindColor = (spd: number) => {
     if (spd <= 10) return '#22c55e'
     if (spd <= 20) return '#f59e0b'
     if (spd <= 30) return '#f97316'
     return '#ef4444'
   }
-
   const color = getWindColor(speed)
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="100" height="100" viewBox="0 0 110 110">
+      <svg width="100" height="100" viewBox="0 0 110 110" style={{ animation: 'fadeIn 0.6s ease-out' }}>
         <circle cx="55" cy="55" r="50" fill="none" stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.4" />
         <circle cx="55" cy="55" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" opacity="0.2" />
         {[{ label: 'N', x: 55, y: 8 }, { label: 'S', x: 55, y: 104 }, { label: 'L', x: 104, y: 57 }, { label: 'O', x: 6, y: 57 }].map(({ label, x, y }) => (
@@ -97,7 +88,7 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
         })}
         <line x1="55" y1="10" x2="55" y2="100" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
         <line x1="10" y1="55" x2="100" y2="55" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
-        <g transform={`rotate(${degrees}, 55, 55)`}>
+        <g transform={`rotate(${degrees}, 55, 55)`} style={{ transformOrigin: '55px 55px', animation: 'spinIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
           <line x1="55" y1="55" x2="55" y2="20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
           <polygon points="55,14 50,24 60,24" fill={color} />
           <line x1="55" y1="55" x2="55" y2="75" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
@@ -143,7 +134,6 @@ const generateTideData = () => {
 
   const currentHour = now.getHours() + now.getMinutes() / 60
   const currentHeight = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
-
   return { points, amplitude, midLevel, phaseOffset, period, tideEvents, currentHeight: Number(currentHeight.toFixed(2)) }
 }
 
@@ -216,7 +206,7 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
         </div>
       </div>
 
-      <div className="relative rounded-lg overflow-hidden bg-muted/10 border border-border/30 p-1">
+      <div className="relative rounded-lg overflow-hidden bg-muted/10 border border-border/30 p-1" style={{ animation: 'fadeIn 0.8s ease-out' }}>
         <svg
           ref={svgRef}
           width="100%"
@@ -243,36 +233,29 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
           <path d={areaData} fill={`url(#${gradId})`} />
           <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Marcadores de alta e baixa DENTRO do gráfico */}
           {tideEvents.map((event, i) => {
             const ex = xScale(event.hour)
             const ey = yScale(event.height)
             const isHigh = event.type === 'alta'
             const labelX = Math.min(Math.max(ex, padding.left + 24), viewWidth - padding.right - 24)
-            // Alta: label acima do pico | Baixa: label abaixo do vale
-            const arrowY = isHigh ? ey - 6 : ey + 6
-
             return (
               <g key={i}>
-                {/* Ponto no pico/vale */}
-                <circle cx={ex} cy={ey} r="3" fill={isHigh ? '#22c55e' : '#f59e0b'} />
-                {/* Seta */}
-                <text x={labelX} y={arrowY}
-                  textAnchor="middle" fontSize="10"
+                <circle cx={ex} cy={ey} r="3.5" fill={isHigh ? '#22c55e' : '#f59e0b'} />
+                <text x={labelX} y={isHigh ? ey - 8 : ey + 12}
+                  textAnchor="middle" fontSize="11"
                   fill={isHigh ? '#22c55e' : '#f59e0b'} fontWeight="bold"
                 >
                   {isHigh ? '▲' : '▼'}
                 </text>
-                {/* Horário e altura */}
-                <text x={labelX} y={isHigh ? ey - 24 : ey + 26}
-                  textAnchor="middle" fontSize={expanded ? "9" : "8"}
+                <text x={labelX} y={isHigh ? ey - 20 : ey + 24}
+                  textAnchor="middle" fontSize={expanded ? "9" : "8.5"}
                   fill={isHigh ? '#22c55e' : '#f59e0b'} fontWeight="600"
                 >
                   {formatHour(event.hour)}
                 </text>
-                <text x={labelX} y={isHigh ? ey - 14 : ey + 36}
+                <text x={labelX} y={isHigh ? ey - 10 : ey + 34}
                   textAnchor="middle" fontSize={expanded ? "8" : "7.5"}
-                  fill={isHigh ? '#22c55e' : '#f59e0b'} opacity="0.85"
+                  fill={isHigh ? '#22c55e' : '#f59e0b'} opacity="0.9"
                 >
                   ~{event.height.toFixed(1)}m
                 </text>
@@ -280,14 +263,12 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
             )
           })}
 
-          {/* Escala Y */}
           {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (
             <text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">
               {h.toFixed(1)}
             </text>
           ))}
 
-          {/* Horas */}
           {[0, 6, 12, 18, 24].map(h => (
             <g key={h}>
               <line x1={xScale(h)} y1={chartHeight + padding.top}
@@ -300,7 +281,6 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
             </g>
           ))}
 
-          {/* Linha Agora */}
           <line x1={currentX} y1={padding.top} x2={currentX} y2={chartHeight + padding.top}
             stroke="#ffffff" strokeWidth="1" strokeDasharray="3,2" opacity="0.4"
           />
@@ -314,7 +294,6 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
           </text>
           <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
 
-          {/* Tooltip */}
           {tooltip && (
             <>
               <line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top}
@@ -368,7 +347,6 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
 
 const TideChart = ({ tide }: { tide: string }) => {
   const [expanded, setExpanded] = useState(false)
-
   return (
     <>
       <div className="relative">
@@ -381,15 +359,16 @@ const TideChart = ({ tide }: { tide: string }) => {
           <Maximize2 className="h-4 w-4 text-muted-foreground" />
         </button>
       </div>
-
       {expanded && (
         <div
           className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setExpanded(false)}
+          style={{ animation: 'fadeIn 0.2s ease-out' }}
         >
           <div
             className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl"
             onClick={e => e.stopPropagation()}
+            style={{ animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -408,6 +387,16 @@ const TideChart = ({ tide }: { tide: string }) => {
   )
 }
 
+// Componente animado para Progress
+const AnimatedProgress = ({ value }: { value: number }) => {
+  const [displayed, setDisplayed] = useState(0)
+  useEffect(() => {
+    const timer = setTimeout(() => setDisplayed(value), 100)
+    return () => clearTimeout(timer)
+  }, [value])
+  return <Progress value={displayed} className="h-2 transition-all duration-1000 ease-out" />
+}
+
 export default function SpotDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -416,6 +405,7 @@ export default function SpotDetails() {
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(true)
   const [forecast, setForecast] = useState<WeatherForecast[]>([])
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -423,6 +413,7 @@ export default function SpotDetails() {
         const found = spots.find(s => s.id === id) ?? null
         setSpot(found)
         setLoadingSpot(false)
+        setTimeout(() => setVisible(true), 50)
         if (found) {
           getWeatherForecast(found.id, {
             waveHeight: found.waveHeight,
@@ -456,12 +447,8 @@ export default function SpotDetails() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Praia não encontrada</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate('/')}>Voltar para Home</Button>
-          </CardContent>
+          <CardHeader><CardTitle>Praia não encontrada</CardTitle></CardHeader>
+          <CardContent><Button onClick={() => navigate('/')}>Voltar para Home</Button></CardContent>
         </Card>
       </div>
     )
@@ -482,8 +469,24 @@ export default function SpotDetails() {
   const rating = getRatingInfo(spot.score)
   const windInfo = formatWindDirection(spot.windDirection)
 
+  // Estilos de animação inline (sem precisar de CSS externo)
+  const animStyles = `
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes spinIn { from { transform: rotate(-180deg); opacity: 0; } to { transform: rotate(0deg); opacity: 1; } }
+    @keyframes scorePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .anim-fade { animation: fadeIn 0.5s ease-out both; }
+    .anim-slide { animation: slideUp 0.5s ease-out both; }
+    .anim-left { animation: slideInLeft 0.5s ease-out both; }
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  `
+
   return (
     <div className="min-h-screen bg-background">
+      <style>{animStyles}</style>
+
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -508,7 +511,12 @@ export default function SpotDetails() {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
-        <div className="flex items-start justify-between gap-4">
+
+        {/* Header com nome e score */}
+        <div
+          className="flex items-start justify-between gap-4"
+          style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}
+        >
           <div className="flex-1">
             <h1 className="text-4xl font-bold mb-2">{spot.name}</h1>
             <div className="flex items-center gap-2 flex-wrap">
@@ -516,13 +524,23 @@ export default function SpotDetails() {
               <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
             </div>
           </div>
-          <div className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px]">
-            <div className={`text-5xl font-bold ${rating.color}`}>{Number(spot.score).toFixed(1)}</div>
+          <div
+            className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px]"
+            style={{ animation: visible ? 'slideUp 0.6s 0.1s ease-out both' : 'none' }}
+          >
+            <div
+              className={`text-5xl font-bold ${rating.color}`}
+              style={{ animation: visible ? 'scorePulse 0.8s 0.5s ease-in-out' : 'none' }}
+            >
+              {Number(spot.score).toFixed(1)}
+            </div>
             <div className="text-xs text-muted-foreground mt-1">Score AI</div>
             <div className={`text-xs font-bold mt-1 ${rating.color}`}>{rating.label}</div>
             <div className="flex gap-0.5 mt-2 justify-center">
               {[1,2,3,4,5].map(i => (
-                <div key={i} className={`h-2 w-5 rounded-full ${i <= rating.bars ? rating.bg : 'bg-muted'}`} />
+                <div key={i} className={`h-2 w-5 rounded-full transition-all duration-500 ${i <= rating.bars ? rating.bg : 'bg-muted'}`}
+                  style={{ transitionDelay: `${i * 80}ms` }}
+                />
               ))}
             </div>
           </div>
@@ -536,8 +554,9 @@ export default function SpotDetails() {
           </TabsList>
 
           <TabsContent value="now" className="space-y-6">
+
             {spot.subRegions && spot.subRegions.length > 0 && (
-              <Card className="bg-accent/5 border-accent/20">
+              <Card className="bg-accent/5 border-accent/20 card-hover anim-slide" style={{ animationDelay: '0.1s' }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-accent" />
@@ -546,8 +565,12 @@ export default function SpotDetails() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {spot.subRegions.map((subRegion) => (
-                      <div key={subRegion.id} className={`flex items-start gap-3 p-3 rounded-lg ${subRegion.bestNow ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`}>
+                    {spot.subRegions.map((subRegion, idx) => (
+                      <div
+                        key={subRegion.id}
+                        className={`flex items-start gap-3 p-3 rounded-lg transition-all duration-300 ${subRegion.bestNow ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`}
+                        style={{ animation: `slideInLeft 0.4s ${idx * 0.08}s ease-out both` }}
+                      >
                         <div className="flex-shrink-0 mt-0.5">
                           {subRegion.bestNow
                             ? <Star className="h-4 w-4 text-primary fill-primary" />
@@ -570,14 +593,14 @@ export default function SpotDetails() {
               </Card>
             )}
 
-            <Alert className="bg-primary/5 border-primary/20">
+            <Alert className="bg-primary/5 border-primary/20 anim-slide" style={{ animationDelay: '0.15s' }}>
               <TrendingUp className="h-4 w-4 text-primary" />
               <AlertTitle className="text-primary">Análise Inteligente</AlertTitle>
               <AlertDescription className="text-foreground">{analyzeConditions(spot)}</AlertDescription>
             </Alert>
 
             {spot.bestTimeWindow !== 'Não recomendado hoje' && spot.bestTimeWindow !== 'Condições ruins' && (
-              <Card className="bg-secondary/5 border-secondary/20">
+              <Card className="bg-secondary/5 border-secondary/20 card-hover anim-slide" style={{ animationDelay: '0.2s' }}>
                 <CardContent className="flex items-center gap-3 py-4">
                   <Clock className="h-5 w-5 text-secondary flex-shrink-0" />
                   <div>
@@ -588,7 +611,7 @@ export default function SpotDetails() {
               </Card>
             )}
 
-            <Card className="bg-chart-2/5 border-chart-2/20">
+            <Card className="bg-chart-2/5 border-chart-2/20 card-hover anim-slide" style={{ animationDelay: '0.25s' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Thermometer className="h-5 w-5 text-chart-2" />
@@ -625,7 +648,7 @@ export default function SpotDetails() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
+              <Card className="card-hover anim-slide" style={{ animationDelay: '0.3s' }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Waves className="h-5 w-5 text-primary" />
@@ -638,7 +661,7 @@ export default function SpotDetails() {
                       <span className="text-sm text-muted-foreground">Altura</span>
                       <span className="text-2xl font-bold">{Number(spot.waveHeight).toFixed(1)}m</span>
                     </div>
-                    <Progress value={spot.waveHeight * 20} className="h-2" />
+                    <AnimatedProgress value={spot.waveHeight * 20} />
                   </div>
                   <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                     <div>
@@ -653,8 +676,7 @@ export default function SpotDetails() {
                 </CardContent>
               </Card>
 
-              {/* Card de Vento com Rosa dos Ventos */}
-              <Card>
+              <Card className="card-hover anim-slide" style={{ animationDelay: '0.35s' }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Wind className="h-5 w-5 text-accent" />
@@ -669,7 +691,7 @@ export default function SpotDetails() {
                           <span className="text-sm text-muted-foreground">Velocidade</span>
                           <span className="text-2xl font-bold">{Math.round(spot.windSpeed)}km/h</span>
                         </div>
-                        <Progress value={Math.min(spot.windSpeed * 2.5, 100)} className="h-2" />
+                        <AnimatedProgress value={Math.min(spot.windSpeed * 2.5, 100)} />
                       </div>
                       <div className="pt-2 border-t space-y-1">
                         <div className="text-xs text-muted-foreground">Direção</div>
@@ -685,7 +707,7 @@ export default function SpotDetails() {
               </Card>
             </div>
 
-            <Card>
+            <Card className="anim-slide" style={{ animationDelay: '0.4s' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Navigation className="h-5 w-5 text-cyan-500" />
@@ -697,7 +719,7 @@ export default function SpotDetails() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover anim-slide" style={{ animationDelay: '0.45s' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Users className="h-5 w-5 text-chart-3" />
@@ -713,7 +735,7 @@ export default function SpotDetails() {
             </Card>
 
             {(spot.sunrise || spot.sunset) && (
-              <Card className="bg-yellow-500/5 border-yellow-500/20">
+              <Card className="bg-yellow-500/5 border-yellow-500/20 card-hover anim-slide" style={{ animationDelay: '0.5s' }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Sun className="h-5 w-5 text-yellow-500" />
@@ -736,7 +758,7 @@ export default function SpotDetails() {
             )}
 
             {spot.score < 4 && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="anim-slide" style={{ animationDelay: '0.55s' }}>
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Condições não ideais</AlertTitle>
                 <AlertDescription>
@@ -765,7 +787,11 @@ export default function SpotDetails() {
                     {forecast.map((day, index) => {
                       const dayRating = getRatingInfo(day.score)
                       return (
-                        <div key={day.date} className={`flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}>
+                        <div
+                          key={day.date}
+                          className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-300 hover:scale-[1.01] ${index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}
+                          style={{ animation: `slideInLeft 0.4s ${index * 0.06}s ease-out both` }}
+                        >
                           <div className="flex items-center gap-4">
                             <div className="text-center min-w-[60px]">
                               <div className="font-bold">{day.dayName}</div>
@@ -842,7 +868,11 @@ export default function SpotDetails() {
           </TabsContent>
         </Tabs>
 
-        <Button size="lg" className="w-full" onClick={() => navigate('/')}>
+        <Button
+          size="lg"
+          className="w-full transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          onClick={() => navigate('/')}
+        >
           Ver Todas as Praias
         </Button>
       </main>
