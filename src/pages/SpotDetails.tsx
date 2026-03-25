@@ -21,6 +21,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
 
+const FIXED_DOMAIN = 'https://lasy-c2c60750-a786-490a-a8f2-7fef1fd0-arthurs-projects-d2bf211e.vercel.app'
+
 const getRatingInfo = (score: number) => {
   if (score >= 8.5) return { label: 'ÉPICO', color: 'text-purple-500', bg: 'bg-purple-500', bars: 5 }
   if (score >= 7) return { label: 'EXCELENTE', color: 'text-primary', bg: 'bg-primary', bars: 4 }
@@ -38,7 +40,7 @@ const directionNames: Record<string, string> = {
 
 const getWindDirectionCode = (direction: string): string => direction.split(' ')[0]
 
-const formatWindDirection = (direction: string): { code: string, name: string, type: string, isOffshore: boolean } => {
+const formatWindDirection = (direction: string) => {
   const code = getWindDirectionCode(direction)
   const name = directionNames[code] ?? code
   const isOffshore = direction.includes('Terral')
@@ -68,10 +70,9 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
     return '#ef4444'
   }
   const color = getWindColor(speed)
-
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="100" height="100" viewBox="0 0 110 110" style={{ animation: 'fadeIn 0.6s ease-out' }}>
+      <svg width="100" height="100" viewBox="0 0 110 110">
         <circle cx="55" cy="55" r="50" fill="none" stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.4" />
         <circle cx="55" cy="55" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" opacity="0.2" />
         {[{ label: 'N', x: 55, y: 8 }, { label: 'S', x: 55, y: 104 }, { label: 'L', x: 104, y: 57 }, { label: 'O', x: 6, y: 57 }].map(({ label, x, y }) => (
@@ -83,11 +84,7 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
         ))}
         {[45, 135, 225, 315].map(deg => {
           const rad = (deg - 90) * Math.PI / 180
-          return <line key={deg}
-            x1={55 + 42 * Math.cos(rad)} y1={55 + 42 * Math.sin(rad)}
-            x2={55 + 48 * Math.cos(rad)} y2={55 + 48 * Math.sin(rad)}
-            stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.3"
-          />
+          return <line key={deg} x1={55 + 42 * Math.cos(rad)} y1={55 + 42 * Math.sin(rad)} x2={55 + 48 * Math.cos(rad)} y2={55 + 48 * Math.sin(rad)} stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.3" />
         })}
         <line x1="55" y1="10" x2="55" y2="100" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
         <line x1="10" y1="55" x2="100" y2="55" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
@@ -116,25 +113,18 @@ const generateTideData = () => {
   const period = 12.4
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
   const phaseOffset = (dayOfYear * 0.8) % period
-
   for (let h = 0; h <= 24; h += 0.25) {
     const height = midLevel + amplitude * Math.cos((2 * Math.PI * (h + phaseOffset)) / period)
     points.push({ hour: h, height: Number(height.toFixed(2)) })
   }
-
   const tideEvents: { hour: number, type: 'alta' | 'baixa', height: number }[] = []
   for (let i = 1; i < points.length - 1; i++) {
     const prev = points[i - 1].height
     const curr = points[i].height
     const next = points[i + 1].height
-    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.7) {
-      tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
-    }
-    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.7) {
-      tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
-    }
+    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.7) tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
+    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.7) tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
   }
-
   const currentHour = now.getHours() + now.getMinutes() / 60
   const currentHeight = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
   return { points, amplitude, midLevel, phaseOffset, period, tideEvents, currentHeight: Number(currentHeight.toFixed(2)) }
@@ -144,7 +134,6 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
   const svgRef = useRef<SVGSVGElement>(null)
   const [tooltip, setTooltip] = useState<{ x: number, y: number, hour: number, height: number } | null>(null)
   const { points, midLevel, amplitude, phaseOffset, period, tideEvents, currentHeight } = generateTideData()
-
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
   const viewWidth = expanded ? 560 : 340
@@ -171,7 +160,6 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
     setTooltip({ x: rawX, y: yScale(height), hour, height: Number(height.toFixed(2)) })
   }
   const gradId = expanded ? 'tideGradExp' : 'tideGrad'
-
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-4">
@@ -186,24 +174,18 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
         </div>
       </div>
       <div className="relative rounded-lg overflow-hidden bg-muted/10 border border-border/30 p-1">
-        <svg ref={svgRef} width="100%" viewBox={`0 0 ${viewWidth} ${viewHeight}`}
-          className="overflow-visible cursor-crosshair"
-          onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}
-        >
+        <svg ref={svgRef} width="100%" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="overflow-visible cursor-crosshair" onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.5" />
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.03" />
             </linearGradient>
           </defs>
-          {[0.25, 0.5, 0.75].map((t, i) => (
-            <line key={i} x1={padding.left} y1={yScale(minH + (maxH - minH) * t)} x2={viewWidth - padding.right} y2={yScale(minH + (maxH - minH) * t)} stroke="#ffffff" strokeWidth="0.3" opacity="0.1" />
-          ))}
+          {[0.25, 0.5, 0.75].map((t, i) => (<line key={i} x1={padding.left} y1={yScale(minH + (maxH - minH) * t)} x2={viewWidth - padding.right} y2={yScale(minH + (maxH - minH) * t)} stroke="#ffffff" strokeWidth="0.3" opacity="0.1" />))}
           <path d={areaData} fill={`url(#${gradId})`} />
           <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           {tideEvents.map((event, i) => {
-            const ex = xScale(event.hour)
-            const ey = yScale(event.height)
+            const ex = xScale(event.hour), ey = yScale(event.height)
             const isHigh = event.type === 'alta'
             const labelX = Math.min(Math.max(ex, padding.left + 24), viewWidth - padding.right - 24)
             return (
@@ -215,9 +197,7 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
               </g>
             )
           })}
-          {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (
-            <text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">{h.toFixed(1)}</text>
-          ))}
+          {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (<text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">{h.toFixed(1)}</text>))}
           {[0, 6, 12, 18, 24].map(h => (
             <g key={h}>
               <line x1={xScale(h)} y1={chartHeight + padding.top} x2={xScale(h)} y2={chartHeight + padding.top + 3} stroke="#6b7280" strokeWidth="0.8" />
@@ -265,14 +245,14 @@ const TideChart = ({ tide }: { tide: string }) => {
   return (
     <>
       <div className="relative">
-        <TideChartSVG tide={tide} expanded={false} />
+        <TideChartSVG tide={tide} />
         <button onClick={() => setExpanded(true)} className="absolute top-0 right-0 p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
           <Maximize2 className="h-4 w-4 text-muted-foreground" />
         </button>
       </div>
       {expanded && (
-        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setExpanded(false)} style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setExpanded(false)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-cyan-500" />
@@ -292,14 +272,10 @@ const TideChart = ({ tide }: { tide: string }) => {
 
 const AnimatedProgress = ({ value }: { value: number }) => {
   const [displayed, setDisplayed] = useState(0)
-  useEffect(() => {
-    const timer = setTimeout(() => setDisplayed(value), 100)
-    return () => clearTimeout(timer)
-  }, [value])
+  useEffect(() => { const t = setTimeout(() => setDisplayed(value), 100); return () => clearTimeout(t) }, [value])
   return <Progress value={displayed} className="h-2 transition-all duration-1000 ease-out" />
 }
 
-// Widget de swell period
 const SwellPeriodBadge = ({ period }: { period: number }) => {
   const [open, setOpen] = useState(false)
   const getInfo = (p: number) => {
@@ -310,17 +286,11 @@ const SwellPeriodBadge = ({ period }: { period: number }) => {
     return { label: 'Fraco', color: '#ef4444', desc: 'Vento local — ondas curtas e bagunçadas.' }
   }
   const info = getInfo(period)
-
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 group"
-      >
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5">
         <div className="text-lg font-semibold">{Math.round(period)}s</div>
-        <span className="text-xs px-1.5 py-0.5 rounded font-bold text-white" style={{ backgroundColor: info.color }}>
-          {info.label}
-        </span>
+        <span className="text-xs px-1.5 py-0.5 rounded font-bold text-white" style={{ backgroundColor: info.color }}>{info.label}</span>
         {open ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
       </button>
       {open && (
@@ -332,7 +302,6 @@ const SwellPeriodBadge = ({ period }: { period: number }) => {
   )
 }
 
-// Seção de comentários
 const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
@@ -380,13 +349,10 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
         <CardTitle className="text-base flex items-center gap-2">
           <MessageCircle className="h-5 w-5 text-primary" />
           Relatos do Dia
-          {comments.length > 0 && (
-            <Badge variant="secondary" className="text-xs">{comments.length}</Badge>
-          )}
+          {comments.length > 0 && <Badge variant="secondary" className="text-xs">{comments.length}</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Input de novo comentário */}
         {currentUserId ? (
           <div className="flex gap-2">
             <input
@@ -397,11 +363,7 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
               className="flex-1 text-sm px-3 py-2 rounded-xl border border-border bg-muted/20 outline-none focus:border-primary transition-colors"
               maxLength={280}
             />
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !newComment.trim()}
-              className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
+            <button onClick={handleSubmit} disabled={submitting || !newComment.trim()} className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
               <Send className="h-4 w-4" />
             </button>
           </div>
@@ -410,12 +372,8 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
             Faça login para deixar um relato sobre as condições
           </div>
         )}
-
-        {/* Lista de comentários */}
         {loading ? (
-          <div className="flex justify-center py-4">
-            <Waves className="h-5 w-5 text-primary animate-bounce" />
-          </div>
+          <div className="flex justify-center py-4"><Waves className="h-5 w-5 text-primary animate-bounce" /></div>
         ) : comments.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-20" />
@@ -424,31 +382,20 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
         ) : (
           <div className="space-y-3">
             {comments.map((comment, idx) => (
-              <div
-                key={comment.id}
-                className="flex gap-3 p-3 bg-muted/20 rounded-xl"
-                style={{ animation: `slideInLeft 0.3s ${idx * 0.05}s ease-out both` }}
-              >
+              <div key={comment.id} className="flex gap-3 p-3 bg-muted/20 rounded-xl" style={{ animation: `slideInLeft 0.3s ${idx * 0.05}s ease-out both` }}>
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-primary">
-                    {comment.user_name.charAt(0).toUpperCase()}
-                  </span>
+                  <span className="text-xs font-bold text-primary">{comment.user_name.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold">{comment.user_name}</span>
-                    {comment.wave_height && (
-                      <span className="text-xs text-muted-foreground">· {Number(comment.wave_height).toFixed(1)}m</span>
-                    )}
+                    {comment.wave_height && <span className="text-xs text-muted-foreground">· {Number(comment.wave_height).toFixed(1)}m</span>}
                     <span className="text-xs text-muted-foreground ml-auto">{formatCommentTime(comment.created_at)}</span>
                   </div>
                   <p className="text-sm break-words">{comment.content}</p>
                 </div>
                 {currentUserId === comment.user_id && (
-                  <button
-                    onClick={() => handleDelete(comment.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-                  >
+                  <button onClick={() => handleDelete(comment.id)} className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -461,20 +408,21 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
   )
 }
 
-// Botão de compartilhar
+// Botão de compartilhar — corrigido com domínio fixo e sem duplicar URL
 const ShareButton = ({ spot }: { spot: BeachCondition }) => {
   const handleShare = async () => {
     const rating = getRatingInfo(spot.score)
-    const text = `🏄 ${spot.name} está ${rating.label} agora!\n\nScore: ${spot.score.toFixed(1)}/10\nOndas: ${spot.waveHeight.toFixed(1)}m · Período: ${Math.round(spot.swellPeriod)}s\nVento: ${Math.round(spot.windSpeed)}km/h · Água: ${spot.waterConditions.temperature}°C\n\nVeja mais em: ${window.location.href}`
+    const spotUrl = `${FIXED_DOMAIN}/spot/${spot.id}`
+    const text = `🏄 ${spot.name} está ${rating.label} agora!\n\nScore: ${spot.score.toFixed(1)}/10\nOndas: ${spot.waveHeight.toFixed(1)}m · Período: ${Math.round(spot.swellPeriod)}s\nVento: ${Math.round(spot.windSpeed)}km/h · Água: ${spot.waterConditions.temperature}°C\n\nVeja mais: ${spotUrl}`
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Surf AI — ${spot.name}`, text, url: window.location.href })
+        await navigator.share({ title: `Surf AI — ${spot.name}`, text, url: spotUrl })
+        return
       } catch (_) {}
-    } else {
-      await navigator.clipboard.writeText(text)
-      toast.success('Condições copiadas! Cole no WhatsApp ou onde quiser 📋')
     }
+    await navigator.clipboard.writeText(text)
+    toast.success('Condições copiadas! Cole no WhatsApp ou onde quiser 📋')
   }
 
   return (
@@ -559,7 +507,6 @@ export default function SpotDetails() {
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes scorePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .anim-fade { animation: fadeIn 0.5s ease-out both; }
     .anim-slide { animation: slideUp 0.5s ease-out both; }
     .anim-left { animation: slideInLeft 0.5s ease-out both; }
     .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
@@ -569,7 +516,6 @@ export default function SpotDetails() {
   return (
     <div className="min-h-screen bg-background">
       <style>{animStyles}</style>
-
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -590,10 +536,7 @@ export default function SpotDetails() {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
-        <div
-          className="flex items-start justify-between gap-4"
-          style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}
-        >
+        <div className="flex items-start justify-between gap-4" style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}>
           <div className="flex-1">
             <h1 className="text-4xl font-bold mb-2">{spot.name}</h1>
             <div className="flex items-center gap-2 flex-wrap">
@@ -774,9 +717,7 @@ export default function SpotDetails() {
                   Como vai estar o mar hoje?
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <TideChart tide={spot.tide} />
-              </CardContent>
+              <CardContent><TideChart tide={spot.tide} /></CardContent>
             </Card>
 
             <Card className="card-hover anim-slide" style={{ animationDelay: '0.45s' }}>
@@ -817,7 +758,6 @@ export default function SpotDetails() {
               </Card>
             )}
 
-            {/* Seção de comentários */}
             <div className="anim-slide" style={{ animationDelay: '0.55s' }}>
               <CommentsSection spot={spot} />
             </div>
