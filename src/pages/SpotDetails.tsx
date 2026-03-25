@@ -26,6 +26,94 @@ const getRatingInfo = (score: number) => {
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
 }
 
+// Mapa de siglas para nomes completos em português
+const directionNames: Record<string, string> = {
+  'N': 'Norte', 'NNE': 'Norte-Nordeste', 'NE': 'Nordeste', 'ENE': 'Leste-Nordeste',
+  'E': 'Leste', 'ESE': 'Leste-Sudeste', 'SE': 'Sudeste', 'SSE': 'Sul-Sudeste',
+  'S': 'Sul', 'SSW': 'Sul-Sudoeste', 'SW': 'Sudoeste', 'WSW': 'Oeste-Sudoeste',
+  'W': 'Oeste', 'WNW': 'Oeste-Noroeste', 'NW': 'Noroeste', 'NNW': 'Norte-Noroeste'
+}
+
+// Extrai só a sigla da direção (remove o sufixo entre parênteses)
+const getWindDirectionCode = (direction: string): string => {
+  return direction.split(' ')[0]
+}
+
+// Retorna nome completo + classificação legível
+const formatWindDirection = (direction: string): { code: string, name: string, type: string, isOffshore: boolean } => {
+  const code = getWindDirectionCode(direction)
+  const name = directionNames[code] ?? code
+  const isOffshore = direction.includes('Terral')
+  const isLateral = direction.includes('Lateral')
+  const type = isOffshore ? 'Terral ✓' : isLateral ? 'Lateral' : 'Frontal ✗'
+  return { code, name, type, isOffshore }
+}
+
+// Converte direção de texto para graus
+const directionToDegrees = (direction: string): number => {
+  const base = getWindDirectionCode(direction)
+  const map: Record<string, number> = {
+    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
+    'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5,
+    'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5
+  }
+  return map[base] ?? 0
+}
+
+// Rosa dos ventos SVG
+const WindCompass = ({ direction, speed }: { direction: string, speed: number }) => {
+  const degrees = directionToDegrees(direction)
+  const { code, name, type, isOffshore } = formatWindDirection(direction)
+
+  const getWindColor = (spd: number) => {
+    if (spd <= 10) return '#22c55e'
+    if (spd <= 20) return '#f59e0b'
+    if (spd <= 30) return '#f97316'
+    return '#ef4444'
+  }
+
+  const color = getWindColor(speed)
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <svg width="100" height="100" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="50" fill="none" stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.4" />
+        <circle cx="55" cy="55" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" opacity="0.2" />
+        {[{ label: 'N', x: 55, y: 8 }, { label: 'S', x: 55, y: 104 }, { label: 'L', x: 104, y: 57 }, { label: 'O', x: 6, y: 57 }].map(({ label, x, y }) => (
+          <text key={label} x={x} y={y} textAnchor="middle" fontSize="9" fontWeight="bold"
+            fill={label === 'N' ? color : 'currentColor'}
+            className={label !== 'N' ? 'text-muted-foreground' : ''}
+            opacity={label !== 'N' ? 0.5 : 1}
+          >{label}</text>
+        ))}
+        {[45, 135, 225, 315].map(deg => {
+          const rad = (deg - 90) * Math.PI / 180
+          return <line key={deg}
+            x1={55 + 42 * Math.cos(rad)} y1={55 + 42 * Math.sin(rad)}
+            x2={55 + 48 * Math.cos(rad)} y2={55 + 48 * Math.sin(rad)}
+            stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.3"
+          />
+        })}
+        <line x1="55" y1="10" x2="55" y2="100" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
+        <line x1="10" y1="55" x2="100" y2="55" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
+        <g transform={`rotate(${degrees}, 55, 55)`}>
+          <line x1="55" y1="55" x2="55" y2="20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+          <polygon points="55,14 50,24 60,24" fill={color} />
+          <line x1="55" y1="55" x2="55" y2="75" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+        </g>
+        <circle cx="55" cy="55" r="4" fill={color} />
+        <circle cx="55" cy="55" r="2" fill="white" />
+      </svg>
+      <div className="text-center">
+        <div className="text-base font-bold" style={{ color }}>{speed}km/h</div>
+        <div className="text-xs font-semibold">{code} — {name}</div>
+        <div className={`text-xs mt-0.5 ${isOffshore ? 'text-green-500' : 'text-muted-foreground'}`}>{type}</div>
+      </div>
+    </div>
+  )
+}
+
 const generateTideData = () => {
   const now = new Date()
   const points: { hour: number, height: number }[] = []
@@ -73,8 +161,8 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
   const currentHour = now.getHours() + now.getMinutes() / 60
 
   const viewWidth = expanded ? 560 : 340
-  const viewHeight = expanded ? 180 : 130
-  const padding = { top: 30, bottom: 24, left: 32, right: 12 }
+  const viewHeight = expanded ? 220 : 160
+  const padding = { top: 40, bottom: 36, left: 32, right: 12 }
   const chartWidth = viewWidth - padding.left - padding.right
   const chartHeight = viewHeight - padding.top - padding.bottom
 
@@ -112,7 +200,6 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
   }
 
   const handleMouseLeave = () => setTooltip(null)
-
   const gradId = expanded ? 'tideGradExp' : 'tideGrad'
 
   return (
@@ -156,43 +243,52 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
           <path d={areaData} fill={`url(#${gradId})`} />
           <path d={pathData} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
+          {/* Marcadores de alta e baixa DENTRO do gráfico */}
           {tideEvents.map((event, i) => {
-            const labelX = Math.min(Math.max(xScale(event.hour), padding.left + 22), viewWidth - padding.right - 22)
-            const y = yScale(event.height)
+            const ex = xScale(event.hour)
+            const ey = yScale(event.height)
+            const isHigh = event.type === 'alta'
+            const labelX = Math.min(Math.max(ex, padding.left + 24), viewWidth - padding.right - 24)
+            // Alta: label acima do pico | Baixa: label abaixo do vale
+            const labelY = isHigh ? ey - 14 : ey + 14
+            const arrowY = isHigh ? ey - 6 : ey + 6
+
             return (
               <g key={i}>
-                <line
-                  x1={xScale(event.hour)} y1={y}
-                  x2={xScale(event.hour)} y2={event.type === 'alta' ? padding.top - 5 : chartHeight + padding.top + 5}
-                  stroke={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
-                  strokeWidth="0.5" strokeDasharray="2,2" opacity="0.5"
-                />
-                <text
-                  x={labelX}
-                  y={event.type === 'alta' ? padding.top - 18 : chartHeight + padding.top + 16}
-                  textAnchor="middle" fontSize={expanded ? "10" : "9"}
-                  fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'} fontWeight="bold"
+                {/* Ponto no pico/vale */}
+                <circle cx={ex} cy={ey} r="3" fill={isHigh ? '#22c55e' : '#f59e0b'} />
+                {/* Seta */}
+                <text x={labelX} y={arrowY}
+                  textAnchor="middle" fontSize="10"
+                  fill={isHigh ? '#22c55e' : '#f59e0b'} fontWeight="bold"
                 >
-                  {event.type === 'alta' ? '▲ Alta' : '▼ Baixa'}
+                  {isHigh ? '▲' : '▼'}
                 </text>
-                <text
-                  x={labelX}
-                  y={event.type === 'alta' ? padding.top - 8 : chartHeight + padding.top + 26}
+                {/* Horário e altura */}
+                <text x={labelX} y={isHigh ? ey - 24 : ey + 26}
                   textAnchor="middle" fontSize={expanded ? "9" : "8"}
-                  fill={event.type === 'alta' ? '#22c55e' : '#f59e0b'}
+                  fill={isHigh ? '#22c55e' : '#f59e0b'} fontWeight="600"
                 >
-                  ~{formatHour(event.hour)} · ~{event.height.toFixed(1)}m
+                  {formatHour(event.hour)}
+                </text>
+                <text x={labelX} y={isHigh ? ey - 14 : ey + 36}
+                  textAnchor="middle" fontSize={expanded ? "8" : "7.5"}
+                  fill={isHigh ? '#22c55e' : '#f59e0b'} opacity="0.85"
+                >
+                  ~{event.height.toFixed(1)}m
                 </text>
               </g>
             )
           })}
 
+          {/* Escala Y */}
           {[midLevel - amplitude, midLevel, midLevel + amplitude].map((h, i) => (
             <text key={i} x={padding.left - 4} y={yScale(h) + 3} textAnchor="end" fontSize="7" fill="#6b7280">
               {h.toFixed(1)}
             </text>
           ))}
 
+          {/* Horas */}
           {[0, 6, 12, 18, 24].map(h => (
             <g key={h}>
               <line x1={xScale(h)} y1={chartHeight + padding.top}
@@ -205,23 +301,21 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
             </g>
           ))}
 
+          {/* Linha Agora */}
           <line x1={currentX} y1={padding.top} x2={currentX} y2={chartHeight + padding.top}
             stroke="#ffffff" strokeWidth="1" strokeDasharray="3,2" opacity="0.4"
           />
-          <rect
-            x={Math.min(currentX - 16, viewWidth - padding.right - 32)}
-            y={padding.top - 14} width="32" height="13" rx="3"
-            fill="#06b6d4" opacity="0.9"
+          <rect x={Math.min(currentX - 16, viewWidth - padding.right - 32)}
+            y={padding.top - 14} width="32" height="13" rx="3" fill="#06b6d4" opacity="0.9"
           />
-          <text
-            x={Math.min(currentX, viewWidth - padding.right - 16)}
-            y={padding.top - 4}
+          <text x={Math.min(currentX, viewWidth - padding.right - 16)} y={padding.top - 4}
             textAnchor="middle" fontSize="8" fill="white" fontWeight="bold"
           >
             Agora
           </text>
           <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
 
+          {/* Tooltip */}
           {tooltip && (
             <>
               <line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top}
@@ -303,10 +397,7 @@ const TideChart = ({ tide }: { tide: string }) => {
                 <Navigation className="h-5 w-5 text-cyan-500" />
                 <h3 className="text-lg font-bold">Como vai estar o mar hoje?</h3>
               </div>
-              <button
-                onClick={() => setExpanded(false)}
-                className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-              >
+              <button onClick={() => setExpanded(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
@@ -390,6 +481,7 @@ export default function SpotDetails() {
   }
 
   const rating = getRatingInfo(spot.score)
+  const windInfo = formatWindDirection(spot.windDirection)
 
   return (
     <div className="min-h-screen bg-background">
@@ -426,9 +518,7 @@ export default function SpotDetails() {
             </div>
           </div>
           <div className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px]">
-            <div className={`text-5xl font-bold ${rating.color}`}>
-              {Number(spot.score).toFixed(1)}
-            </div>
+            <div className={`text-5xl font-bold ${rating.color}`}>{Number(spot.score).toFixed(1)}</div>
             <div className="text-xs text-muted-foreground mt-1">Score AI</div>
             <div className={`text-xs font-bold mt-1 ${rating.color}`}>{rating.label}</div>
             <div className="flex gap-0.5 mt-2 justify-center">
@@ -484,9 +574,7 @@ export default function SpotDetails() {
             <Alert className="bg-primary/5 border-primary/20">
               <TrendingUp className="h-4 w-4 text-primary" />
               <AlertTitle className="text-primary">Análise Inteligente</AlertTitle>
-              <AlertDescription className="text-foreground">
-                {analyzeConditions(spot)}
-              </AlertDescription>
+              <AlertDescription className="text-foreground">{analyzeConditions(spot)}</AlertDescription>
             </Alert>
 
             {spot.bestTimeWindow !== 'Não recomendado hoje' && spot.bestTimeWindow !== 'Condições ruins' && (
@@ -566,6 +654,7 @@ export default function SpotDetails() {
                 </CardContent>
               </Card>
 
+              {/* Card de Vento com Rosa dos Ventos */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -573,17 +662,25 @@ export default function SpotDetails() {
                     Vento
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-muted-foreground">Velocidade</span>
-                      <span className="text-2xl font-bold">{Math.round(spot.windSpeed)}km/h</span>
+                <CardContent>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-3 flex-1">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-muted-foreground">Velocidade</span>
+                          <span className="text-2xl font-bold">{Math.round(spot.windSpeed)}km/h</span>
+                        </div>
+                        <Progress value={Math.min(spot.windSpeed * 2.5, 100)} className="h-2" />
+                      </div>
+                      <div className="pt-2 border-t space-y-1">
+                        <div className="text-xs text-muted-foreground">Direção</div>
+                        <div className="text-lg font-semibold">{windInfo.code} — {windInfo.name}</div>
+                        <div className={`text-xs font-medium ${windInfo.isOffshore ? 'text-green-500' : 'text-muted-foreground'}`}>
+                          {windInfo.type}
+                        </div>
+                      </div>
                     </div>
-                    <Progress value={Math.min(spot.windSpeed * 2.5, 100)} className="h-2" />
-                  </div>
-                  <div className="pt-2 border-t">
-                    <div className="text-xs text-muted-foreground">Direção</div>
-                    <div className="text-lg font-semibold">{spot.windDirection}</div>
+                    <WindCompass direction={spot.windDirection} speed={Math.round(spot.windSpeed)} />
                   </div>
                 </CardContent>
               </Card>
@@ -632,7 +729,7 @@ export default function SpotDetails() {
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">🌇 Pôr do Sol</div>
-                      <div className="text-lg font-semibond">{spot.sunset}</div>
+                      <div className="text-lg font-semibold">{spot.sunset}</div>
                     </div>
                   </div>
                 </CardContent>
