@@ -68,7 +68,6 @@ const SwellPeriodWidget = () => {
 // Mapa usando Google Maps Embed real
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
-  const [selected, setSelected] = useState<BeachCondition | null>(null)
 
   const getScoreColor = (score: number): string => {
     if (score >= 8.5) return '#8b5cf6'
