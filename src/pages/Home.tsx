@@ -19,10 +19,8 @@ import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 
-// Widget explicativo de período do swell
 const SwellPeriodWidget = () => {
   const [open, setOpen] = useState(false)
-
   const periods = [
     { range: '< 8s', label: 'Fraco', color: '#ef4444', desc: 'Vento local, ondas curtas e bagunçadas. Difícil de surfar.' },
     { range: '8-10s', label: 'Regular', color: '#f59e0b', desc: 'Ondulação moderada. Surfável mas sem muita qualidade.' },
@@ -30,13 +28,9 @@ const SwellPeriodWidget = () => {
     { range: '12-14s', label: 'Muito Bom', color: '#06b6d4', desc: 'Excelente! Ondas longas, limpas e com muito poder.' },
     { range: '> 14s', label: 'Épico', color: '#8b5cf6', desc: 'Swell de longo período. Ondas perfeitas e muito potentes.' },
   ]
-
   return (
     <Card className="border-primary/20 bg-primary/5">
-      <button
-        className="w-full text-left"
-        onClick={() => setOpen(!open)}
-      >
+      <button className="w-full text-left" onClick={() => setOpen(!open)}>
         <CardHeader className="pb-2 pt-4 px-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -71,10 +65,10 @@ const SwellPeriodWidget = () => {
   )
 }
 
-// Mapa interativo das praias
+// Mapa usando Google Maps Embed real
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
-  const [hoveredSpot, setHoveredSpot] = useState<string | null>(null)
+  const [selected, setSelected] = useState<BeachCondition | null>(null)
 
   const getScoreColor = (score: number): string => {
     if (score >= 8.5) return '#8b5cf6'
@@ -84,159 +78,88 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
     return '#ef4444'
   }
 
-  // Coordenadas normalizadas para o SVG (baseado nas coords reais de Florianópolis)
-  // Lat: -27.44 (norte) a -27.85 (sul) | Lng: -48.60 (oeste) a -48.38 (leste)
-  const latMin = -27.86
-  const latMax = -27.43
-  const lngMin = -48.60
-  const lngMax = -48.37
-
-  const toX = (lng: number) => ((lng - lngMin) / (lngMax - lngMin)) * 340
-  const toY = (lat: number) => ((lat - latMax) / (latMin - latMax)) * 460
-
-  const hovered = spots.find(s => s.id === hoveredSpot)
+  const getScoreLabel = (score: number): string => {
+    if (score >= 8.5) return 'Épico'
+    if (score >= 7) return 'Excelente'
+    if (score >= 5.5) return 'Bom'
+    if (score >= 4) return 'Regular'
+    return 'Ruim'
+  }
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Map className="h-5 w-5 text-primary" />
-          Mapa das Praias — Clique para ver detalhes
+          Mapa das Praias — Toque para ver detalhes
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="relative w-full rounded-xl overflow-hidden bg-[#0d2137] border border-border/30">
-          <svg
+      <CardContent className="space-y-3">
+        {/* Mapa Google Maps real via iframe */}
+        <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: '320px' }}>
+          <iframe
             width="100%"
-            viewBox="0 0 360 480"
-            className="block"
-          >
-            {/* Fundo do mar */}
-            <rect width="360" height="480" fill="#0d2137" />
-
-            {/* Silhueta da ilha de Florianópolis — simplificada */}
-            <path
-              d="M 120,20 C 140,15 160,18 175,25 C 185,30 195,35 200,45
-                 C 210,60 205,75 200,88 C 195,100 188,112 183,125
-                 C 178,138 175,150 173,163 C 170,178 170,192 168,205
-                 C 165,220 160,233 158,247 C 155,262 155,275 153,288
-                 C 150,303 145,316 142,328 C 138,342 135,355 133,368
-                 C 130,382 128,395 127,408 C 125,422 125,438 123,450
-                 C 121,462 118,470 115,475
-                 C 105,472 95,465 88,455 C 80,443 75,430 72,418
-                 C 68,405 67,392 68,378 C 70,364 74,352 77,338
-                 C 80,324 82,311 83,297 C 84,282 83,268 84,254
-                 C 85,239 87,226 88,212 C 89,197 89,183 90,168
-                 C 91,153 92,139 94,125 C 96,110 99,97 102,83
-                 C 105,69 108,56 113,44 C 116,35 118,27 120,20 Z"
-              fill="#1a3a2a"
-              stroke="#2a5a3a"
-              strokeWidth="1"
-              opacity="0.9"
-            />
-
-            {/* Labels das regiões */}
-            {[
-              { label: 'Norte', x: 155, y: 55 },
-              { label: 'Leste', x: 175, y: 200 },
-              { label: 'Sul', x: 115, y: 380 },
-            ].map(r => (
-              <text key={r.label} x={r.x} y={r.y} textAnchor="middle"
-                fontSize="8" fill="#ffffff" opacity="0.3" fontWeight="600"
-              >{r.label}</text>
-            ))}
-
-            {/* Pontos das praias */}
-            {spots.map(spot => {
-              const x = toX(spot.lng)
-              const y = toY(spot.lat)
-              const color = getScoreColor(spot.score)
-              const isHovered = hoveredSpot === spot.id
-
-              return (
-                <g
-                  key={spot.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/spot/${spot.id}`)}
-                  onMouseEnter={() => setHoveredSpot(spot.id)}
-                  onMouseLeave={() => setHoveredSpot(null)}
-                >
-                  {/* Pulso externo */}
-                  {isHovered && (
-                    <circle cx={x} cy={y} r="12" fill={color} opacity="0.2" />
-                  )}
-                  {/* Círculo do score */}
-                  <circle
-                    cx={x} cy={y}
-                    r={isHovered ? 9 : 7}
-                    fill={color}
-                    stroke="white"
-                    strokeWidth={isHovered ? 2 : 1.5}
-                    style={{ transition: 'all 0.2s ease' }}
-                  />
-                  {/* Score dentro do círculo */}
-                  <text x={x} y={y + 3} textAnchor="middle" fontSize="5.5"
-                    fill="white" fontWeight="bold"
-                  >
-                    {spot.score.toFixed(1)}
-                  </text>
-                </g>
-              )
-            })}
-
-            {/* Tooltip do spot hovereado */}
-            {hovered && (() => {
-              const x = Math.min(Math.max(toX(hovered.lng), 60), 300)
-              const y = Math.min(Math.max(toY(hovered.lat) - 40, 10), 430)
-              return (
-                <g>
-                  <rect x={x - 50} y={y} width="100" height="36" rx="6"
-                    fill="#1e293b" stroke={getScoreColor(hovered.score)} strokeWidth="1" opacity="0.97"
-                  />
-                  <text x={x} y={y + 13} textAnchor="middle" fontSize="8.5"
-                    fill="white" fontWeight="bold"
-                  >{hovered.name}</text>
-                  <text x={x} y={y + 26} textAnchor="middle" fontSize="7.5"
-                    fill={getScoreColor(hovered.score)}
-                  >Score {hovered.score.toFixed(1)} · {hovered.waveHeight.toFixed(1)}m</text>
-                </g>
-              )
-            })()}
-          </svg>
-
-          {/* Legenda */}
-          <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm rounded-lg p-2 flex flex-col gap-1">
-            {[
-              { color: '#8b5cf6', label: 'Épico' },
-              { color: '#06b6d4', label: 'Excelente' },
-              { color: '#22c55e', label: 'Bom' },
-              { color: '#f59e0b', label: 'Regular' },
-              { color: '#ef4444', label: 'Ruim' },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-muted-foreground">{item.label}</span>
-              </div>
-            ))}
+            height="100%"
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d55000!2d-48.5!3d-27.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890"
+          />
+          {/* Overlay com os pins das praias */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm rounded-lg p-2 text-xs text-muted-foreground pointer-events-auto">
+              Selecione uma praia abaixo
+            </div>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          Toque em um ponto para ver as condições detalhadas
-        </p>
+
+        {/* Lista de praias com score colorido — clicável */}
+        <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1">
+          {spots.map(spot => (
+            <button
+              key={spot.id}
+              onClick={() => navigate(`/spot/${spot.id}`)}
+              className="flex items-center gap-2 p-2.5 rounded-xl border border-border/40 hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-left"
+            >
+              <div
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: getScoreColor(spot.score) }}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold truncate">{spot.name}</div>
+                <div className="text-xs" style={{ color: getScoreColor(spot.score) }}>
+                  {spot.score.toFixed(1)} · {getScoreLabel(spot.score)}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Legenda */}
+        <div className="flex flex-wrap gap-3 pt-1">
+          {[
+            { color: '#8b5cf6', label: 'Épico' },
+            { color: '#06b6d4', label: 'Excelente' },
+            { color: '#22c55e', label: 'Bom' },
+            { color: '#f59e0b', label: 'Regular' },
+            { color: '#ef4444', label: 'Ruim' },
+          ].map(item => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+              <span className="text-xs text-muted-foreground">{item.label}</span>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
 }
 
-// Banner de alerta de swell grande
 const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
   const [dismissed, setDismissed] = useState(false)
-
   const bigSwellSpots = spots.filter(s => s.waveHeight >= 1.5)
   if (bigSwellSpots.length === 0 || dismissed) return null
-
   const best = bigSwellSpots.sort((a, b) => b.waveHeight - a.waveHeight)[0]
-
   return (
     <div className="relative bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 rounded-xl p-4 flex items-start gap-3">
       <div className="text-2xl">🌊</div>
@@ -246,22 +169,22 @@ const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
           {best.name} com ondas de {best.waveHeight.toFixed(1)}m — período de {Math.round(best.swellPeriod)}s
         </div>
       </div>
-      <button
-        onClick={() => setDismissed(true)}
-        className="text-muted-foreground hover:text-foreground transition-colors"
-      >
+      <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground transition-colors">
         <X className="h-4 w-4" />
       </button>
     </div>
   )
 }
 
-// Painel de configuração de notificações
 const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favorites: string[] }) => {
   const [permission, setPermission] = useState(getNotificationPermission())
   const [settings, setSettings] = useState(getSavedNotificationSettings())
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+
+  // Detecta se é iOS (Safari não suporta notificações push)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isNotSupported = permission === 'unsupported' || isIOS
 
   const handleEnable = async () => {
     setLoading(true)
@@ -318,17 +241,24 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {permission === 'unsupported' && (
-          <p className="text-xs text-muted-foreground">Seu dispositivo não suporta notificações push.</p>
-        )}
-
-        {permission === 'denied' && (
-          <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3">
-            Notificações bloqueadas. Acesse as configurações do seu navegador para permitir.
+        {isIOS && (
+          <div className="text-xs bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-muted-foreground">
+            📱 <strong>iPhone/iPad:</strong> Para receber alertas, adicione o app à sua tela inicial:
+            Safari → Compartilhar → "Adicionar à Tela de Início" → então ative os alertas.
           </div>
         )}
 
-        {(permission === 'default' || permission === 'granted') && (
+        {!isIOS && permission === 'unsupported' && (
+          <p className="text-xs text-muted-foreground">Seu navegador não suporta notificações push. Tente abrir pelo Chrome.</p>
+        )}
+
+        {!isIOS && permission === 'denied' && (
+          <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3">
+            Notificações bloqueadas. Toque no cadeado na barra de endereços e permita notificações.
+          </div>
+        )}
+
+        {!isNotSupported && (permission === 'default' || permission === 'granted') && (
           <>
             <div className="flex items-center justify-between">
               <div>
@@ -427,42 +357,27 @@ export default function Home() {
     setLoading(true)
     const updateData = async () => {
       setCurrentTime(new Date())
-
       const allConditions = await fetchCurrentConditions()
       const favs = await getFavorites()
       setFavorites(favs)
       setAllSpots(allConditions)
 
       let filtered = [...allConditions]
-
-      if (activeRegion !== 'all') {
-        filtered = filtered.filter(spot => spot.region === activeRegion)
-      }
-
-      if (showOnlyFavorites) {
-        filtered = filtered.filter(spot => favs.includes(spot.id))
-      }
-
+      if (activeRegion !== 'all') filtered = filtered.filter(spot => spot.region === activeRegion)
+      if (showOnlyFavorites) filtered = filtered.filter(spot => favs.includes(spot.id))
       filtered = filtered.sort((a, b) => b.score - a.score)
 
       setSpots(filtered)
       setTopSpot(allConditions.sort((a, b) => b.score - a.score)[0] ?? null)
       setLoading(false)
 
-      // Verifica se deve enviar notificação
       const notifSettings = getSavedNotificationSettings()
       if (notifSettings.enabled) {
-        await checkAndNotifyGoodConditions(
-          allConditions,
-          favs,
-          notifSettings.minScore,
-          notifSettings.favoriteOnly
-        )
+        await checkAndNotifyGoodConditions(allConditions, favs, notifSettings.minScore, notifSettings.favoriteOnly)
       }
     }
 
     updateData()
-
     const interval = setInterval(updateData, 15 * 60 * 1000)
     return () => clearInterval(interval)
   }, [activeRegion, showOnlyFavorites])
@@ -524,7 +439,6 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Barra de status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -533,10 +447,8 @@ export default function Home() {
           <NotificationPanel spots={allSpots} favorites={favorites} />
         </div>
 
-        {/* Alerta de swell grande */}
         <SwellAlert spots={allSpots} />
 
-        {/* Melhor pico */}
         {topSpot && (
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
@@ -562,7 +474,6 @@ export default function Home() {
                   <div className="text-xs text-muted-foreground">Score IA</div>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t">
                 <div>
                   <div className="text-xs text-muted-foreground">Ondas</div>
@@ -589,7 +500,6 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Widget swell period */}
         <SwellPeriodWidget />
 
         <Alert>
@@ -599,32 +509,22 @@ export default function Home() {
           </AlertDescription>
         </Alert>
 
-        {/* Toggle do mapa */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Todas as Praias</h2>
           <div className="flex items-center gap-2">
-            <Button
-              variant={showMap ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowMap(!showMap)}
-            >
+            <Button variant={showMap ? 'default' : 'outline'} size="sm" onClick={() => setShowMap(!showMap)}>
               <Map className="h-4 w-4 mr-2" />
               {showMap ? 'Ver Lista' : 'Ver Mapa'}
             </Button>
-            <Button
-              variant={showOnlyFavorites ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-            >
+            <Button variant={showOnlyFavorites ? 'default' : 'outline'} size="sm" onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}>
               <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? 'fill-current' : ''}`} />
-              {showOnlyFavorites ? 'Favoritas' : 'Favoritas'}
+              Favoritas
             </Button>
           </div>
         </div>
 
         <RegionFilter activeRegion={activeRegion} onRegionChange={setActiveRegion} />
 
-        {/* Mapa ou lista */}
         {showMap ? (
           <BeachMap spots={spots.length > 0 ? spots : allSpots} />
         ) : (
