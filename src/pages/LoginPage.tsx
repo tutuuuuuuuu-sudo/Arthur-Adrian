@@ -79,10 +79,6 @@ export default function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm">
-          <div className="inline-flex items-center gap-2 bg-[#e1f5ee] text-[#0f6e56] text-xs font-medium px-3 py-1.5 rounded-full mb-6">
-            <span className="w-1.5 h-1.5 bg-[#1d9e75] rounded-full animate-pulse"></span>
-            Lagoinha do Leste — Score 9.2 agora
-          </div>
           <div className="flex border border-gray-200 rounded-xl overflow-hidden mb-6">
             {(['login', 'signup'] as const).map((t) => (
               <button
