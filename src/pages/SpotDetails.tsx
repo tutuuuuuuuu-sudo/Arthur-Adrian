@@ -29,7 +29,7 @@ const getRatingInfo = (score: number) => {
 const generateTideData = () => {
   const now = new Date()
   const points: { hour: number, height: number }[] = []
-  const amplitude = 0.35
+  const amplitude = 0.20
   const midLevel = 0.5
   const period = 12.4
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
@@ -119,12 +119,12 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
     <div className="space-y-3">
       <div className="flex items-center gap-4">
         <div>
-          <div className="text-xs text-muted-foreground">Estado Atual</div>
+          <div className="text-xs text-muted-foreground">Estado Atual da Maré</div>
           <div className="text-xl font-bold">{tide}</div>
         </div>
         <Separator orientation="vertical" className="h-10" />
         <div>
-          <div className="text-xs text-muted-foreground">Nível Aproximado Agora</div>
+          <div className="text-xs text-muted-foreground">Nível da Maré Agora</div>
           <div className="text-xl font-bold text-cyan-500">~{currentHeight}m</div>
         </div>
       </div>
@@ -240,7 +240,7 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
                       {formatHour(tooltip.hour)}
                     </text>
                     <text x={tipX + tipW / 2} y={tipY + 26} textAnchor="middle" fontSize="9" fill="#06b6d4">
-                      ~{tooltip.height.toFixed(2)}m (aprox.)
+                      Maré: ~{tooltip.height.toFixed(2)}m
                     </text>
                   </g>
                 )
@@ -264,9 +264,9 @@ const TideChartSVG = ({ tide, expanded = false }: TideChartSVGProps) => {
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
         <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
         <span>
+          Este gráfico mostra o <strong>nível da maré</strong> — não o tamanho das ondas.
+          O tamanho das ondas está na seção de Ondulação acima.
           Dados aproximados baseados no padrão semi-diurno de Florianópolis.
-          Este gráfico mostra o <strong>nível da maré</strong>, não o tamanho das ondas.
-          Para dados precisos consulte a Marinha do Brasil.
         </span>
       </div>
     </div>
@@ -632,7 +632,7 @@ export default function SpotDetails() {
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">🌇 Pôr do Sol</div>
-                      <div className="text-lg font-semibold">{spot.sunset}</div>
+                      <div className="text-lg font-semibond">{spot.sunset}</div>
                     </div>
                   </div>
                 </CardContent>
