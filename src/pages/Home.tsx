@@ -328,7 +328,7 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
 
 export default function Home() {
   const [activeRegion, setActiveRegion] = useState<string>('all')
-  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false)
+  const [showOnlyFavorites] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [spots, setSpots] = useState<BeachCondition[]>([])
   const [allSpots, setAllSpots] = useState<BeachCondition[]>([])
