@@ -81,87 +81,103 @@ const getScoreLabel = (score: number): string => {
   return 'Ruim'
 }
 
-// Mapa via Google Maps com marcadores reais
+// Retorna descrição de localização mais específica
+const getLocationDescription = (spot: BeachCondition): string => {
+  const map: Record<string, string> = {
+    'campeche': 'Sul da Ilha',
+    'novo-campeche': 'Sul da Ilha',
+    'morro-pedras': 'Sul da Ilha',
+    'matadeiro': 'Sul da Ilha',
+    'lagoinha-leste': 'Extremo Sul',
+    'acores': 'Extremo Sul',
+    'solidao': 'Extremo Sul',
+    'armacao': 'Sul da Ilha',
+    'naufragados': 'Extremo Sul',
+    'joaquina': 'Leste da Ilha',
+    'mole': 'Leste da Ilha',
+    'mocambique': 'Leste da Ilha',
+    'barra-lagoa': 'Leste da Ilha',
+    'santinho': 'Norte da Ilha',
+    'ponta-aranhas': 'Norte da Ilha',
+    'canajure': 'Norte da Ilha',
+  }
+  return map[spot.id] ?? `${spot.region} da Ilha`
+}
+
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
 
-
-  // URL do iframe centralizado em Floripa com zoom adequado
   const iframeSrc = expanded
     ? `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
     : `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d75000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
 
   return (
-    <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Map className="h-5 w-5 text-primary" />
-            Mapa das Praias
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Iframe do Google Maps */}
-          <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: expanded ? '480px' : '260px', transition: 'height 0.3s ease' }}>
-            <iframe
-              width="100%"
-              height="100%"
-              style={{ border: 0, display: 'block' }}
-              loading="lazy"
-              allowFullScreen
-              src={iframeSrc}
-            />
-            {/* Botão expandir */}
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Map className="h-5 w-5 text-primary" />
+          Mapa das Praias
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: expanded ? '480px' : '260px', transition: 'height 0.3s ease' }}>
+          <iframe
+            width="100%"
+            height="100%"
+            style={{ border: 0, display: 'block' }}
+            loading="lazy"
+            allowFullScreen
+            src={iframeSrc}
+          />
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="absolute top-2 right-2 z-10 px-3 py-1.5 rounded-lg bg-background/90 border border-border text-xs font-medium hover:bg-muted transition-colors flex items-center gap-1.5"
+          >
+            {expanded ? <><X className="h-3.5 w-3.5" /> Minimizar</> : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>}
+          </button>
+        </div>
+
+        {/* Lista de praias com localização */}
+        <div className="grid grid-cols-2 gap-2">
+          {spots.map(spot => (
             <button
-              onClick={() => setExpanded(!expanded)}
-              className="absolute top-2 right-2 z-10 px-3 py-1.5 rounded-lg bg-background/90 border border-border text-xs font-medium hover:bg-muted transition-colors flex items-center gap-1.5"
+              key={spot.id}
+              onClick={() => navigate(`/spot/${spot.id}`)}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/40 hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-left group"
             >
-              {expanded ? <><X className="h-3.5 w-3.5" /> Minimizar</> : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>}
-            </button>
-          </div>
-
-          {/* Lista de praias clicáveis com score */}
-          <div className="grid grid-cols-2 gap-2">
-            {spots.map(spot => (
-              <button
-                key={spot.id}
-                onClick={() => navigate(`/spot/${spot.id}`)}
-                className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/40 hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-left group"
-              >
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: getScoreColor(spot.score) }} />
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{spot.name}</div>
-                  <div className="text-xs" style={{ color: getScoreColor(spot.score) }}>
-                    {spot.score.toFixed(1)} · {getScoreLabel(spot.score)}
-                  </div>
+              <div className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: getScoreColor(spot.score) }} />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{spot.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{getLocationDescription(spot)}</div>
+                <div className="text-xs font-medium" style={{ color: getScoreColor(spot.score) }}>
+                  {spot.score.toFixed(1)} · {getScoreLabel(spot.score)}
                 </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Legenda */}
-          <div className="flex flex-wrap gap-3 pt-1 border-t">
-            {[
-              { color: '#8b5cf6', label: 'Épico' },
-              { color: '#06b6d4', label: 'Excelente' },
-              { color: '#22c55e', label: 'Bom' },
-              { color: '#f59e0b', label: 'Regular' },
-              { color: '#ef4444', label: 'Ruim' },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-muted-foreground">{item.label}</span>
               </div>
-            ))}
-          </div>
+            </button>
+          ))}
+        </div>
 
-          <p className="text-xs text-muted-foreground text-center">
-            Selecione uma praia na lista para ver as condições detalhadas
-          </p>
-        </CardContent>
-      </Card>
-    </>
+        <div className="flex flex-wrap gap-3 pt-1 border-t">
+          {[
+            { color: '#8b5cf6', label: 'Épico' },
+            { color: '#06b6d4', label: 'Excelente' },
+            { color: '#22c55e', label: 'Bom' },
+            { color: '#f59e0b', label: 'Regular' },
+            { color: '#ef4444', label: 'Ruim' },
+          ].map(item => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+              <span className="text-xs text-muted-foreground">{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          Selecione uma praia na lista para ver as condições detalhadas
+        </p>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -192,7 +208,6 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
 
-  // iOS Safari não suporta notificações push de forma confiável
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
   const handleEnable = async () => {
@@ -245,14 +260,11 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* iOS — não suporta, mensagem honesta */}
         {isIOS && (
           <div className="text-xs bg-muted/30 border border-border rounded-lg p-3 text-muted-foreground">
             😔 <strong>iPhone/iPad:</strong> Infelizmente o Safari no iOS não suporta notificações push em aplicações web. Esta função está disponível apenas no Android e no computador.
           </div>
         )}
-
-        {/* Android/Desktop */}
         {!isIOS && permission === 'unsupported' && (
           <p className="text-xs text-muted-foreground">Seu navegador não suporta notificações push. Tente abrir pelo Chrome.</p>
         )}
