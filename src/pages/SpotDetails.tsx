@@ -21,7 +21,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
 
-const FIXED_DOMAIN = 'https://lasy-c2c60750-a786-490a-a8f2-7fef1f-self.vercel.app'
+const FIXED_DOMAIN = 'https://lasy-c2c60750-a786-490a-a8f2-7fef1fd0-arthurs-projects-d2bf211e.vercel.app'
 
 const getRatingInfo = (score: number) => {
   if (score >= 8.5) return { label: 'ÉPICO', color: 'text-purple-500', bg: 'bg-purple-500', bars: 5 }
