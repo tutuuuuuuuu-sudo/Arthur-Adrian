@@ -1,21 +1,17 @@
 export const config = { runtime: 'edge' }
 
 const windDirectionFromDegrees = (degrees: number): string => {
-  const dirs = ['N', 'NE', 'NE', 'E', 'E', 'SE', 'SE', 'S', 'S', 'SW', 'SW', 'W', 'W', 'NW', 'NW', 'N']
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
   const index = Math.round(degrees / 22.5)
   return dirs[index % 16]
 }
 
-const classifyWind = (direction: string, beachOrientation: number): string => {
-  const dirMap: Record<string, number> = {
-    'N': 0, 'NE': 45, 'E': 90, 'SE': 135,
-    'S': 180, 'SW': 225, 'W': 270, 'NW': 315
-  }
-  const windDeg = dirMap[direction] ?? 0
-  const diff = Math.abs(windDeg - beachOrientation) % 360
-  const angle = diff > 180 ? 360 - diff : diff
-  if (angle <= 45) return `${direction} (Terral)`
-  if (angle <= 90) return `${direction} (Lateral)`
+// Terral APENAS para W e SW — vento que vem de terra para o mar nas praias do leste de Floripa
+const classifyWind = (direction: string): string => {
+  const terrals = ['W', 'SW']
+  const laterals = ['NW', 'WSW', 'SSW', 'S']
+  if (terrals.includes(direction)) return `${direction} (Terral)`
+  if (laterals.includes(direction)) return `${direction} (Lateral)`
   return `${direction} (Frontal)`
 }
 
@@ -30,7 +26,6 @@ export default async function handler(req: Request) {
   const url = new URL(req.url)
   const lat = url.searchParams.get('lat')
   const lng = url.searchParams.get('lng')
-  const orientation = Number(url.searchParams.get('orientation') ?? 180)
   const fetchTide = url.searchParams.get('tide') === 'true'
 
   try {
@@ -50,7 +45,7 @@ export default async function handler(req: Request) {
     const windSpeed = Math.round(weather.current?.wind_speed_10m ?? 12)
     const windDeg = weather.current?.wind_direction_10m ?? 0
     const windDir = windDirectionFromDegrees(windDeg)
-    const windDirection = classifyWind(windDir, orientation)
+    const windDirection = classifyWind(windDir)
 
     const rawSeaTemp = marine.current?.sea_surface_temperature
     const waterTemperature = rawSeaTemp != null ? Math.round(rawSeaTemp) : null
@@ -60,7 +55,6 @@ export default async function handler(req: Request) {
     const sunrise = formatTimeBrasilia(sunriseRaw)
     const sunset = formatTimeBrasilia(sunsetRaw)
 
-    // Busca dados de maré da Stormglass apenas quando solicitado
     let tideData: { time: string, height: number, type?: string }[] = []
 
     if (fetchTide) {
@@ -73,11 +67,7 @@ export default async function handler(req: Request) {
 
         const tideRes = await fetch(
           `https://api.stormglass.io/v2/tide/extremes/point?lat=${lat}&lng=${lng}&start=${start.toISOString()}&end=${end.toISOString()}`,
-          {
-            headers: {
-              'Authorization': process.env.STORMGLASS_API_KEY ?? ''
-            }
-          }
+          { headers: { 'Authorization': process.env.STORMGLASS_API_KEY ?? '' } }
         )
 
         if (tideRes.ok) {
@@ -85,7 +75,7 @@ export default async function handler(req: Request) {
           tideData = (tideJson.data ?? []).map((item: any) => ({
             time: item.time,
             height: Number(item.height.toFixed(2)),
-            type: item.type // 'high' ou 'low'
+            type: item.type
           }))
         }
       } catch (e) {
@@ -94,20 +84,10 @@ export default async function handler(req: Request) {
     }
 
     return new Response(JSON.stringify({
-      waveHeight,
-      windSpeed,
-      windDirection,
-      swellPeriod,
-      swellDirection,
-      waterTemperature,
-      sunrise,
-      sunset,
-      tideData
+      waveHeight, windSpeed, windDirection, swellPeriod,
+      swellDirection, waterTemperature, sunrise, sunset, tideData
     }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Failed to fetch' }), {
