@@ -19,7 +19,6 @@ import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 
-const FIXED_DOMAIN = 'https://lasy-c2c60750-a786-490a-a8f2-7fef1f-self.vercel.app'
 
 const SwellPeriodWidget = () => {
   const [open, setOpen] = useState(false)
