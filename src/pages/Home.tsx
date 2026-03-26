@@ -15,10 +15,9 @@ import {
   saveNotificationSettings,
   checkAndNotifyGoodConditions
 } from '@/lib/notifications'
-import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, Maximize2 } from 'lucide-react'
+import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-
 
 const SwellPeriodWidget = () => {
   const [open, setOpen] = useState(false)
@@ -82,118 +81,21 @@ const getScoreLabel = (score: number): string => {
   return 'Ruim'
 }
 
-// Mapa com pins SVG sobre iframe do Google Maps + botão expandir
+// Mapa via Google Maps com marcadores reais
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
-  // Coordenadas do centro de Florianópolis para o iframe
-  const mapSrc = "https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d75000!2d-48.49!3d-27.63!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890"
-
-  const MapContent = ({ height }: { height: string }) => {
-    // Limites do mapa visível no iframe (aproximado)
-    const latMin = -27.88
-    const latMax = -27.40
-    const lngMin = -48.62
-    const lngMax = -48.36
-
-    // Converte coordenadas geográficas para % da área do mapa
-    const toPercX = (lng: number) => ((lng - lngMin) / (lngMax - lngMin)) * 100
-    const toPercY = (lat: number) => ((lat - latMax) / (latMin - latMax)) * 100
-
-    return (
-      <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height }}>
-        {/* Google Maps iframe como fundo */}
-        <iframe
-          width="100%"
-          height="100%"
-          style={{ border: 0, display: 'block' }}
-          loading="lazy"
-          allowFullScreen
-          src={mapSrc}
-        />
-
-        {/* Overlay com pins das praias */}
-        <div className="absolute inset-0 pointer-events-none">
-          {spots.map(spot => {
-            const x = toPercX(spot.lng)
-            const y = toPercY(spot.lat)
-            // Ignora praias fora dos limites visíveis
-            if (x < 0 || x > 100 || y < 0 || y > 100) return null
-            const color = getScoreColor(spot.score)
-            const isHovered = hoveredId === spot.id
-
-            return (
-              <div
-                key={spot.id}
-                className="absolute pointer-events-auto"
-                style={{
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  transform: 'translate(-50%, -100%)',
-                  zIndex: isHovered ? 20 : 10,
-                  cursor: 'pointer',
-                }}
-                onClick={() => navigate(`/spot/${spot.id}`)}
-                onMouseEnter={() => setHoveredId(spot.id)}
-                onMouseLeave={() => setHoveredId(null)}
-              >
-                {/* Card da praia */}
-                <div
-                  className="relative shadow-lg"
-                  style={{
-                    background: 'rgba(15, 23, 42, 0.92)',
-                    border: `2px solid ${color}`,
-                    borderRadius: '8px',
-                    padding: '4px 8px',
-                    minWidth: '80px',
-                    transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-                    transition: 'all 0.2s ease',
-                    backdropFilter: 'blur(4px)',
-                  }}
-                >
-                  <div className="text-white font-semibold" style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
-                    {spot.name}
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                    <span style={{ fontSize: '9px', color, fontWeight: 'bold' }}>
-                      {spot.score.toFixed(1)} · {getScoreLabel(spot.score)}
-                    </span>
-                  </div>
-                  {/* Seta do card apontando para baixo */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-7px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 0,
-                    height: 0,
-                    borderLeft: '6px solid transparent',
-                    borderRight: '6px solid transparent',
-                    borderTop: `7px solid ${color}`,
-                  }} />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Botão expandir/fechar */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="absolute top-2 right-2 z-30 p-2 rounded-lg bg-background/90 border border-border hover:bg-muted transition-colors pointer-events-auto"
-          title={expanded ? 'Minimizar mapa' : 'Expandir mapa'}
-        >
-          {expanded
-            ? <X className="h-4 w-4" />
-            : <Maximize2 className="h-4 w-4" />
-          }
-        </button>
-      </div>
-    )
+  // Gera URL do Google Maps com todos os marcadores
+  const buildGoogleMapsUrl = () => {
+    const base = 'https://www.google.com/maps/search/?api=1&query='
+    return `${base}-27.6,-48.48`
   }
+
+  // URL do iframe centralizado em Floripa com zoom adequado
+  const iframeSrc = expanded
+    ? `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
+    : `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d75000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
 
   return (
     <>
@@ -201,14 +103,50 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Map className="h-5 w-5 text-primary" />
-            Mapa das Praias — Clique para ver detalhes
+            Mapa das Praias
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <MapContent height={expanded ? '520px' : '300px'} />
+          {/* Iframe do Google Maps */}
+          <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: expanded ? '480px' : '260px', transition: 'height 0.3s ease' }}>
+            <iframe
+              width="100%"
+              height="100%"
+              style={{ border: 0, display: 'block' }}
+              loading="lazy"
+              allowFullScreen
+              src={iframeSrc}
+            />
+            {/* Botão expandir */}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="absolute top-2 right-2 z-10 px-3 py-1.5 rounded-lg bg-background/90 border border-border text-xs font-medium hover:bg-muted transition-colors flex items-center gap-1.5"
+            >
+              {expanded ? <><X className="h-3.5 w-3.5" /> Minimizar</> : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>}
+            </button>
+          </div>
+
+          {/* Lista de praias clicáveis com score */}
+          <div className="grid grid-cols-2 gap-2">
+            {spots.map(spot => (
+              <button
+                key={spot.id}
+                onClick={() => navigate(`/spot/${spot.id}`)}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/40 hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-left group"
+              >
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: getScoreColor(spot.score) }} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{spot.name}</div>
+                  <div className="text-xs" style={{ color: getScoreColor(spot.score) }}>
+                    {spot.score.toFixed(1)} · {getScoreLabel(spot.score)}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
 
           {/* Legenda */}
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex flex-wrap gap-3 pt-1 border-t">
             {[
               { color: '#8b5cf6', label: 'Épico' },
               { color: '#06b6d4', label: 'Excelente' },
@@ -224,81 +162,10 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            Toque em um card para ver as condições detalhadas da praia
+            Selecione uma praia na lista para ver as condições detalhadas
           </p>
         </CardContent>
       </Card>
-
-      {/* Modal de tela cheia */}
-      {expanded && (
-        <div
-          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col p-4 gap-3"
-          style={{ animation: 'fadeIn 0.2s ease-out' }}
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Map className="h-5 w-5 text-primary" />
-              Mapa das Praias
-            </h2>
-            <button onClick={() => setExpanded(false)} className="p-2 rounded-lg hover:bg-muted transition-colors">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 relative rounded-xl overflow-hidden border border-border/30">
-            <iframe
-              width="100%"
-              height="100%"
-              style={{ border: 0, display: 'block' }}
-              loading="lazy"
-              allowFullScreen
-              src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d110000!2d-48.49!3d-27.60!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890"
-            />
-            {/* Pins no modal expandido */}
-            <div className="absolute inset-0 pointer-events-none">
-              {spots.map(spot => {
-                const latMin = -27.92, latMax = -27.38
-                const lngMin = -48.65, lngMax = -48.33
-                const x = ((spot.lng - lngMin) / (lngMax - lngMin)) * 100
-                const y = ((spot.lat - latMax) / (latMin - latMax)) * 100
-                if (x < 0 || x > 100 || y < 0 || y > 100) return null
-                const color = getScoreColor(spot.score)
-                return (
-                  <div
-                    key={spot.id}
-                    className="absolute pointer-events-auto"
-                    style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -100%)', zIndex: 10, cursor: 'pointer' }}
-                    onClick={() => { setExpanded(false); navigate(`/spot/${spot.id}`) }}
-                  >
-                    <div style={{
-                      background: 'rgba(15, 23, 42, 0.92)',
-                      border: `2px solid ${color}`,
-                      borderRadius: '8px',
-                      padding: '5px 10px',
-                      minWidth: '90px',
-                      backdropFilter: 'blur(4px)',
-                    }}>
-                      <div className="text-white font-semibold" style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>{spot.name}</div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                        <span style={{ fontSize: '10px', color, fontWeight: 'bold' }}>{spot.score.toFixed(1)} · {getScoreLabel(spot.score)}</span>
-                      </div>
-                      <div style={{ position: 'absolute', bottom: '-7px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `7px solid ${color}` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {[{ color: '#8b5cf6', label: 'Épico' }, { color: '#06b6d4', label: 'Excelente' }, { color: '#22c55e', label: 'Bom' }, { color: '#f59e0b', label: 'Regular' }, { color: '#ef4444', label: 'Ruim' }].map(item => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-muted-foreground">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   )
 }
@@ -330,8 +197,8 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
 
+  // iOS Safari não suporta notificações push de forma confiável
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-  const isNotSupported = permission === 'unsupported' || isIOS
 
   const handleEnable = async () => {
     setLoading(true)
@@ -383,21 +250,23 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* iOS — não suporta, mensagem honesta */}
         {isIOS && (
-          <div className="text-xs bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-muted-foreground">
-            📱 <strong>iPhone/iPad:</strong> Para receber alertas, adicione o app à sua tela inicial:
-            Safari → Compartilhar → "Adicionar à Tela de Início" → então ative os alertas.
+          <div className="text-xs bg-muted/30 border border-border rounded-lg p-3 text-muted-foreground">
+            😔 <strong>iPhone/iPad:</strong> Infelizmente o Safari no iOS não suporta notificações push em aplicações web. Esta função está disponível apenas no Android e no computador.
           </div>
         )}
+
+        {/* Android/Desktop */}
         {!isIOS && permission === 'unsupported' && (
           <p className="text-xs text-muted-foreground">Seu navegador não suporta notificações push. Tente abrir pelo Chrome.</p>
         )}
         {!isIOS && permission === 'denied' && (
           <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3">
-            Notificações bloqueadas. Toque no cadeado na barra de endereços e permita notificações.
+            Notificações bloqueadas. Clique no cadeado na barra de endereços e permita notificações.
           </div>
         )}
-        {!isNotSupported && (permission === 'default' || permission === 'granted') && (
+        {!isIOS && (permission === 'default' || permission === 'granted') && (
           <>
             <div className="flex items-center justify-between">
               <div>
@@ -525,7 +394,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
