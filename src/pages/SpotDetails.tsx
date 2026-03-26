@@ -23,6 +23,8 @@ import { toast } from 'sonner'
 
 const FIXED_DOMAIN = 'https://lasy-c2c60750-a786-490a-a8f2-7fef1fd0-arthurs-projects-d2bf211e.vercel.app'
 
+const metersToFeet = (m: number): string => `${(m * 3.281).toFixed(1)}ft`
+
 const getRatingInfo = (score: number) => {
   if (score >= 8.5) return { label: 'ÉPICO', color: 'text-purple-500', bg: 'bg-purple-500', bars: 5 }
   if (score >= 7) return { label: 'EXCELENTE', color: 'text-primary', bg: 'bg-primary', bars: 4 }
@@ -251,8 +253,8 @@ const TideChart = ({ tide }: { tide: string }) => {
         </button>
       </div>
       {expanded && (
-        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setExpanded(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setExpanded(false)} style={{ animation: 'fadeIn 0.2s ease-out' }}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-cyan-500" />
@@ -359,7 +361,7 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
-              placeholder="Como está o mar agora? Compartilhe com outros surfistas..."
+              placeholder="Como está o mar agora?"
               className="flex-1 text-sm px-3 py-2 rounded-xl border border-border bg-muted/20 outline-none focus:border-primary transition-colors"
               maxLength={280}
             />
@@ -368,16 +370,14 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
             </button>
           </div>
         ) : (
-          <div className="text-xs text-muted-foreground bg-muted/20 rounded-xl p-3 text-center">
-            Faça login para deixar um relato sobre as condições
-          </div>
+          <div className="text-xs text-muted-foreground bg-muted/20 rounded-xl p-3 text-center">Faça login para deixar um relato</div>
         )}
         {loading ? (
           <div className="flex justify-center py-4"><Waves className="h-5 w-5 text-primary animate-bounce" /></div>
         ) : comments.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-20" />
-            <p className="text-xs">Nenhum relato ainda. Seja o primeiro a comentar!</p>
+            <p className="text-xs">Nenhum relato ainda. Seja o primeiro!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -408,23 +408,17 @@ const CommentsSection = ({ spot }: { spot: BeachCondition }) => {
   )
 }
 
-// Botão de compartilhar — corrigido com domínio fixo e sem duplicar URL
 const ShareButton = ({ spot }: { spot: BeachCondition }) => {
   const handleShare = async () => {
     const rating = getRatingInfo(spot.score)
     const spotUrl = `${FIXED_DOMAIN}/spot/${spot.id}`
     const text = `🏄 ${spot.name} está ${rating.label} agora!\n\nScore: ${spot.score.toFixed(1)}/10\nOndas: ${spot.waveHeight.toFixed(1)}m · Período: ${Math.round(spot.swellPeriod)}s\nVento: ${Math.round(spot.windSpeed)}km/h · Água: ${spot.waterConditions.temperature}°C\n\nVeja mais: ${spotUrl}`
-
     if (navigator.share) {
-      try {
-        await navigator.share({ title: `Surf AI — ${spot.name}`, text, url: spotUrl })
-        return
-      } catch (_) {}
+      try { await navigator.share({ title: `Surf AI — ${spot.name}`, text, url: spotUrl }); return } catch (_) {}
     }
     await navigator.clipboard.writeText(text)
-    toast.success('Condições copiadas! Cole no WhatsApp ou onde quiser 📋')
+    toast.success('Condições copiadas! Cole no WhatsApp 📋')
   }
-
   return (
     <Button variant="outline" size="sm" onClick={handleShare}>
       <Share2 className="h-4 w-4 mr-2" />
@@ -442,6 +436,8 @@ export default function SpotDetails() {
   const [loadingFav, setLoadingFav] = useState(true)
   const [forecast, setForecast] = useState<WeatherForecast[]>([])
   const [visible, setVisible] = useState(false)
+  const [showScoreExplainer, setShowScoreExplainer] = useState(false)
+  const [usesFeet, setUsesFeet] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -508,7 +504,6 @@ export default function SpotDetails() {
     @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes scorePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .anim-slide { animation: slideUp 0.5s ease-out both; }
-    .anim-left { animation: slideInLeft 0.5s ease-out both; }
     .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
   `
@@ -516,7 +511,65 @@ export default function SpotDetails() {
   return (
     <div className="min-h-screen bg-background">
       <style>{animStyles}</style>
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
+
+      {/* Modal Score Explicado */}
+      {showScoreExplainer && (
+        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowScoreExplainer(false)} style={{ animation: 'fadeIn 0.2s ease-out' }}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Como calculamos o score</h3>
+              <button onClick={() => setShowScoreExplainer(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className={`text-6xl font-bold text-center mb-1 ${rating.color}`}>{spot.score.toFixed(1)}</div>
+            <div className={`text-center text-sm font-bold mb-6 ${rating.color}`}>{rating.label}</div>
+            <div className="space-y-4">
+              {[
+                {
+                  label: 'Ondulação',
+                  value: spot.waveHeight >= 1.5 ? 9 : spot.waveHeight >= 1.0 ? 7 : spot.waveHeight >= 0.5 ? 5 : 3,
+                  desc: `${spot.waveHeight.toFixed(1)}m de altura`,
+                  icon: '🌊'
+                },
+                {
+                  label: 'Período',
+                  value: spot.swellPeriod >= 14 ? 10 : spot.swellPeriod >= 12 ? 8 : spot.swellPeriod >= 10 ? 6 : spot.swellPeriod >= 8 ? 4 : 2,
+                  desc: `${Math.round(spot.swellPeriod)}s entre ondas`,
+                  icon: '⏱️'
+                },
+                {
+                  label: 'Vento',
+                  value: spot.windDirection.includes('Terral') && spot.windSpeed <= 10 ? 10 :
+                         spot.windDirection.includes('Terral') ? 7 :
+                         spot.windDirection.includes('Lateral') ? 5 : 2,
+                  desc: `${Math.round(spot.windSpeed)}km/h — ${spot.windDirection.split(' ')[0]}`,
+                  icon: '💨'
+                },
+              ].map(item => (
+                <div key={item.label} className="flex items-center gap-3">
+                  <span className="text-xl">{item.icon}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold">{item.label}</span>
+                      <span className="text-sm font-bold text-primary">{item.value}/10</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-1.5">
+                      <div className="bg-primary h-1.5 rounded-full transition-all duration-700" style={{ width: `${item.value * 10}%` }} />
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-5 text-center">
+              Score calculado com base em ondulação, período, vento e maré
+            </p>
+          </div>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
@@ -544,7 +597,13 @@ export default function SpotDetails() {
               <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
             </div>
           </div>
-          <div className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px]" style={{ animation: visible ? 'slideUp 0.6s 0.1s ease-out both' : 'none' }}>
+
+          {/* Score card — clicável para explicação */}
+          <div
+            className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px] cursor-pointer hover:border-primary/50 transition-all active:scale-95"
+            style={{ animation: visible ? 'slideUp 0.6s 0.1s ease-out both' : 'none' }}
+            onClick={() => setShowScoreExplainer(true)}
+          >
             <div className={`text-5xl font-bold ${rating.color}`} style={{ animation: visible ? 'scorePulse 0.8s 0.5s ease-in-out' : 'none' }}>
               {Number(spot.score).toFixed(1)}
             </div>
@@ -555,6 +614,7 @@ export default function SpotDetails() {
                 <div key={i} className={`h-2 w-5 rounded-full transition-all duration-500 ${i <= rating.bars ? rating.bg : 'bg-muted'}`} style={{ transitionDelay: `${i * 80}ms` }} />
               ))}
             </div>
+            <div className="text-xs text-muted-foreground mt-2 opacity-60">Toque para entender</div>
           </div>
         </div>
 
@@ -662,9 +722,20 @@ export default function SpotDetails() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
+                    {/* Toggle metros/pés */}
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-muted-foreground">Altura</span>
-                      <span className="text-2xl font-bold">{Number(spot.waveHeight).toFixed(1)}m</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">
+                          {usesFeet ? metersToFeet(spot.waveHeight) : `${Number(spot.waveHeight).toFixed(1)}m`}
+                        </span>
+                        <button
+                          onClick={() => setUsesFeet(!usesFeet)}
+                          className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                        >
+                          {usesFeet ? 'm' : 'ft'}
+                        </button>
+                      </div>
                     </div>
                     <AnimatedProgress value={spot.waveHeight * 20} />
                   </div>
@@ -805,7 +876,9 @@ export default function SpotDetails() {
                             <div className="flex items-center gap-6">
                               <div className="text-center">
                                 <Waves className="h-4 w-4 mx-auto mb-1 text-primary" />
-                                <div className="text-sm font-semibold">{Number(day.waveHeight).toFixed(1)}m</div>
+                                <div className="text-sm font-semibold">
+                                  {usesFeet ? metersToFeet(day.waveHeight) : `${Number(day.waveHeight).toFixed(1)}m`}
+                                </div>
                               </div>
                               <div className="text-center">
                                 <Wind className="h-4 w-4 mx-auto mb-1 text-accent" />
