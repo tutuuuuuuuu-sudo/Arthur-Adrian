@@ -16,7 +16,7 @@ import {
   saveNotificationSettings,
   checkAndNotifyGoodConditions
 } from '@/lib/notifications'
-import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, ExternalLink, User } from 'lucide-react'
+import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 
