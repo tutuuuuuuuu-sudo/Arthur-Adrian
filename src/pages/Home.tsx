@@ -86,11 +86,6 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
 
-  // Gera URL do Google Maps com todos os marcadores
-  const buildGoogleMapsUrl = () => {
-    const base = 'https://www.google.com/maps/search/?api=1&query='
-    return `${base}-27.6,-48.48`
-  }
 
   // URL do iframe centralizado em Floripa com zoom adequado
   const iframeSrc = expanded
