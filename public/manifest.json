@@ -1,0 +1,24 @@
+{
+  "name": "Surf AI — Florianópolis",
+  "short_name": "Surf AI",
+  "description": "Condições de surf em tempo real para as praias de Florianópolis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#06b6d4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230a1628'/><path d='M20 120 Q50 80 80 105 Q110 130 140 90 Q160 70 172 80' stroke='%2306b6d4' stroke-width='12' fill='none' stroke-linecap='round'/><path d='M20 140 Q50 100 80 125 Q110 150 140 110 Q160 90 172 100' stroke='%231d9e75' stroke-width='8' fill='none' stroke-linecap='round' opacity='0.7'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a1628'/><path d='M50 320 Q130 210 210 270 Q290 330 370 230 Q420 180 462 210' stroke='%2306b6d4' stroke-width='30' fill='none' stroke-linecap='round'/><path d='M50 380 Q130 270 210 330 Q290 390 370 290 Q420 240 462 270' stroke='%231d9e75' stroke-width='20' fill='none' stroke-linecap='round' opacity='0.7'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
