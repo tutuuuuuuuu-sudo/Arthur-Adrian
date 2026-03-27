@@ -47,7 +47,7 @@ const formatWindDirection = (direction: string) => {
   const name = directionNames[code] ?? code
   const isOffshore = direction.includes('Terral')
   const isLateral = direction.includes('Lateral')
-  const type = isOffshore ? 'Terral ✓' : isLateral ? 'Lateral' : 'Frontal ✗'
+  const type = isOffshore ? 'Terral ✓' : isLateral ? 'Lateral' : ''
   return { code, name, type, isOffshore }
 }
 
@@ -72,36 +72,84 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
     return '#ef4444'
   }
   const color = getWindColor(speed)
+
+  // 16 direções para os ticks
+  const allDirs = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5]
+
   return (
-    <div className="flex flex-col items-center gap-1">
-      <svg width="100" height="100" viewBox="0 0 110 110">
-        <circle cx="55" cy="55" r="50" fill="none" stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.4" />
-        <circle cx="55" cy="55" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" opacity="0.2" />
-        {[{ label: 'N', x: 55, y: 8 }, { label: 'S', x: 55, y: 104 }, { label: 'L', x: 104, y: 57 }, { label: 'O', x: 6, y: 57 }].map(({ label, x, y }) => (
-          <text key={label} x={x} y={y} textAnchor="middle" fontSize="9" fontWeight="bold"
-            fill={label === 'N' ? color : 'currentColor'}
-            className={label !== 'N' ? 'text-muted-foreground' : ''}
-            opacity={label !== 'N' ? 0.5 : 1}
-          >{label}</text>
-        ))}
-        {[45, 135, 225, 315].map(deg => {
+    <div className="flex flex-col items-center gap-2">
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        {/* Anel externo tracejado com cor do vento */}
+        <circle cx="70" cy="70" r="62" fill="none" stroke={color} strokeWidth="0.8" strokeDasharray="2,4" opacity="0.18" />
+        {/* Anel médio */}
+        <circle cx="70" cy="70" r="46" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-muted-foreground" opacity="0.14" />
+        {/* Anel interno */}
+        <circle cx="70" cy="70" r="28" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-muted-foreground" opacity="0.10" />
+        {/* Ponto central de fundo */}
+        <circle cx="70" cy="70" r="28" fill={color} opacity="0.04" />
+
+        {/* Linhas cruzadas */}
+        <line x1="8" y1="70" x2="132" y2="70" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.10" />
+        <line x1="70" y1="8" x2="70" y2="132" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.10" />
+        <line x1="26" y1="26" x2="114" y2="114" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.07" />
+        <line x1="114" y1="26" x2="26" y2="114" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.07" />
+
+        {/* 16 ticks de direção */}
+        {allDirs.map(deg => {
           const rad = (deg - 90) * Math.PI / 180
-          return <line key={deg} x1={55 + 42 * Math.cos(rad)} y1={55 + 42 * Math.sin(rad)} x2={55 + 48 * Math.cos(rad)} y2={55 + 48 * Math.sin(rad)} stroke="currentColor" strokeWidth="1" className="text-border" opacity="0.3" />
+          const isCardinal = deg % 90 === 0
+          const isMain = deg % 45 === 0
+          const inner = isCardinal ? 50 : isMain ? 52 : 55
+          const outer = isCardinal ? 62 : isMain ? 61 : 60
+          return (
+            <line key={deg}
+              x1={70 + inner * Math.cos(rad)} y1={70 + inner * Math.sin(rad)}
+              x2={70 + outer * Math.cos(rad)} y2={70 + outer * Math.sin(rad)}
+              stroke="currentColor" strokeWidth={isCardinal ? 1.5 : isMain ? 1 : 0.7}
+              className="text-muted-foreground"
+              opacity={isCardinal ? 0.45 : isMain ? 0.3 : 0.18}
+            />
+          )
         })}
-        <line x1="55" y1="10" x2="55" y2="100" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
-        <line x1="10" y1="55" x2="100" y2="55" stroke="currentColor" strokeWidth="0.3" className="text-border" opacity="0.15" />
-        <g transform={`rotate(${degrees}, 55, 55)`}>
-          <line x1="55" y1="55" x2="55" y2="20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-          <polygon points="55,14 50,24 60,24" fill={color} />
-          <line x1="55" y1="55" x2="55" y2="75" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+
+        {/* Labels cardeais (N, S, L, O) */}
+        <text x="70" y="7" textAnchor="middle" fontSize="10" fontWeight="bold" fill={color}>N</text>
+        <text x="70" y="136" textAnchor="middle" fontSize="9" fontWeight="600" fill="currentColor" className="text-muted-foreground" opacity="0.4">S</text>
+        <text x="135" y="73" textAnchor="middle" fontSize="9" fontWeight="600" fill="currentColor" className="text-muted-foreground" opacity="0.4">L</text>
+        <text x="5" y="73" textAnchor="middle" fontSize="9" fontWeight="600" fill="currentColor" className="text-muted-foreground" opacity="0.4">O</text>
+
+        {/* Labels intercardeais (NE, SE, SO, NO) */}
+        <text x="106" y="35" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">NE</text>
+        <text x="106" y="109" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">SE</text>
+        <text x="34" y="109" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">SO</text>
+        <text x="34" y="35" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">NO</text>
+
+        {/* Seta do vento (girada conforme direção) */}
+        <g transform={`rotate(${degrees}, 70, 70)`}>
+          {/* Brilho/glow da seta */}
+          <line x1="70" y1="70" x2="70" y2="22" stroke={color} strokeWidth="8" strokeLinecap="round" opacity="0.10" />
+          {/* Haste da seta */}
+          <line x1="70" y1="70" x2="70" y2="26" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+          {/* Ponta da seta */}
+          <polygon points="70,15 64,28 76,28" fill={color} />
+          {/* Cauda da seta */}
+          <line x1="70" y1="70" x2="70" y2="88" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.30" />
+          {/* Plumas da cauda */}
+          <line x1="70" y1="80" x2="65" y2="85" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.22" />
+          <line x1="70" y1="75" x2="65" y2="80" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.18" />
         </g>
-        <circle cx="55" cy="55" r="4" fill={color} />
-        <circle cx="55" cy="55" r="2" fill="white" />
+
+        {/* Ponto central */}
+        <circle cx="70" cy="70" r="5.5" fill={color} />
+        <circle cx="70" cy="70" r="2.5" fill="white" />
       </svg>
-      <div className="text-center">
-        <div className="text-base font-bold" style={{ color }}>{speed}km/h</div>
-        <div className="text-xs font-semibold">{code} — {name}</div>
-        <div className={`text-xs mt-0.5 ${isOffshore ? 'text-green-500' : 'text-muted-foreground'}`}>{type}</div>
+
+      <div className="text-center space-y-0.5">
+        <div className="text-lg font-bold" style={{ color }}>{speed}km/h</div>
+        <div className="text-xs font-semibold text-foreground">{code} — {name}</div>
+        {type && (
+          <div className={`text-xs font-medium ${isOffshore ? 'text-green-500' : 'text-muted-foreground'}`}>{type}</div>
+        )}
       </div>
     </div>
   )
@@ -230,9 +278,21 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
           )}
         </svg>
       </div>
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1"><span className="text-green-500 font-bold">▲</span><span>Maré Alta</span></div>
-        <div className="flex items-center gap-1"><span className="text-yellow-500 font-bold">▼</span><span>Maré Baixa</span></div>
+      <div className="flex items-center gap-5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <svg width="16" height="16" viewBox="0 0 16 16" className="flex-shrink-0">
+            <polygon points="8,1 3,8 13,8" fill="#22c55e" />
+            <circle cx="8" cy="12" r="2.5" fill="#22c55e" />
+          </svg>
+          <span className="text-green-500 font-medium">Maré Alta</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <svg width="16" height="16" viewBox="0 0 16 16" className="flex-shrink-0">
+            <circle cx="8" cy="4" r="2.5" fill="#f59e0b" />
+            <polygon points="8,15 3,8 13,8" fill="#f59e0b" />
+          </svg>
+          <span className="text-amber-500 font-medium">Maré Baixa</span>
+        </div>
       </div>
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
         <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
