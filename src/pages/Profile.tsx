@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
 import { getFavorites } from '@/lib/favorites'
 import { fetchCurrentConditions, BeachCondition } from '@/lib/surfData'
-import { ArrowLeft, User, Waves, Heart, MapPin, Edit2, Check, X } from 'lucide-react'
+import { ArrowLeft, User, Waves, Heart, MapPin, Edit2, Check, X, Camera } from 'lucide-react'
 import { toast } from 'sonner'
 
 const LEVELS = ['Iniciante', 'Intermediário', 'Avançado', 'Expert'] as const
@@ -30,7 +30,9 @@ export default function Profile() {
   const [tempBeach, setTempBeach] = useState('Campeche')
   const [tempBio, setTempBio] = useState('')
   const [favoriteSpots, setFavoriteSpots] = useState<BeachCondition[]>([])
-  const [sessionCount] = useState(Math.floor(Math.random() * 50) + 10)
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null)
+  const [sessionCount] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -43,6 +45,9 @@ export default function Profile() {
         setFavoriteBeach(p.favoriteBeach ?? 'Campeche')
         setBio(p.bio ?? '')
       }
+      // Carrega foto personalizada
+      const savedPhoto = localStorage.getItem(`avatar_${data.user?.id}`)
+      if (savedPhoto) setCustomPhoto(savedPhoto)
     })
 
     // Carrega praias favoritas com condições
@@ -71,6 +76,23 @@ export default function Profile() {
     if (score >= 5.5) return 'text-green-500'
     if (score >= 4) return 'text-yellow-500'
     return 'text-destructive'
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Foto muito grande! Máximo 5MB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result as string
+      setCustomPhoto(base64)
+      if (user?.id) localStorage.setItem(`avatar_${user.id}`, base64)
+      toast.success('Foto de perfil atualizada!')
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSave = () => {
@@ -129,12 +151,30 @@ export default function Profile() {
         <Card style={{ animation: 'slideUp 0.4s ease-out both' }}>
           <CardContent className="pt-6 pb-6">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center flex-shrink-0">
-                {user?.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt={userName} className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <span className="text-3xl font-bold text-primary">{userInitial}</span>
-                )}
+              <div className="relative flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center overflow-hidden">
+                  {customPhoto ? (
+                    <img src={customPhoto} alt={userName} className="w-full h-full rounded-full object-cover" />
+                  ) : user?.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt={userName} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-bold text-primary">{userInitial}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary border-2 border-background flex items-center justify-center hover:bg-primary/90 transition-colors"
+                  title="Alterar foto de perfil"
+                >
+                  <Camera className="h-3.5 w-3.5 text-primary-foreground" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
               </div>
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">{userName}</h1>
