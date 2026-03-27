@@ -6,12 +6,24 @@ const windDirectionFromDegrees = (degrees: number): string => {
   return dirs[index % 16]
 }
 
-// Terral APENAS para W e SW — vento que vem de terra para o mar nas praias do leste de Floripa
-const classifyWind = (direction: string): string => {
-  const terrals = ['W', 'SW']
-  const laterals = ['NW', 'WSW', 'SSW', 'S']
-  if (terrals.includes(direction)) return `${direction} (Terral)`
-  if (laterals.includes(direction)) return `${direction} (Lateral)`
+const dirToDegreesMap: Record<string, number> = {
+  'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
+  'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+  'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5,
+  'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5
+}
+
+// Classifica o vento baseado na orientacao real da praia
+// orientation = direcao para onde a praia OLHA (ex: 90 = praia voltada para o Leste)
+// Terral = vento vindo de terra = de (orientation + 180°)
+// Ex: Campeche orientation=90 → terralSource=270(W) → WNW(292.5°) diff=22.5° → Terral ✓
+const classifyWind = (direction: string, orientation: number): string => {
+  const windDeg = dirToDegreesMap[direction] ?? 0
+  const terralSource = (orientation + 180) % 360
+  let diff = Math.abs(windDeg - terralSource)
+  if (diff > 180) diff = 360 - diff
+  if (diff <= 50) return `${direction} (Terral)`
+  if (diff <= 90) return `${direction} (Lateral)`
   return `${direction} (Frontal)`
 }
 
@@ -26,6 +38,7 @@ export default async function handler(req: Request) {
   const url = new URL(req.url)
   const lat = url.searchParams.get('lat')
   const lng = url.searchParams.get('lng')
+  const orientation = parseInt(url.searchParams.get('orientation') ?? '90')
   const fetchTide = url.searchParams.get('tide') === 'true'
 
   try {
@@ -45,7 +58,7 @@ export default async function handler(req: Request) {
     const windSpeed = Math.round(weather.current?.wind_speed_10m ?? 12)
     const windDeg = weather.current?.wind_direction_10m ?? 0
     const windDir = windDirectionFromDegrees(windDeg)
-    const windDirection = classifyWind(windDir)
+    const windDirection = classifyWind(windDir, orientation)
 
     const rawSeaTemp = marine.current?.sea_surface_temperature
     const waterTemperature = rawSeaTemp != null ? Math.round(rawSeaTemp) : null
