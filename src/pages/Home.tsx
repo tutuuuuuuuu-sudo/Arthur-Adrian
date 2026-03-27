@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,7 +19,7 @@ import {
   saveNotificationSettings,
   checkAndNotifyGoodConditions
 } from '@/lib/notifications'
-import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 
@@ -125,13 +128,62 @@ const getThemeGradient = (score: number): string => {
   return 'from-red-900/30 via-background to-background'
 }
 
+// Cria marcador circular com score colorido para o mapa
+const createBeachMarker = (score: number, name: string) => {
+  const color = getScoreColor(score)
+  const label = getScoreLabel(score)
+  return L.divIcon({
+    html: `
+      <div style="
+        position:relative;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        cursor:pointer;
+      ">
+        <div style="
+          background:${color};
+          border:2.5px solid white;
+          border-radius:50%;
+          width:34px;
+          height:34px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color:white;
+          font-weight:800;
+          font-size:10px;
+          font-family:sans-serif;
+          box-shadow:0 2px 10px rgba(0,0,0,0.4);
+          transition:transform 0.15s;
+        " title="${name} · ${score.toFixed(1)} ${label}">${score.toFixed(1)}</div>
+        <div style="
+          width:0;height:0;
+          border-left:5px solid transparent;
+          border-right:5px solid transparent;
+          border-top:6px solid ${color};
+          margin-top:-1px;
+          filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        "></div>
+      </div>
+    `,
+    className: '',
+    iconSize: [34, 44],
+    iconAnchor: [17, 44],
+    popupAnchor: [0, -46],
+  })
+}
+
+// Sub-componente que recentra o mapa quando os spots mudam
+const MapRecenter = ({ center }: { center: [number, number] }) => {
+  const map = useMap()
+  useEffect(() => { map.setView(center, map.getZoom()) }, [center])
+  return null
+}
+
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
-  const [expanded, setExpanded] = useState(false)
-
-  const iframeSrc = expanded
-    ? `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
-    : `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d75000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
+  const mapRef = useRef<L.Map | null>(null)
 
   return (
     <Card className="anim-slide card-hover" style={{ animationDelay: '0.35s' }}>
@@ -142,34 +194,31 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: expanded ? '480px' : '260px', transition: 'height 0.3s ease' }}>
-          <iframe width="100%" height="100%" style={{ border: 0, display: 'block' }} loading="lazy" allowFullScreen src={iframeSrc} />
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="absolute top-2 right-2 z-10 px-3 py-1.5 rounded-lg bg-background/90 border border-border text-xs font-medium hover:bg-muted transition-colors flex items-center gap-1.5"
+        <style>{`
+          .leaflet-control-zoom a { background-color: hsl(var(--card)) !important; color: hsl(var(--foreground)) !important; border-color: hsl(var(--border)) !important; }
+          .leaflet-control-attribution { background: hsl(var(--card)/0.85) !important; color: hsl(var(--muted-foreground)) !important; font-size: 9px !important; }
+          .beach-marker-circle:hover { transform: scale(1.15) !important; }
+        `}</style>
+        <div className="rounded-xl overflow-hidden border border-border/30" style={{ height: '420px' }}>
+          <MapContainer
+            center={[-27.62, -48.46]}
+            zoom={11}
+            style={{ height: '100%', width: '100%' }}
+            ref={mapRef}
           >
-            {expanded ? <><X className="h-3.5 w-3.5" /> Minimizar</> : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {spots.map((spot, idx) => (
-            <button
-              key={spot.id}
-              onClick={() => navigate(`/spot/${spot.id}`)}
-              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/40 hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-left group"
-              style={{ animation: `slideInLeft 0.3s ${idx * 0.03}s ease-out both` }}
-            >
-              <div className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: getScoreColor(spot.score) }} />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{spot.name}</div>
-                <div className="text-xs text-muted-foreground truncate">{getLocationDescription(spot)}</div>
-                <div className="text-xs font-medium" style={{ color: getScoreColor(spot.score) }}>
-                  {spot.score.toFixed(1)} · {getScoreLabel(spot.score)}
-                </div>
-              </div>
-            </button>
-          ))}
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            />
+            {spots.map(spot => (
+              <Marker
+                key={spot.id}
+                position={[spot.lat, spot.lng]}
+                icon={createBeachMarker(spot.score, spot.name)}
+                eventHandlers={{ click: () => navigate(`/spot/${spot.id}`) }}
+              />
+            ))}
+          </MapContainer>
         </div>
 
         <div className="flex flex-wrap gap-3 pt-1 border-t">
@@ -180,7 +229,7 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground text-center">Selecione uma praia na lista para ver as condições detalhadas</p>
+        <p className="text-xs text-muted-foreground text-center">Toque em qualquer marcador no mapa para ver as condições da praia</p>
       </CardContent>
     </Card>
   )
