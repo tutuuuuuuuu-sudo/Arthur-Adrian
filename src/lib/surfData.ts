@@ -53,6 +53,19 @@ const getWaterTempFallback = (): number => {
   return 21
 }
 
+// Calcula altura de mare de forma deterministica (padrao semi-diurno de Florianopolis)
+const getTideHeight = (): number => {
+  const now = new Date()
+  const currentHour = now.getHours() + now.getMinutes() / 60
+  const amplitude = 0.20
+  const midLevel = 0.50
+  const period = 12.4
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+  const phaseOffset = (dayOfYear * 0.8) % period
+  const height = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
+  return Number(height.toFixed(2))
+}
+
 const getWetsuitInfo = (temp: number) => {
   if (temp >= 24) return { thickness: '2mm ou lycra', description: 'Quentinha ☀️' }
   if (temp >= 20) return { thickness: '3/2mm', description: 'Confortável 🌤️' }
@@ -65,7 +78,8 @@ const calculateScore = (waveHeight: number, windSpeed: number, swellPeriod: numb
   if (waveHeight >= 1.5) score += 2
   else if (waveHeight >= 1.0) score += 1.5
   else if (waveHeight >= 0.8) score += 1
-  else score -= 1
+  else if (waveHeight >= 0.6) score += 0  // pequena mas surfavel, sem penalidade
+  else score -= 1                          // muito pequena (< 0.6m)
 
   if (windDirection.includes('Terral')) {
     if (windSpeed <= 10) score += 2
@@ -326,7 +340,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         swellDirection,
         swellPeriod,
         tide,
-        tideHeight: Number((0.5 + Math.random() * 0.8).toFixed(1)),
+        tideHeight: getTideHeight(),
         level,
         boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: {
