@@ -72,29 +72,19 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
     return '#ef4444'
   }
   const color = getWindColor(speed)
-
-  // 16 direções para os ticks
   const allDirs = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5]
 
   return (
     <div className="flex flex-col items-center gap-2">
       <svg width="140" height="140" viewBox="0 0 140 140">
-        {/* Anel externo tracejado com cor do vento */}
         <circle cx="70" cy="70" r="62" fill="none" stroke={color} strokeWidth="0.8" strokeDasharray="2,4" opacity="0.18" />
-        {/* Anel médio */}
         <circle cx="70" cy="70" r="46" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-muted-foreground" opacity="0.14" />
-        {/* Anel interno */}
         <circle cx="70" cy="70" r="28" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-muted-foreground" opacity="0.10" />
-        {/* Ponto central de fundo */}
         <circle cx="70" cy="70" r="28" fill={color} opacity="0.04" />
-
-        {/* Linhas cruzadas */}
         <line x1="8" y1="70" x2="132" y2="70" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.10" />
         <line x1="70" y1="8" x2="70" y2="132" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.10" />
         <line x1="26" y1="26" x2="114" y2="114" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.07" />
         <line x1="114" y1="26" x2="26" y2="114" stroke="currentColor" strokeWidth="0.3" className="text-muted-foreground" opacity="0.07" />
-
-        {/* 16 ticks de direção */}
         {allDirs.map(deg => {
           const rad = (deg - 90) * Math.PI / 180
           const isCardinal = deg % 90 === 0
@@ -111,39 +101,25 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
             />
           )
         })}
-
-        {/* Labels cardeais (N, S, L, O) */}
         <text x="70" y="7" textAnchor="middle" fontSize="10" fontWeight="bold" fill={color}>N</text>
         <text x="70" y="136" textAnchor="middle" fontSize="9" fontWeight="600" fill="currentColor" className="text-muted-foreground" opacity="0.4">S</text>
         <text x="135" y="73" textAnchor="middle" fontSize="9" fontWeight="600" fill="currentColor" className="text-muted-foreground" opacity="0.4">L</text>
         <text x="5" y="73" textAnchor="middle" fontSize="9" fontWeight="600" fill="currentColor" className="text-muted-foreground" opacity="0.4">O</text>
-
-        {/* Labels intercardeais (NE, SE, SO, NO) */}
         <text x="106" y="35" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">NE</text>
         <text x="106" y="109" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">SE</text>
         <text x="34" y="109" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">SO</text>
         <text x="34" y="35" textAnchor="middle" fontSize="7" fill="currentColor" className="text-muted-foreground" opacity="0.28">NO</text>
-
-        {/* Seta do vento (girada conforme direção) */}
         <g transform={`rotate(${degrees}, 70, 70)`}>
-          {/* Brilho/glow da seta */}
           <line x1="70" y1="70" x2="70" y2="22" stroke={color} strokeWidth="8" strokeLinecap="round" opacity="0.10" />
-          {/* Haste da seta */}
           <line x1="70" y1="70" x2="70" y2="26" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-          {/* Ponta da seta */}
           <polygon points="70,15 64,28 76,28" fill={color} />
-          {/* Cauda da seta */}
           <line x1="70" y1="70" x2="70" y2="88" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.30" />
-          {/* Plumas da cauda */}
           <line x1="70" y1="80" x2="65" y2="85" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.22" />
           <line x1="70" y1="75" x2="65" y2="80" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.18" />
         </g>
-
-        {/* Ponto central */}
         <circle cx="70" cy="70" r="5.5" fill={color} />
         <circle cx="70" cy="70" r="2.5" fill="white" />
       </svg>
-
       <div className="text-center space-y-0.5">
         <div className="text-lg font-bold" style={{ color }}>{speed}km/h</div>
         <div className="text-xs font-semibold text-foreground">{code} — {name}</div>
@@ -210,6 +186,7 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
     setTooltip({ x: rawX, y: yScale(height), hour, height: Number(height.toFixed(2)) })
   }
   const gradId = expanded ? 'tideGradExp' : 'tideGrad'
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-4">
@@ -588,7 +565,7 @@ export default function SpotDetails() {
               {[
                 {
                   label: 'Ondulação',
-                  value: spot.waveHeight >= 1.5 ? 9 : spot.waveHeight >= 1.0 ? 7 : spot.waveHeight >= 0.5 ? 5 : 3,
+                  value: spot.waveHeight >= 1.5 ? 9 : spot.waveHeight >= 1.0 ? 7 : spot.waveHeight >= 0.6 ? 5 : spot.waveHeight >= 0.4 ? 4 : 2,
                   desc: `${spot.waveHeight.toFixed(1)}m de altura`,
                   icon: '🌊'
                 },
@@ -602,7 +579,9 @@ export default function SpotDetails() {
                   label: 'Vento',
                   value: spot.windDirection.includes('Terral') && spot.windSpeed <= 10 ? 10 :
                          spot.windDirection.includes('Terral') ? 7 :
-                         spot.windDirection.includes('Lateral') ? 5 : 2,
+                         spot.windDirection.includes('Lateral') && spot.windSpeed <= 10 ? 7 :
+                         spot.windDirection.includes('Lateral') ? 5 : 
+                         spot.windSpeed <= 10 ? 4 : 2,
                   desc: `${Math.round(spot.windSpeed)}km/h — ${spot.windDirection.split(' ')[0]}`,
                   icon: '💨'
                 },
@@ -629,6 +608,7 @@ export default function SpotDetails() {
         </div>
       )}
 
+      {/* Header com botão GPS */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -637,6 +617,10 @@ export default function SpotDetails() {
               Voltar
             </Button>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate('/navigation')}>
+                <Navigation className="h-4 w-4 mr-2" />
+                GPS
+              </Button>
               <ShareButton spot={spot} />
               <Button variant={favorite ? 'default' : 'outline'} size="sm" onClick={handleToggleFavorite} disabled={loadingFav}>
                 <Heart className={`h-4 w-4 mr-2 ${favorite ? 'fill-current' : ''}`} />
@@ -782,7 +766,6 @@ export default function SpotDetails() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    {/* Toggle metros/pés */}
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-muted-foreground">Altura</span>
                       <div className="flex items-center gap-2">
