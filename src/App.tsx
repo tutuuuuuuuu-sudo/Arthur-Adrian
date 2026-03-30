@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import Settings from './pages/Settings'
 import Profile from './pages/Profile'
 import Favorites from './pages/Favorites'
+import NavigationPage from './pages/Navigation'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+        <Route path="/navigation" element={<ProtectedRoute><NavigationPage /></ProtectedRoute>} />
       </Routes>
       <Toaster position="top-center" />
     </>
