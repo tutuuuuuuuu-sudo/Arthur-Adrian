@@ -16,7 +16,7 @@ import {
   saveNotificationSettings,
   checkAndNotifyGoodConditions
 } from '@/lib/notifications'
-import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { Waves, TrendingUp, MapPin, Info, Heart, Settings, Bell, BellOff, Map, X, ChevronDown, ChevronUp, ExternalLink, Navigation } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 
@@ -141,22 +141,12 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: expanded ? '480px' : '260px', transition: 'height 0.3s ease' }}>
-          <iframe
-            width="100%"
-            height="100%"
-            style={{ border: 0, display: 'block' }}
-            loading="lazy"
-            allowFullScreen
-            src={iframeSrc}
-          />
+          <iframe width="100%" height="100%" style={{ border: 0, display: 'block' }} loading="lazy" allowFullScreen src={iframeSrc} />
           <button
             onClick={() => setExpanded(!expanded)}
             className="absolute top-2 right-2 z-10 px-3 py-1.5 rounded-lg bg-background/90 border border-border text-xs font-medium hover:bg-muted transition-colors flex items-center gap-1.5"
           >
-            {expanded
-              ? <><X className="h-3.5 w-3.5" /> Minimizar</>
-              : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>
-            }
+            {expanded ? <><X className="h-3.5 w-3.5" /> Minimizar</> : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>}
           </button>
         </div>
 
@@ -194,9 +184,7 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground text-center">
-          Selecione uma praia na lista para ver as condições detalhadas
-        </p>
+        <p className="text-xs text-muted-foreground text-center">Selecione uma praia na lista para ver as condições detalhadas</p>
       </CardContent>
     </Card>
   )
@@ -426,6 +414,17 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2" style={{ animation: 'slideInRight 0.4s ease-out' }}>
               <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={() => navigate('/navigation')} className="hidden sm:flex">
+                <Navigation className="h-4 w-4 mr-1.5" />
+                GPS
+              </Button>
+              <button
+                onClick={() => navigate('/navigation')}
+                className="sm:hidden p-2 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                title="Me leva ao pico"
+              >
+                <Navigation className="h-4 w-4 text-muted-foreground" />
+              </button>
               <button
                 onClick={() => navigate('/profile')}
                 className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center hover:bg-primary/30 transition-colors"
