@@ -33,11 +33,24 @@ const getRatingInfo = (score: number) => {
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
 }
 
+// Nomes simplificados — sem compostos como "Leste-Sudeste"
 const directionNames: Record<string, string> = {
-  'N': 'Norte', 'NNE': 'Norte-Nordeste', 'NE': 'Nordeste', 'ENE': 'Leste-Nordeste',
-  'E': 'Leste', 'ESE': 'Leste-Sudeste', 'SE': 'Sudeste', 'SSE': 'Sul-Sudeste',
-  'S': 'Sul', 'SSW': 'Sul-Sudoeste', 'SW': 'Sudoeste', 'WSW': 'Oeste-Sudoeste',
-  'W': 'Oeste', 'WNW': 'Oeste-Noroeste', 'NW': 'Noroeste', 'NNW': 'Norte-Noroeste'
+  'N': 'Norte',
+  'NNE': 'Nordeste',
+  'NE': 'Nordeste',
+  'ENE': 'Nordeste',
+  'E': 'Leste',
+  'ESE': 'Sudeste',
+  'SE': 'Sudeste',
+  'SSE': 'Sudeste',
+  'S': 'Sul',
+  'SSW': 'Sudoeste',
+  'SW': 'Sudoeste',
+  'WSW': 'Sudoeste',
+  'W': 'Oeste',
+  'WNW': 'Noroeste',
+  'NW': 'Noroeste',
+  'NNW': 'Noroeste'
 }
 
 const getWindDirectionCode = (direction: string): string => direction.split(' ')[0]
@@ -580,7 +593,7 @@ export default function SpotDetails() {
                   value: spot.windDirection.includes('Terral') && spot.windSpeed <= 10 ? 10 :
                          spot.windDirection.includes('Terral') ? 7 :
                          spot.windDirection.includes('Lateral') && spot.windSpeed <= 10 ? 7 :
-                         spot.windDirection.includes('Lateral') ? 5 : 
+                         spot.windDirection.includes('Lateral') ? 5 :
                          spot.windSpeed <= 10 ? 4 : 2,
                   desc: `${Math.round(spot.windSpeed)}km/h — ${spot.windDirection.split(' ')[0]}`,
                   icon: '💨'
@@ -608,7 +621,6 @@ export default function SpotDetails() {
         </div>
       )}
 
-      {/* Header com botão GPS */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -641,8 +653,6 @@ export default function SpotDetails() {
               <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
             </div>
           </div>
-
-          {/* Score card — clicável para explicação */}
           <div
             className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px] cursor-pointer hover:border-primary/50 transition-all active:scale-95"
             style={{ animation: visible ? 'slideUp 0.6s 0.1s ease-out both' : 'none' }}
