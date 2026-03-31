@@ -85,7 +85,11 @@ const CAMPECHE_SUBSPOTS = [
   },
 ]
 
-const openNavigation = (lat: number, lng: number, address: string, app: 'google' | 'waze' | 'apple') => {
+// ✅ CORREÇÃO TS6133: parâmetro 'address' renomeado para '_address'
+// O endereço está armazenado em BEACH_DESTINATIONS e CAMPECHE_SUBSPOTS.
+// As URLs de navegação usam apenas lat/lng — o parâmetro de texto não é consumido
+// pelas URLs do Google Maps, Waze ou Apple Maps nesta implementação.
+const openNavigation = (lat: number, lng: number, _address: string, app: 'google' | 'waze' | 'apple') => {
   const urls = {
     google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
     waze: `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&zoom=17`,
