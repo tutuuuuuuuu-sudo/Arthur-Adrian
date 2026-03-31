@@ -1,0 +1,270 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft, Check, Crown, Loader2 } from 'lucide-react'
+import { createMercadoPagoCheckout, PREMIUM_BENEFITS, usePremium } from '@/lib/premium'
+import { useAuth } from '@/contexts/AuthContext'
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
+export default function PremiumPage() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { isPremium, loading: loadingStatus } = usePremium()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubscribe = async () => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const checkoutUrl = await createMercadoPagoCheckout(user.id, user.email ?? '')
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
+      } else {
+        setError('Não foi possível iniciar o pagamento. Tente novamente.')
+      }
+    } catch {
+      setError('Erro ao conectar com o Mercado Pago. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const animStyles = `
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+    @keyframes shimmer { 0% { background-position: -200% center } 100% { background-position: 200% center } }
+  `
+
+  return (
+    <div className="min-h-screen bg-background">
+      <style>{animStyles}</style>
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-yellow-500" />
+            <span className="font-bold text-base">Surf AI Premium</span>
+          </div>
+          <div className="w-16" />
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8 max-w-lg space-y-6">
+
+        {/* Hero */}
+        <div className="text-center space-y-3" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+          <div
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-2"
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 50%, #ca8a04 100%)',
+              boxShadow: '0 0 40px rgba(234,179,8,0.3)',
+            }}
+          >
+            <Crown className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold">Surf AI Premium</h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Tudo que um surfista de Floripa precisa para não perder nenhuma boa sessão.
+          </p>
+        </div>
+
+        {/* Já é premium */}
+        {!loadingStatus && isPremium && (
+          <Card
+            className="border-yellow-500/40 bg-yellow-500/5"
+            style={{ animation: 'slideUp 0.4s ease-out' }}
+          >
+            <CardContent className="py-6 text-center space-y-2">
+              <Crown className="h-8 w-8 text-yellow-500 mx-auto" />
+              <p className="font-bold text-lg">Você já é Premium! 🤙</p>
+              <p className="text-sm text-muted-foreground">Aproveite todos os benefícios exclusivos.</p>
+              <Button className="mt-2" onClick={() => navigate('/')}>
+                Ir para o app
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card de preço */}
+        {!isPremium && (
+          <Card
+            className="overflow-hidden"
+            style={{
+              animation: 'slideUp 0.4s 0.1s ease-out both',
+              border: '1.5px solid rgba(234,179,8,0.5)',
+              background: 'linear-gradient(135deg, hsl(var(--card)) 0%, rgba(234,179,8,0.05) 100%)',
+            }}
+          >
+            {/* Tag mais popular */}
+            <div
+              className="text-center py-2 text-xs font-bold tracking-wider"
+              style={{ background: 'linear-gradient(90deg, #f59e0b, #eab308, #f59e0b)', color: 'white' }}
+            >
+              PLANO MAIS POPULAR
+            </div>
+
+            <CardContent className="p-6 space-y-5">
+              {/* Preço */}
+              <div className="text-center">
+                <div className="flex items-end justify-center gap-1">
+                  <span className="text-sm text-muted-foreground mb-1">R$</span>
+                  <span className="text-5xl font-bold text-yellow-500">19</span>
+                  <span className="text-2xl font-bold text-yellow-500">,90</span>
+                  <span className="text-sm text-muted-foreground mb-1">/mês</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Cancele quando quiser</p>
+              </div>
+
+              {/* Benefícios */}
+              <div className="space-y-3">
+                {PREMIUM_BENEFITS.map((benefit, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3"
+                    style={{ animation: `slideUp 0.3s ${0.15 + idx * 0.05}s ease-out both` }}
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-base">
+                      {benefit.icon}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">{benefit.title}</div>
+                      <div className="text-xs text-muted-foreground">{benefit.desc}</div>
+                    </div>
+                    <Check className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Botão de assinar */}
+              {error && (
+                <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3 text-center">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                className="w-full h-12 text-base font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #eab308)',
+                  color: 'white',
+                  border: 'none',
+                }}
+                onClick={handleSubscribe}
+                disabled={loading || loadingStatus}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Redirecionando...
+                  </>
+                ) : (
+                  <>
+                    <Crown className="h-5 w-5 mr-2" />
+                    Assinar por R$ 19,90/mês
+                  </>
+                )}
+              </Button>
+
+              {/* Métodos de pagamento */}
+              <div className="text-center space-y-1.5">
+                <p className="text-xs text-muted-foreground">Pagamento seguro via</p>
+                <div className="flex items-center justify-center gap-3">
+                  {['💳 Cartão', '📱 PIX', '🏦 Boleto'].map(method => (
+                    <span
+                      key={method}
+                      className="text-xs text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-full"
+                    >
+                      {method}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground/60">
+                  Mercado Pago · Dados 100% protegidos
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Comparativo free vs premium */}
+        {!isPremium && (
+          <Card style={{ animation: 'slideUp 0.4s 0.35s ease-out both' }}>
+            <CardContent className="p-5">
+              <h3 className="text-sm font-bold mb-4 text-center">Free vs Premium</h3>
+              <div className="space-y-2.5">
+                {[
+                  { feature: 'Condições em tempo real', free: true, premium: true },
+                  { feature: 'Score IA das praias', free: true, premium: true },
+                  { feature: 'Navegação GPS para a praia', free: true, premium: true },
+                  { feature: 'Relatos de outros surfistas', free: true, premium: true },
+                  { feature: 'Previsão 7 dias', free: false, premium: true },
+                  { feature: 'Alertas de ondas (push)', free: false, premium: true },
+                  { feature: 'Câmeras ao vivo', free: false, premium: true },
+                  { feature: 'Histórico de condições', free: false, premium: true },
+                  { feature: 'Sem anúncios', free: false, premium: true },
+                  { feature: 'Badge Premium no perfil', free: false, premium: true },
+                ].map((row, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${idx % 2 === 0 ? 'bg-muted/10' : ''}`}
+                  >
+                    <span className="flex-1 text-muted-foreground">{row.feature}</span>
+                    <div className="flex gap-8">
+                      <span className="w-10 text-center">
+                        {row.free
+                          ? <Check className="h-3.5 w-3.5 text-green-500 mx-auto" />
+                          : <span className="text-muted-foreground/30 text-base leading-none">—</span>
+                        }
+                      </span>
+                      <span className="w-10 text-center">
+                        {row.premium
+                          ? <Check className="h-3.5 w-3.5 text-yellow-500 mx-auto" />
+                          : <span className="text-muted-foreground/30 text-base leading-none">—</span>
+                        }
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {/* Labels das colunas */}
+                <div className="flex items-center justify-between pt-1 border-t">
+                  <span className="flex-1" />
+                  <div className="flex gap-8">
+                    <span className="w-10 text-center text-xs text-muted-foreground font-medium">Free</span>
+                    <span className="w-10 text-center text-xs text-yellow-500 font-bold">Premium</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Rodapé com garantia */}
+        {!isPremium && (
+          <div
+            className="text-center space-y-1 pb-6"
+            style={{ animation: 'fadeIn 0.5s 0.5s ease-out both' }}
+          >
+            <p className="text-xs text-muted-foreground">
+              🔒 Pagamento seguro · Cancele quando quiser
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Dúvidas? surfaifloripa@gmail.com
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
