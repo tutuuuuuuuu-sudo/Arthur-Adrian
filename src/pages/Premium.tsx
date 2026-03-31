@@ -14,10 +14,7 @@ export default function PremiumPage() {
   const [error, setError] = useState<string | null>(null)
 
   const handleSubscribe = async () => {
-    if (!user) {
-      navigate('/login')
-      return
-    }
+    if (!user) { navigate('/login'); return }
     setLoading(true)
     setError(null)
     try {
@@ -43,12 +40,10 @@ export default function PremiumPage() {
     <div className="min-h-screen bg-background">
       <style>{animStyles}</style>
 
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+            <ArrowLeft className="h-4 w-4 mr-2" />Voltar
           </Button>
           <div className="flex items-center gap-2">
             <Crown className="h-5 w-5 text-yellow-500" />
@@ -79,10 +74,7 @@ export default function PremiumPage() {
 
         {/* Já é premium */}
         {!loadingStatus && isPremium && (
-          <Card
-            className="border-yellow-500/40 bg-yellow-500/5"
-            style={{ animation: 'slideUp 0.4s ease-out' }}
-          >
+          <Card className="border-yellow-500/40 bg-yellow-500/5" style={{ animation: 'slideUp 0.4s ease-out' }}>
             <CardContent className="py-6 text-center space-y-2">
               <Crown className="h-8 w-8 text-yellow-500 mx-auto" />
               <p className="font-bold text-lg">Você já é Premium! 🤙</p>
@@ -102,7 +94,6 @@ export default function PremiumPage() {
               background: 'linear-gradient(135deg, hsl(var(--card)) 0%, rgba(234,179,8,0.05) 100%)',
             }}
           >
-            {/* Tag */}
             <div
               className="text-center py-2 text-xs font-bold tracking-wider"
               style={{ background: 'linear-gradient(90deg, #f59e0b, #eab308, #f59e0b)', color: 'white' }}
@@ -122,59 +113,49 @@ export default function PremiumPage() {
                 <p className="text-xs text-muted-foreground mt-1">Cancele quando quiser</p>
               </div>
 
-              {/* Benefícios */}
+              {/* Benefícios — tipagem explícita corrigida */}
               <div className="space-y-3">
-                {PREMIUM_BENEFITS.map((benefit, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3"
-                    style={{ animation: `slideUp 0.3s ${0.15 + idx * 0.05}s ease-out both` }}
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-base">
-                      {benefit.icon}
+                {(PREMIUM_BENEFITS as readonly { icon: string; title: string; desc: string }[]).map(
+                  (benefit, idx: number) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-3"
+                      style={{ animation: `slideUp 0.3s ${0.15 + idx * 0.05}s ease-out both` }}
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-base">
+                        {benefit.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">{benefit.title}</div>
+                        <div className="text-xs text-muted-foreground">{benefit.desc}</div>
+                      </div>
+                      <Check className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                     </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold">{benefit.title}</div>
-                      <div className="text-xs text-muted-foreground">{benefit.desc}</div>
-                    </div>
-                    <Check className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                  </div>
-                ))}
+                  )
+                )}
               </div>
 
-              {/* Erro */}
               {error && (
-                <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3 text-center">
-                  {error}
-                </div>
+                <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3 text-center">{error}</div>
               )}
 
-              {/* Botão assinar */}
               <Button
                 className="w-full h-12 text-base font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #f59e0b, #eab308)',
-                  color: 'white',
-                  border: 'none',
-                }}
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #eab308)', color: 'white', border: 'none' }}
                 onClick={handleSubscribe}
                 disabled={loading || loadingStatus}
               >
-                {loading ? (
-                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Redirecionando...</>
-                ) : (
-                  <><Crown className="h-5 w-5 mr-2" />Assinar por R$ 19,90/mês</>
-                )}
+                {loading
+                  ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Redirecionando...</>
+                  : <><Crown className="h-5 w-5 mr-2" />Assinar por R$ 19,90/mês</>
+                }
               </Button>
 
-              {/* Métodos de pagamento */}
               <div className="text-center space-y-1.5">
                 <p className="text-xs text-muted-foreground">Pagamento seguro via</p>
                 <div className="flex items-center justify-center gap-3">
                   {['💳 Cartão', '📱 PIX', '🏦 Boleto'].map(method => (
-                    <span key={method} className="text-xs text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-full">
-                      {method}
-                    </span>
+                    <span key={method} className="text-xs text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-full">{method}</span>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground/60">Mercado Pago · Dados 100% protegidos</p>
@@ -183,24 +164,24 @@ export default function PremiumPage() {
           </Card>
         )}
 
-        {/* Comparativo Free vs Premium */}
+        {/* Comparativo */}
         {!isPremium && (
           <Card style={{ animation: 'slideUp 0.4s 0.35s ease-out both' }}>
             <CardContent className="p-5">
               <h3 className="text-sm font-bold mb-4 text-center">Free vs Premium</h3>
               <div className="space-y-2.5">
-                {[
-                  { feature: 'Condições em tempo real',        free: true,  premium: true },
-                  { feature: 'Score IA das praias',            free: true,  premium: true },
-                  { feature: 'Navegação GPS para a praia',     free: true,  premium: true },
-                  { feature: 'Relatos de outros surfistas',    free: true,  premium: true },
-                  { feature: 'Previsão 7 dias',                free: false, premium: true },
-                  { feature: 'Alertas de ondas (push)',        free: false, premium: true },
-                  { feature: 'Câmeras ao vivo',                free: false, premium: true },
-                  { feature: 'Histórico de condições',         free: false, premium: true },
-                  { feature: 'Sem anúncios',                   free: false, premium: true },
-                  { feature: 'Badge Premium no perfil',        free: false, premium: true },
-                ].map((row, idx) => (
+                {([
+                  { feature: 'Condições em tempo real',     free: true,  premium: true },
+                  { feature: 'Score IA das praias',         free: true,  premium: true },
+                  { feature: 'Navegação GPS',               free: true,  premium: true },
+                  { feature: 'Relatos de surfistas',        free: true,  premium: true },
+                  { feature: 'Previsão 7 dias',             free: false, premium: true },
+                  { feature: 'Alertas de ondas (push)',     free: false, premium: true },
+                  { feature: 'Câmeras ao vivo',             free: false, premium: true },
+                  { feature: 'Histórico de condições',      free: false, premium: true },
+                  { feature: 'Sem anúncios',                free: false, premium: true },
+                  { feature: 'Badge Premium no perfil',     free: false, premium: true },
+                ] as { feature: string; free: boolean; premium: boolean }[]).map((row, idx: number) => (
                   <div
                     key={idx}
                     className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${idx % 2 === 0 ? 'bg-muted/10' : ''}`}
@@ -231,7 +212,6 @@ export default function PremiumPage() {
           </Card>
         )}
 
-        {/* Rodapé */}
         {!isPremium && (
           <div className="text-center space-y-1 pb-6" style={{ animation: 'fadeIn 0.5s 0.5s ease-out both' }}>
             <p className="text-xs text-muted-foreground">🔒 Pagamento seguro · Cancele quando quiser</p>
