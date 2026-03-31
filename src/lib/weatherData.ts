@@ -8,6 +8,7 @@ export interface WeatherForecast {
   temperature: number
   condition: 'Excelente' | 'Bom' | 'Regular' | 'Ruim'
   score: number
+  locked?: boolean  // true = dia bloqueado para free
 }
 
 function calculateForecastScore(wave: number, wind: number, period: number): number {
@@ -32,6 +33,12 @@ function getConditionFromScore(score: number): 'Excelente' | 'Bom' | 'Regular' |
   return 'Ruim'
 }
 
+// Converte graus para código de direção limpo (N, SE, SW etc)
+function degreesToDir(deg: number): string {
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+  return dirs[Math.round(deg / 22.5) % 16]
+}
+
 const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
   'campeche': { lat: -27.6683, lng: -48.4772 },
   'novo-campeche': { lat: -27.6450, lng: -48.4650 },
@@ -54,6 +61,9 @@ const BEACH_COORDS: Record<string, { lat: number, lng: number }> = {
 const forecastCache: Record<string, { data: WeatherForecast[], time: number }> = {}
 const CACHE_DURATION = 15 * 60 * 1000
 
+// Quantos dias mostrar sem bloqueio para usuário free
+const FREE_DAYS = 2
+
 export interface CurrentConditionsForForecast {
   waveHeight: number
   windSpeed: number
@@ -65,28 +75,30 @@ export interface CurrentConditionsForForecast {
 
 export async function getWeatherForecast(
   spotId: string,
-  currentConditions?: CurrentConditionsForForecast
+  currentConditions?: CurrentConditionsForForecast,
+  isPremium = false
 ): Promise<WeatherForecast[]> {
   const now = Date.now()
   if (forecastCache[spotId] && (now - forecastCache[spotId].time) < CACHE_DURATION) {
-    if (currentConditions && forecastCache[spotId].data.length > 0) {
-      const cached = [...forecastCache[spotId].data]
+    const cached = [...forecastCache[spotId].data]
+    if (currentConditions && cached.length > 0) {
       cached[0] = {
         ...cached[0],
         waveHeight: currentConditions.waveHeight,
         windSpeed: currentConditions.windSpeed,
         swellPeriod: currentConditions.swellPeriod,
+        windDirection: currentConditions.windDirection.split(' ')[0].trim(),
         temperature: currentConditions.waterTemperature ?? cached[0].temperature,
         score: currentConditions.score,
-        condition: getConditionFromScore(currentConditions.score)
+        condition: getConditionFromScore(currentConditions.score),
+        locked: false,
       }
-      return cached
     }
-    return forecastCache[spotId].data
+    return applyPremiumLock(cached, isPremium)
   }
 
   const coords = BEACH_COORDS[spotId]
-  if (!coords) return getFallbackForecast()
+  if (!coords) return applyPremiumLock(getFallbackForecast(), isPremium)
 
   try {
     const [marineRes, weatherRes] = await Promise.all([
@@ -105,11 +117,7 @@ export async function getWeatherForecast(
       const date = new Date(days[i] + 'T12:00:00')
       const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
 
-      let waveHeight: number
-      let windSpeed: number
-      let swellPeriod: number
-      let temperature: number
-      let score: number
+      let waveHeight: number, windSpeed: number, swellPeriod: number, temperature: number, score: number
 
       if (i === 0 && currentConditions) {
         waveHeight = currentConditions.waveHeight
@@ -125,54 +133,53 @@ export async function getWeatherForecast(
         score = calculateForecastScore(waveHeight, windSpeed, swellPeriod)
       }
 
+      // ✅ CORRIGIDO: direção em graus → código limpo sem sufixo
       const windDeg = weather.daily?.wind_direction_10m_dominant?.[i] ?? 0
-      const dirs = ['N', 'NE', 'NE', 'E', 'E', 'SE', 'SE', 'S', 'S', 'SW', 'SW', 'W', 'W', 'NW', 'NW', 'N']
-      const windDirection = dirs[Math.round(windDeg / 22.5) % 16]
-
-      const condition = getConditionFromScore(score)
+      const windDirection = degreesToDir(windDeg)
 
       forecasts.push({
         date: days[i],
         dayName,
         waveHeight,
         windSpeed,
-        windDirection,
+        windDirection,   // ← "SE", "N", "SW" — sem Terral/Frontal
         swellPeriod,
         temperature,
-        condition,
-        score: Number(score.toFixed(1))
+        condition: getConditionFromScore(score),
+        score: Number(score.toFixed(1)),
+        locked: false,
       })
     }
 
     forecastCache[spotId] = { data: forecasts, time: now }
-    return forecasts
+    return applyPremiumLock(forecasts, isPremium)
   } catch (error) {
     console.error('Erro ao buscar previsão:', error)
-    return getFallbackForecast()
+    return applyPremiumLock(getFallbackForecast(), isPremium)
   }
+}
+
+// Marca dias além do limite free como locked=true
+function applyPremiumLock(forecasts: WeatherForecast[], isPremium: boolean): WeatherForecast[] {
+  if (isPremium) return forecasts.map(f => ({ ...f, locked: false }))
+  return forecasts.map((f, i) => ({ ...f, locked: i >= FREE_DAYS }))
 }
 
 function getFallbackForecast(): WeatherForecast[] {
   const today = new Date()
-  const forecasts: WeatherForecast[] = []
   const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-
-  for (let i = 0; i < 7; i++) {
+  return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(today)
     date.setDate(today.getDate() + i)
-    const dayName = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()]
     const score = calculateForecastScore(1.0, 12, 10)
-    forecasts.push({
+    return {
       date: date.toISOString().split('T')[0],
-      dayName,
-      waveHeight: 1.0,
-      windSpeed: 12,
-      windDirection: 'N',
-      swellPeriod: 10,
-      temperature: 24,
+      dayName: i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : dayNames[date.getDay()],
+      waveHeight: 1.0, windSpeed: 12, windDirection: 'N',
+      swellPeriod: 10, temperature: 24,
       condition: getConditionFromScore(score),
-      score: Number(score.toFixed(1))
-    })
-  }
-  return forecasts
+      score: Number(score.toFixed(1)),
+      locked: false,
+    }
+  })
 }
