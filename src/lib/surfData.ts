@@ -43,6 +43,7 @@ export interface BeachCondition {
   lng: number
   cameraUrl?: string
   cameraEmbed?: string
+  cameraSource?: string   // nome da fonte da câmera para exibir no player
 }
 
 const getWaterTempFallback = (): number => {
@@ -72,79 +73,58 @@ const getWetsuitInfo = (temp: number) => {
   return { thickness: '5/4mm + touca', description: 'Muito fria 🥶' }
 }
 
-// Score calibrado para a realidade de Florianópolis
-// Praias de Floripa raramente passam de 1.5m — então 0.4m já é surfável (nota 4)
-// e 1.0m com terral + bom período = nota 10
 const calculateScore = (
   waveHeight: number,
   windSpeed: number,
   swellPeriod: number,
   windDirection: string
 ): number => {
-
-  // ─── ONDULAÇÃO (0 a 4.5 pts) ───────────────────────────────────────────────
-  // Base começa generosa — Floripa tem praias pequenas mas surfáveis
   let waveScore = 0
-  if (waveHeight >= 2.0) waveScore = 4.5      // Mar grande para Floripa — excelente
-  else if (waveHeight >= 1.5) waveScore = 4.0 // Mar bom — muito bom
-  else if (waveHeight >= 1.2) waveScore = 3.5 // Mar médio-alto — bom
-  else if (waveHeight >= 1.0) waveScore = 3.2 // Mar médio — ótimo para Floripa
-  else if (waveHeight >= 0.8) waveScore = 2.8 // Mar médio-baixo — surfável
-  else if (waveHeight >= 0.6) waveScore = 2.4 // Mar pequeno — dá para surfar
-  else if (waveHeight >= 0.4) waveScore = 2.0 // Mar pequeninho — surfável com longboard
-  else if (waveHeight >= 0.2) waveScore = 1.2 // Mar muito pequeno — difícil
-  else waveScore = 0.5                         // Sem ondas praticamente
+  if (waveHeight >= 2.0) waveScore = 4.5
+  else if (waveHeight >= 1.5) waveScore = 4.0
+  else if (waveHeight >= 1.2) waveScore = 3.5
+  else if (waveHeight >= 1.0) waveScore = 3.2
+  else if (waveHeight >= 0.8) waveScore = 2.8
+  else if (waveHeight >= 0.6) waveScore = 2.4
+  else if (waveHeight >= 0.4) waveScore = 2.0
+  else if (waveHeight >= 0.2) waveScore = 1.2
+  else waveScore = 0.5
 
-  // ─── VENTO (0 a 3.5 pts) ────────────────────────────────────────────────────
-  // Terral (W/SW) = offshore = organiza o mar
-  // Lateral = aceitável
-  // Frontal = bagunça mas vento fraco ainda é ok
   let windScore = 0
   if (windDirection.includes('Terral')) {
-    if (windSpeed <= 5) windScore = 3.5        // Calmaria + terral = perfeito
-    else if (windSpeed <= 10) windScore = 3.2  // Terral leve = excelente
-    else if (windSpeed <= 15) windScore = 2.6  // Terral moderado = muito bom
-    else if (windSpeed <= 20) windScore = 1.8  // Terral forte = bom
-    else if (windSpeed <= 25) windScore = 1.2  // Terral muito forte = aceitável
-    else windScore = 0.6                        // Terral tempestade = ruim
+    if (windSpeed <= 5) windScore = 3.5
+    else if (windSpeed <= 10) windScore = 3.2
+    else if (windSpeed <= 15) windScore = 2.6
+    else if (windSpeed <= 20) windScore = 1.8
+    else if (windSpeed <= 25) windScore = 1.2
+    else windScore = 0.6
   } else if (windDirection.includes('Lateral')) {
-    if (windSpeed <= 5) windScore = 3.0        // Lateral quase calmo = muito bom
-    else if (windSpeed <= 10) windScore = 2.4  // Lateral leve = bom
-    else if (windSpeed <= 15) windScore = 1.8  // Lateral moderado = ok
-    else if (windSpeed <= 20) windScore = 1.2  // Lateral forte = ruim
-    else windScore = 0.5                        // Lateral tempestade = péssimo
+    if (windSpeed <= 5) windScore = 3.0
+    else if (windSpeed <= 10) windScore = 2.4
+    else if (windSpeed <= 15) windScore = 1.8
+    else if (windSpeed <= 20) windScore = 1.2
+    else windScore = 0.5
   } else {
-    // Frontal (onshore) — piora o mar mas vento fraco ainda é aceitável
-    if (windSpeed <= 5) windScore = 2.2        // Frontal quase calmo = aceitável
-    else if (windSpeed <= 10) windScore = 1.6  // Frontal leve = regular
-    else if (windSpeed <= 15) windScore = 1.0  // Frontal moderado = ruim
-    else if (windSpeed <= 20) windScore = 0.5  // Frontal forte = muito ruim
-    else windScore = 0.1                        // Frontal tempestade = péssimo
+    if (windSpeed <= 5) windScore = 2.2
+    else if (windSpeed <= 10) windScore = 1.6
+    else if (windSpeed <= 15) windScore = 1.0
+    else if (windSpeed <= 20) windScore = 0.5
+    else windScore = 0.1
   }
 
-  // ─── PERÍODO (0 a 3 pts) ────────────────────────────────────────────────────
-  // Período define a qualidade e o poder das ondas
   let periodScore = 0
-  if (swellPeriod >= 16) periodScore = 3.0     // Épico
-  else if (swellPeriod >= 14) periodScore = 2.8 // Excelente
-  else if (swellPeriod >= 12) periodScore = 2.4 // Muito bom
-  else if (swellPeriod >= 10) periodScore = 2.0 // Bom
-  else if (swellPeriod >= 9) periodScore = 1.6  // Ok
-  else if (swellPeriod >= 8) periodScore = 1.2  // Regular
-  else if (swellPeriod >= 7) periodScore = 0.8  // Fraco
-  else periodScore = 0.4                         // Vento local
+  if (swellPeriod >= 16) periodScore = 3.0
+  else if (swellPeriod >= 14) periodScore = 2.8
+  else if (swellPeriod >= 12) periodScore = 2.4
+  else if (swellPeriod >= 10) periodScore = 2.0
+  else if (swellPeriod >= 9) periodScore = 1.6
+  else if (swellPeriod >= 8) periodScore = 1.2
+  else if (swellPeriod >= 7) periodScore = 0.8
+  else periodScore = 0.4
 
   const total = waveScore + windScore + periodScore
-
-  // Escala para 0-10, com mínimo 1
   return Math.min(10, Math.max(1, Number(total.toFixed(1))))
 }
-
-// Exemplos de validação:
-// 0.4m + frontal 7km/h + 6s   → 2.0 + 1.6 + 0.8 = 4.4 ✅ (nota 4 como pedido)
-// 1.0m + terral 10km/h + 10s  → 3.2 + 3.2 + 2.0 = 8.4 ✅ (nota alta como pedido)
-// 1.5m + terral 5km/h + 14s   → 4.0 + 3.5 + 2.8 = 10.0 ✅ (épico)
-// 0.6m + lateral 8km/h + 9s   → 2.4 + 2.4 + 1.6 = 6.4 ✅ (bom)
 
 const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
   const hour = new Date().getHours()
@@ -192,13 +172,40 @@ const getBestSubRegion = (
 ): string => {
   const scored = subRegions.map(sub => {
     let score = 0
-    if (sub.swellDirections && sub.swellDirections.includes(swellDirection)) {
-      score += 3
-    }
+    if (sub.swellDirections && sub.swellDirections.includes(swellDirection)) score += 3
     return { id: sub.id, score }
   })
   const best = scored.reduce((a, b) => a.score >= b.score ? a : b)
   return best.id
+}
+
+// ─── Câmeras disponíveis gratuitamente ────────────────────────────────────────
+//
+// Fontes verificadas:
+//  - SkylineWebcams: embed público com suporte a iframe → Barra da Lagoa
+//  - CondicaoAtual: câmera de surf da Joaquina (Restaurante Pedra Careca)
+//  - ClimaAoVivo: vista panorâmica dos Ingleses
+//
+// IMPORTANTE: YouTube bloqueia embed em domínios externos por padrão.
+// Removido o embed do YouTube do Campeche — era inativo e causava erro na aba.
+// Quando houver câmera real do Campeche, adicionar aqui.
+
+const CAMERAS: Record<string, { cameraUrl: string, cameraEmbed: string, cameraSource: string }> = {
+  'barra-lagoa': {
+    cameraUrl: 'https://www.skylinewebcams.com/webcam/brasil/santa-catarina/florianopolis/barra-da-lagoa.html',
+    cameraEmbed: 'https://www.skylinewebcams.com/embed/barra-da-lagoa.html',
+    cameraSource: 'SkylineWebcams',
+  },
+  'joaquina': {
+    cameraUrl: 'https://condicaoatual.com.br/joaquina-2/',
+    cameraEmbed: 'https://condicaoatual.com.br/embed/joaquina',
+    cameraSource: 'Condição Atual',
+  },
+  'santinho': {
+    cameraUrl: 'https://climaaovivo.com.br/',
+    cameraEmbed: 'https://climaaovivo.com.br/embed/florianopolis-ingleses',
+    cameraSource: 'Clima ao Vivo',
+  },
 }
 
 const BEACHES = [
@@ -211,8 +218,8 @@ const BEACHES = [
       { id: 'principal', name: 'Principal', lat: -27.6650, lng: -48.4760, swellDirections: ['E', 'NE'] },
     ],
     bestTimeWindow: '06h - 09h',
-    cameraUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
-    cameraEmbed: 'https://www.youtube.com/embed/5qap5aO4i9A'
+    // Câmera removida: o YouTube bloqueia embed em domínios externos.
+    // Adicionar aqui quando houver câmera parceira real do Campeche.
   },
   {
     id: 'novo-campeche', name: 'Novo Campeche', region: 'Sul' as const,
@@ -221,7 +228,7 @@ const BEACHES = [
       { id: 'norte-novo-campeche', name: 'Lado Norte', lat: -27.6400, lng: -48.4630, swellDirections: ['E', 'NE'] },
       { id: 'sul-novo-campeche', name: 'Lado Sul', lat: -27.6500, lng: -48.4670, swellDirections: ['SE', 'E'] },
     ],
-    bestTimeWindow: '06h - 09h'
+    bestTimeWindow: '06h - 09h',
   },
   {
     id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const,
@@ -230,17 +237,17 @@ const BEACHES = [
       { id: 'canto-direito', name: 'Canto Direito', lat: -27.6750, lng: -48.4830, swellDirections: ['SE', 'S'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.6761, lng: -48.4842, swellDirections: ['E', 'SE'] },
     ],
-    bestTimeWindow: '07h - 10h'
+    bestTimeWindow: '07h - 10h',
   },
   {
     id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const,
     lat: -27.7342, lng: -48.5167, orientation: 110,
-    bestTimeWindow: '06h - 09h'
+    bestTimeWindow: '06h - 09h',
   },
   {
     id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const,
     lat: -27.7892, lng: -48.5289, orientation: 180,
-    bestTimeWindow: 'Dia todo (acesso por trilha)'
+    bestTimeWindow: 'Dia todo (acesso por trilha)',
   },
   {
     id: 'acores', name: 'Açores', region: 'Sul' as const,
@@ -249,12 +256,12 @@ const BEACHES = [
       { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7565, lng: -48.5110, swellDirections: ['SE', 'S'] },
       { id: 'meio', name: 'Meio', lat: -27.7572, lng: -48.5125, swellDirections: ['E', 'SE'] },
     ],
-    bestTimeWindow: '07h - 11h'
+    bestTimeWindow: '07h - 11h',
   },
   {
     id: 'solidao', name: 'Solidão', region: 'Sul' as const,
     lat: -27.7456, lng: -48.5089, orientation: 130,
-    bestTimeWindow: '08h - 11h'
+    bestTimeWindow: '08h - 11h',
   },
   {
     id: 'armacao', name: 'Armação', region: 'Sul' as const,
@@ -264,12 +271,12 @@ const BEACHES = [
       { id: 'centro', name: 'Centro', lat: -27.7447, lng: -48.5044, swellDirections: ['E', 'SE'] },
       { id: 'matadouro', name: 'Matadouro', lat: -27.7455, lng: -48.5055, swellDirections: ['S', 'SW'] },
     ],
-    bestTimeWindow: '06h - 09h e 16h - 18h'
+    bestTimeWindow: '06h - 09h e 16h - 18h',
   },
   {
     id: 'naufragados', name: 'Naufragados', region: 'Sul' as const,
     lat: -27.8456, lng: -48.5623, orientation: 180,
-    bestTimeWindow: 'Depende da maré (acesso por trilha)'
+    bestTimeWindow: 'Depende da maré (acesso por trilha)',
   },
   {
     id: 'joaquina', name: 'Joaquina', region: 'Leste' as const,
@@ -279,7 +286,7 @@ const BEACHES = [
       { id: 'meio', name: 'Meio da Praia', lat: -27.6214, lng: -48.4433, swellDirections: ['E', 'SE'] },
       { id: 'canto-direito', name: 'Canto Direito', lat: -27.6195, lng: -48.4420, swellDirections: ['NE', 'E'] },
     ],
-    bestTimeWindow: 'Agora até 11h'
+    bestTimeWindow: 'Agora até 11h',
   },
   {
     id: 'mole', name: 'Praia Mole', region: 'Leste' as const,
@@ -288,7 +295,7 @@ const BEACHES = [
       { id: 'gruta', name: 'Gruta', lat: -27.5995, lng: -48.4390, swellDirections: ['SE', 'E'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.5989, lng: -48.4381, swellDirections: ['E', 'NE'] },
     ],
-    bestTimeWindow: '07h - 10h'
+    bestTimeWindow: '07h - 10h',
   },
   {
     id: 'mocambique', name: 'Moçambique', region: 'Leste' as const,
@@ -298,7 +305,7 @@ const BEACHES = [
       { id: 'meio', name: 'Meio da Praia', lat: -27.5647, lng: -48.4208, swellDirections: ['E', 'SE'] },
       { id: 'sul', name: 'Sul', lat: -27.5700, lng: -48.4220, swellDirections: ['SE', 'S'] },
     ],
-    bestTimeWindow: '08h - 11h'
+    bestTimeWindow: '08h - 11h',
   },
   {
     id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const,
@@ -307,7 +314,7 @@ const BEACHES = [
       { id: 'canal', name: 'Canal da Barra', lat: -27.5760, lng: -48.4185, swellDirections: ['NE', 'E'] },
       { id: 'prainha', name: 'Prainha', lat: -27.5775, lng: -48.4200, swellDirections: ['E', 'SE'] },
     ],
-    bestTimeWindow: 'Melhor na maré enchente'
+    bestTimeWindow: 'Melhor na maré enchente',
   },
   {
     id: 'santinho', name: 'Santinho', region: 'Norte' as const,
@@ -316,17 +323,17 @@ const BEACHES = [
       { id: 'costao', name: 'Costão do Santinho', lat: -27.4420, lng: -48.3905, swellDirections: ['NE', 'E'] },
       { id: 'centro', name: 'Centro', lat: -27.4433, lng: -48.3917, swellDirections: ['E', 'SE'] },
     ],
-    bestTimeWindow: '15h - 17h'
+    bestTimeWindow: '15h - 17h',
   },
   {
     id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const,
     lat: -27.4256, lng: -48.3889, orientation: 65,
-    bestTimeWindow: '09h - 12h'
+    bestTimeWindow: '09h - 12h',
   },
   {
     id: 'canajure', name: 'Canajurê', region: 'Norte' as const,
     lat: -27.4189, lng: -48.3945, orientation: 60,
-    bestTimeWindow: '10h - 13h'
+    bestTimeWindow: '10h - 13h',
   },
 ]
 
@@ -375,6 +382,9 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         }))
       }
 
+      // Câmera: busca na tabela CAMERAS por id da praia
+      const camera = CAMERAS[beach.id]
+
       return {
         id: beach.id,
         name: beach.name,
@@ -401,8 +411,9 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         sunset: windyData?.sunset,
         lat: beach.lat,
         lng: beach.lng,
-        cameraUrl: (beach as any).cameraUrl,
-        cameraEmbed: (beach as any).cameraEmbed,
+        cameraUrl: camera?.cameraUrl,
+        cameraEmbed: camera?.cameraEmbed,
+        cameraSource: camera?.cameraSource,
       } as BeachCondition
     })
   )
