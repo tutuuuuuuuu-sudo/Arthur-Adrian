@@ -16,7 +16,8 @@ import {
   ArrowLeft, Waves, Wind, Navigation, Clock, Users,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
   Video, Heart, Calendar, Star, Sun, Info, Maximize2, X,
-  Share2, MessageCircle, Trash2, Send, ChevronDown, ChevronUp
+  Share2, MessageCircle, Trash2, Send, ChevronDown, ChevronUp,
+  ExternalLink, WifiOff
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
@@ -33,24 +34,11 @@ const getRatingInfo = (score: number) => {
   return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
 }
 
-// Nomes simplificados — sem compostos como "Leste-Sudeste"
 const directionNames: Record<string, string> = {
-  'N': 'Norte',
-  'NNE': 'Nordeste',
-  'NE': 'Nordeste',
-  'ENE': 'Nordeste',
-  'E': 'Leste',
-  'ESE': 'Sudeste',
-  'SE': 'Sudeste',
-  'SSE': 'Sudeste',
-  'S': 'Sul',
-  'SSW': 'Sudoeste',
-  'SW': 'Sudoeste',
-  'WSW': 'Sudoeste',
-  'W': 'Oeste',
-  'WNW': 'Noroeste',
-  'NW': 'Noroeste',
-  'NNW': 'Noroeste'
+  'N': 'Norte', 'NNE': 'Nordeste', 'NE': 'Nordeste', 'ENE': 'Nordeste',
+  'E': 'Leste', 'ESE': 'Sudeste', 'SE': 'Sudeste', 'SSE': 'Sudeste',
+  'S': 'Sul', 'SSW': 'Sudoeste', 'SW': 'Sudoeste', 'WSW': 'Sudoeste',
+  'W': 'Oeste', 'WNW': 'Noroeste', 'NW': 'Noroeste', 'NNW': 'Noroeste'
 }
 
 const getWindDirectionCode = (direction: string): string => direction.split(' ')[0]
@@ -477,6 +465,101 @@ const ShareButton = ({ spot }: { spot: BeachCondition }) => {
   )
 }
 
+// ─── Player de câmera com fallback ───────────────────────────────────────────
+
+const CameraPlayer = ({ spot }: { spot: BeachCondition }) => {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
+
+  if (!spot.cameraEmbed) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <WifiOff className="h-12 w-12 text-muted-foreground opacity-20" />
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Câmera não disponível para {spot.name}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Ainda não temos parceiro com câmera nesta praia.
+          </p>
+        </div>
+        <a
+          href={`https://www.google.com/search?q=camera+ao+vivo+${encodeURIComponent(spot.name)}+Florianopolis`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+        >
+          Buscar câmeras de {spot.name} <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Player */}
+      <div className="relative rounded-xl overflow-hidden bg-black border border-border/30" style={{ aspectRatio: '16/9' }}>
+        {!loaded && !error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/10">
+            <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-xs text-muted-foreground">Conectando câmera...</span>
+          </div>
+        )}
+        {!error ? (
+          <iframe
+            src={spot.cameraEmbed}
+            className="w-full h-full"
+            style={{ border: 0, display: loaded ? 'block' : 'none' }}
+            allowFullScreen
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            onError={() => setError(true)}
+            title={`Câmera ao vivo — ${spot.name}`}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <WifiOff className="h-10 w-10 text-muted-foreground opacity-30" />
+            <p className="text-xs text-muted-foreground">Câmera temporariamente indisponível</p>
+            {spot.cameraUrl && (
+              <a
+                href={spot.cameraUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                Abrir no site original <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Info da fonte */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          <span>Ao vivo</span>
+          {spot.cameraSource && <span>· {spot.cameraSource}</span>}
+        </div>
+        {spot.cameraUrl && (
+          <a
+            href={spot.cameraUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            Abrir em tela cheia <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Confira as condições em tempo real antes de ir 🤙
+      </p>
+    </div>
+  )
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
 export default function SpotDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -562,7 +645,6 @@ export default function SpotDetails() {
     <div className="min-h-screen bg-background">
       <style>{animStyles}</style>
 
-      {/* Modal Score Explicado */}
       {showScoreExplainer && (
         <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowScoreExplainer(false)} style={{ animation: 'fadeIn 0.2s ease-out' }}>
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
@@ -576,28 +658,9 @@ export default function SpotDetails() {
             <div className={`text-center text-sm font-bold mb-6 ${rating.color}`}>{rating.label}</div>
             <div className="space-y-4">
               {[
-                {
-                  label: 'Ondulação',
-                  value: spot.waveHeight >= 1.5 ? 9 : spot.waveHeight >= 1.0 ? 7 : spot.waveHeight >= 0.6 ? 5 : spot.waveHeight >= 0.4 ? 4 : 2,
-                  desc: `${spot.waveHeight.toFixed(1)}m de altura`,
-                  icon: '🌊'
-                },
-                {
-                  label: 'Período',
-                  value: spot.swellPeriod >= 14 ? 10 : spot.swellPeriod >= 12 ? 8 : spot.swellPeriod >= 10 ? 6 : spot.swellPeriod >= 8 ? 4 : 2,
-                  desc: `${Math.round(spot.swellPeriod)}s entre ondas`,
-                  icon: '⏱️'
-                },
-                {
-                  label: 'Vento',
-                  value: spot.windDirection.includes('Terral') && spot.windSpeed <= 10 ? 10 :
-                         spot.windDirection.includes('Terral') ? 7 :
-                         spot.windDirection.includes('Lateral') && spot.windSpeed <= 10 ? 7 :
-                         spot.windDirection.includes('Lateral') ? 5 :
-                         spot.windSpeed <= 10 ? 4 : 2,
-                  desc: `${Math.round(spot.windSpeed)}km/h — ${spot.windDirection.split(' ')[0]}`,
-                  icon: '💨'
-                },
+                { label: 'Ondulação', value: spot.waveHeight >= 1.5 ? 9 : spot.waveHeight >= 1.0 ? 7 : spot.waveHeight >= 0.6 ? 5 : spot.waveHeight >= 0.4 ? 4 : 2, desc: `${spot.waveHeight.toFixed(1)}m de altura`, icon: '🌊' },
+                { label: 'Período', value: spot.swellPeriod >= 14 ? 10 : spot.swellPeriod >= 12 ? 8 : spot.swellPeriod >= 10 ? 6 : spot.swellPeriod >= 8 ? 4 : 2, desc: `${Math.round(spot.swellPeriod)}s entre ondas`, icon: '⏱️' },
+                { label: 'Vento', value: spot.windDirection.includes('Terral') && spot.windSpeed <= 10 ? 10 : spot.windDirection.includes('Terral') ? 7 : spot.windDirection.includes('Lateral') && spot.windSpeed <= 10 ? 7 : spot.windDirection.includes('Lateral') ? 5 : spot.windSpeed <= 10 ? 4 : 2, desc: `${Math.round(spot.windSpeed)}km/h — ${spot.windDirection.split(' ')[0]}`, icon: '💨' },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-3">
                   <span className="text-xl">{item.icon}</span>
@@ -614,9 +677,7 @@ export default function SpotDetails() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-5 text-center">
-              Score calculado com base em ondulação, período, vento e maré
-            </p>
+            <p className="text-xs text-muted-foreground mt-5 text-center">Score calculado com base em ondulação, período, vento e maré</p>
           </div>
         </div>
       )}
@@ -676,7 +737,8 @@ export default function SpotDetails() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="now">Agora</TabsTrigger>
             <TabsTrigger value="forecast">Previsão 7 dias</TabsTrigger>
-            <TabsTrigger value="camera" disabled={!spot.cameraEmbed}>Câmera Ao Vivo</TabsTrigger>
+            {/* Aba câmera sempre visível — mostra mensagem amigável quando não há câmera */}
+            <TabsTrigger value="camera">Câmera Ao Vivo</TabsTrigger>
           </TabsList>
 
           <TabsContent value="now" className="space-y-6">
@@ -962,28 +1024,23 @@ export default function SpotDetails() {
           </TabsContent>
 
           <TabsContent value="camera" className="space-y-4">
-            {spot.cameraEmbed ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Video className="h-5 w-5 text-primary" />
-                    Câmera Ao Vivo - {spot.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted">
-                    <iframe src={spot.cameraEmbed} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-4 text-center">Confira as condições em tempo real antes de ir</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Alert>
-                <Video className="h-4 w-4" />
-                <AlertTitle>Câmera não disponível</AlertTitle>
-                <AlertDescription>Não há câmera ao vivo disponível para esta praia no momento.</AlertDescription>
-              </Alert>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Video className="h-5 w-5 text-primary" />
+                  Câmera Ao Vivo — {spot.name}
+                  {spot.cameraEmbed && (
+                    <div className="flex items-center gap-1 ml-auto">
+                      <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-xs text-red-500 font-bold">AO VIVO</span>
+                    </div>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CameraPlayer spot={spot} />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
