@@ -86,7 +86,6 @@ const CAMPECHE_SUBSPOTS = [
 ]
 
 const openNavigation = (lat: number, lng: number, address: string, app: 'google' | 'waze' | 'apple') => {
-  const encodedAddress = encodeURIComponent(address)
   const urls = {
     google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
     waze: `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&zoom=17`,
