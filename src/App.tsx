@@ -9,6 +9,7 @@ import Profile from './pages/Profile'
 import Favorites from './pages/Favorites'
 import NavigationPage from './pages/Navigation'
 import CamerasPage from './pages/Cameras'
+import PremiumPage from './pages/Premium'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
         <Route path="/navigation" element={<ProtectedRoute><NavigationPage /></ProtectedRoute>} />
         <Route path="/cameras" element={<ProtectedRoute><CamerasPage /></ProtectedRoute>} />
+        <Route path="/premium" element={<ProtectedRoute><PremiumPage /></ProtectedRoute>} />
       </Routes>
       <Toaster position="top-center" />
     </>
