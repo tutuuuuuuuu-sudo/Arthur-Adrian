@@ -14,7 +14,6 @@ export interface WaterConditions {
   temperature: number
   wetsuit: {
     thickness: string
-    description: string
   }
 }
 
@@ -57,54 +56,36 @@ const getWaterTempFallback = (): number => {
 const getTideHeight = (): number => {
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
-  const amplitude = 0.20
-  const midLevel = 0.50
-  const period = 12.4
+  const amplitude = 0.20, midLevel = 0.50, period = 12.4
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
   const phaseOffset = (dayOfYear * 0.8) % period
-  const height = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
-  return Number(height.toFixed(2))
+  return Number((midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)).toFixed(2))
 }
 
+// Sem descrição textual — só espessura
 const getWetsuitInfo = (temp: number) => {
-  if (temp >= 24) return { thickness: '2mm ou lycra', description: 'Quentinha ☀️' }
-  if (temp >= 20) return { thickness: '3/2mm', description: 'Confortável 🌤️' }
-  if (temp >= 18) return { thickness: '4/3mm', description: 'Fria 🌊' }
-  return { thickness: '5/4mm + touca', description: 'Muito fria 🥶' }
+  if (temp >= 24) return { thickness: '2mm ou lycra' }
+  if (temp >= 20) return { thickness: '3/2mm' }
+  if (temp >= 18) return { thickness: '4/3mm' }
+  return { thickness: '5/4mm + touca' }
 }
 
-// ─── Converte graus para código de direção (N, NE, SE, S, SW, W, NW...) ──────
-// Usado para converter a direção bruta da API (em graus) para exibição limpa.
-// "De onde o vento vem": 0° = Norte, 90° = Leste, 180° = Sul, 270° = Oeste.
 export function degreesToWindDir(deg: number): string {
   const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
   return dirs[Math.round(deg / 22.5) % 16]
 }
 
-// ─── Calcula qualidade do vento para o score ─────────────────────────────────
-// Baseado na direção do vento em relação à orientação da praia.
-// Praia orientada para Leste (90°): vento de Oeste (270°) = offshore = bom.
-// windDir: código como 'SE', 'SW', 'N' etc.
-// beachOrientation: graus (ex: 90 = praia abre para Leste)
 function windQuality(windDir: string, windSpeed: number, beachOrientation: number): number {
   const windDegMap: Record<string, number> = {
-    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
-    'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
-    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5,
-    'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
+    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5, 'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5, 'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
   }
   const windDeg = windDegMap[windDir] ?? 0
-  // Offshore = vento vindo de trás da praia = oposto à orientação
-  // Diff = diferença angular entre direção do vento e direção oposta da praia
   const offshoreDir = (beachOrientation + 180) % 360
   let diff = Math.abs(windDeg - offshoreDir)
   if (diff > 180) diff = 360 - diff
 
-  // diff = 0° = vento perfeitamente offshore
-  // diff = 90° = vento lateral
-  // diff = 180° = vento perfeitamente onshore (frontal)
   if (diff <= 45) {
-    // Offshore
     if (windSpeed <= 5) return 3.5
     if (windSpeed <= 10) return 3.2
     if (windSpeed <= 15) return 2.6
@@ -112,14 +93,12 @@ function windQuality(windDir: string, windSpeed: number, beachOrientation: numbe
     if (windSpeed <= 25) return 1.2
     return 0.6
   } else if (diff <= 90) {
-    // Lateral
     if (windSpeed <= 5) return 3.0
     if (windSpeed <= 10) return 2.4
     if (windSpeed <= 15) return 1.8
     if (windSpeed <= 20) return 1.2
     return 0.5
   } else {
-    // Onshore (frontal)
     if (windSpeed <= 5) return 2.2
     if (windSpeed <= 10) return 1.6
     if (windSpeed <= 15) return 1.0
@@ -128,13 +107,7 @@ function windQuality(windDir: string, windSpeed: number, beachOrientation: numbe
   }
 }
 
-const calculateScore = (
-  waveHeight: number,
-  windSpeed: number,
-  swellPeriod: number,
-  windDir: string,
-  beachOrientation: number
-): number => {
+const calculateScore = (waveHeight: number, windSpeed: number, swellPeriod: number, windDir: string, beachOrientation: number): number => {
   let waveScore = 0
   if (waveHeight >= 2.0) waveScore = 4.5
   else if (waveHeight >= 1.5) waveScore = 4.0
@@ -158,8 +131,7 @@ const calculateScore = (
   else if (swellPeriod >= 7) periodScore = 0.8
   else periodScore = 0.4
 
-  const total = waveScore + windScore + periodScore
-  return Math.min(10, Math.max(1, Number(total.toFixed(1))))
+  return Math.min(10, Math.max(1, Number((waveScore + windScore + periodScore).toFixed(1))))
 }
 
 const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
@@ -173,17 +145,13 @@ const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
 
 const getCrowdLevel = (score: number): 'Vazio' | 'Pouca gente' | 'Cheio' => {
   const hour = new Date().getHours()
-  const isMorning = hour >= 6 && hour <= 10
-  if (score >= 8 && isMorning) return 'Cheio'
+  if (score >= 8 && hour >= 6 && hour <= 10) return 'Cheio'
   if (score >= 7) return 'Pouca gente'
   return 'Vazio'
 }
 
 const getCrowdMessage = (crowdLevel: string, score: number): string => {
-  if (crowdLevel === 'Cheio') {
-    if (score >= 8) return 'Mar bom atrai galera'
-    return 'Bastante gente na água'
-  }
+  if (crowdLevel === 'Cheio') return score >= 8 ? 'Mar bom atrai galera' : 'Bastante gente na água'
   if (crowdLevel === 'Pouca gente') return 'Bom momento para surfar'
   return 'Água tranquila, quase ninguém'
 }
@@ -201,34 +169,23 @@ const getBoardSuggestion = (waveHeight: number): string => {
   return 'Longboard 8\'0"+'
 }
 
-const getBestSubRegion = (
-  subRegions: { id: string, swellDirections?: string[] }[],
-  swellDirection: string,
-  _windDirection: string
-): string => {
-  const scored = subRegions.map(sub => {
-    let score = 0
-    if (sub.swellDirections && sub.swellDirections.includes(swellDirection)) score += 3
-    return { id: sub.id, score }
-  })
-  const best = scored.reduce((a, b) => a.score >= b.score ? a : b)
+const getBestSubRegion = (subRegions: { id: string, swellDirections?: string[] }[], swellDirection: string): string => {
+  const best = subRegions.map(sub => ({
+    id: sub.id,
+    score: sub.swellDirections?.includes(swellDirection) ? 3 : 0
+  })).reduce((a, b) => a.score >= b.score ? a : b)
   return best.id
 }
 
-// ─── Texto de análise das condições (sem Terral/Frontal) ─────────────────────
-// Baseado na direção real do vento e na orientação da praia.
 function getWindAnalysis(windDir: string, windSpeed: number, beachOrientation: number): string {
   const windDegMap: Record<string, number> = {
-    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
-    'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
-    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5,
-    'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
+    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5, 'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5, 'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
   }
   const windDeg = windDegMap[windDir] ?? 0
   const offshoreDir = (beachOrientation + 180) % 360
   let diff = Math.abs(windDeg - offshoreDir)
   if (diff > 180) diff = 360 - diff
-
   if (diff <= 45) return `Vento ${windDir} ${windSpeed}km/h deixando o mar limpo e organizado. `
   if (diff <= 90) return `Vento ${windDir} ${windSpeed}km/h lateral, pode atrapalhar um pouco. `
   return `Vento ${windDir} ${windSpeed}km/h frontal bagunçando as ondas. `
@@ -252,6 +209,7 @@ const CAMERAS: Record<string, { cameraUrl: string, cameraEmbed: string, cameraSo
   },
 }
 
+// ✅ Canajurê REMOVIDO
 const BEACHES = [
   { id: 'campeche', name: 'Campeche', region: 'Sul' as const, lat: -27.6683, lng: -48.4772, orientation: 90,
     subRegions: [
@@ -312,7 +270,6 @@ const BEACHES = [
       { id: 'centro', name: 'Centro', lat: -27.4433, lng: -48.3917, swellDirections: ['E', 'SE'] },
     ], bestTimeWindow: '15h - 17h' },
   { id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const, lat: -27.4256, lng: -48.3889, orientation: 65, bestTimeWindow: '09h - 12h' },
-  { id: 'canajure', name: 'Canajurê', region: 'Norte' as const, lat: -27.4189, lng: -48.3945, orientation: 60, bestTimeWindow: '10h - 13h' },
 ]
 
 let cachedConditions: BeachCondition[] | null = null
@@ -334,21 +291,15 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const swellPeriod = Math.round(windyData?.swellPeriod ?? 10)
       const swellDirection = windyData?.swellDirection ?? 'SE'
       const waterTemp = windyData?.waterTemperature ?? getWaterTempFallback()
-
-      // ✅ CORRIGIDO: windDirection agora é só a direção pura (SE, N, SW...)
-      // Sem nenhum label "Terral" ou "Frontal"
-      const rawWindDir = windyData?.windDirection ?? 'N'
-      // Remove qualquer sufixo que a API possa mandar (ex: "SE (Terral)" → "SE")
-      const windDirection = rawWindDir.split(' ')[0].split('(')[0].trim()
+      const windDirection = (windyData?.windDirection ?? 'N').split(' ')[0].split('(')[0].trim()
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection, beach.orientation)
-      const level = getLevel(waveHeight)
       const crowdLevel = getCrowdLevel(score)
 
       let subRegions = undefined
       if ((beach as any).subRegions?.length > 0) {
         const beachSubs = (beach as any).subRegions
-        const bestSubId = getBestSubRegion(beachSubs, swellDirection, windDirection)
+        const bestSubId = getBestSubRegion(beachSubs, swellDirection)
         subRegions = beachSubs.map((sub: any) => ({
           id: sub.id, name: sub.name, lat: sub.lat, lng: sub.lng,
           description: sub.id === bestSubId
@@ -362,10 +313,8 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
 
       return {
         id: beach.id, name: beach.name, region: beach.region, subRegions,
-        score, waveHeight, windSpeed,
-        windDirection,  // ← só "SE", "SW", "N" etc — sem Terral/Frontal
-        swellDirection, swellPeriod, tide,
-        tideHeight: getTideHeight(), level,
+        score, waveHeight, windSpeed, windDirection, swellDirection, swellPeriod, tide,
+        tideHeight: getTideHeight(), level: getLevel(waveHeight),
         boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: { temperature: waterTemp, wetsuit: getWetsuitInfo(waterTemp) },
         crowdLevel, crowdMessage: getCrowdMessage(crowdLevel, score),
@@ -373,7 +322,6 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         sunrise: windyData?.sunrise, sunset: windyData?.sunset,
         lat: beach.lat, lng: beach.lng,
         cameraUrl: camera?.cameraUrl, cameraEmbed: camera?.cameraEmbed, cameraSource: camera?.cameraSource,
-        // Guarda a orientação para uso no analyzeConditions
         _beachOrientation: beach.orientation,
       } as BeachCondition & { _beachOrientation: number }
     })
