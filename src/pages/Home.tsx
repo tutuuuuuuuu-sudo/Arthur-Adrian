@@ -36,8 +36,6 @@ const animStyles = `
   .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
 `
 
-// ─── Anúncio: Banner entre destaque e lista ───────────────────────────────────
-
 interface AdData {
   id: string; empresa: string; slogan: string; imagem_url: string; link_url: string
 }
@@ -65,8 +63,6 @@ const AdBanner = ({ ad = PLACEHOLDER_AD }: { ad?: AdData }) => (
   </a>
 )
 
-// ─── Anúncio: Card intercalado na lista ──────────────────────────────────────
-
 const AdCard = ({ ad = PLACEHOLDER_AD }: { ad?: AdData }) => (
   <a href={ad.link_url} target={ad.id === 'placeholder' ? '_self' : '_blank'} rel="noopener noreferrer"
     className="block" style={{ textDecoration: 'none' }}>
@@ -83,8 +79,6 @@ const AdCard = ({ ad = PLACEHOLDER_AD }: { ad?: AdData }) => (
     </div>
   </a>
 )
-
-// ─── SwellPeriodWidget ────────────────────────────────────────────────────────
 
 const SwellPeriodWidget = () => {
   const [open, setOpen] = useState(false)
@@ -127,8 +121,6 @@ const SwellPeriodWidget = () => {
   )
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const getScoreColor = (score: number) => {
   if (score >= 8.5) return '#8b5cf6'
   if (score >= 7) return '#06b6d4'
@@ -149,7 +141,7 @@ const getLocationDescription = (spot: BeachCondition) => {
     matadeiro: 'Sul da Ilha', 'lagoinha-leste': 'Extremo Sul', acores: 'Extremo Sul',
     solidao: 'Extremo Sul', armacao: 'Sul da Ilha', naufragados: 'Extremo Sul',
     joaquina: 'Leste da Ilha', mole: 'Leste da Ilha', mocambique: 'Leste da Ilha',
-    'barra-lagoa': 'Leste da Ilha', santinho: 'Norte da Ilha', 'ponta-aranhas': 'Norte da Ilha', canajure: 'Norte da Ilha',
+    'barra-lagoa': 'Leste da Ilha', santinho: 'Norte da Ilha', 'ponta-aranhas': 'Norte da Ilha',
   }
   return map[spot.id] ?? `${spot.region} da Ilha`
 }
@@ -160,8 +152,6 @@ const getThemeGradient = (score: number) => {
   if (score >= 4) return 'from-yellow-900/30 via-background to-background'
   return 'from-red-900/30 via-background to-background'
 }
-
-// ─── BeachMap ─────────────────────────────────────────────────────────────────
 
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
@@ -205,8 +195,6 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   )
 }
 
-// ─── SwellAlert ───────────────────────────────────────────────────────────────
-
 const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
   const [dismissed, setDismissed] = useState(false)
   const bigSwellSpots = spots.filter(s => s.waveHeight >= 1.5)
@@ -223,8 +211,6 @@ const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
     </div>
   )
 }
-
-// ─── NotificationPanel ────────────────────────────────────────────────────────
 
 const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favorites: string[] }) => {
   const [permission, setPermission] = useState(getNotificationPermission())
@@ -258,7 +244,7 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isIOS && <div className="text-xs bg-muted/30 border border-border rounded-lg p-3 text-muted-foreground">😔 <strong>iPhone/iPad:</strong> O Safari no iOS não suporta notificações push em aplicações web.</div>}
+        {isIOS && <div className="text-xs bg-muted/30 border border-border rounded-lg p-3 text-muted-foreground">😤 <strong>iPhone/iPad:</strong> O Safari no iOS não suporta notificações push em aplicações web.</div>}
         {!isIOS && permission === 'unsupported' && <p className="text-xs text-muted-foreground">Seu navegador não suporta notificações. Tente pelo Chrome.</p>}
         {!isIOS && permission === 'denied' && <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3">Notificações bloqueadas. Clique no cadeado na barra de endereços e permita.</div>}
         {!isIOS && (permission === 'default' || permission === 'granted') && (
@@ -299,8 +285,6 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
     </Card>
   )
 }
-
-// ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Home() {
   const [activeRegion, setActiveRegion] = useState<string>('all')
@@ -362,12 +346,12 @@ export default function Home() {
     </div>
   )
 
-  // Injeta AdCard a cada 4 praias — apenas para usuários free
+  // ✅ CORRIGIDO: AdCard a cada 3 praias — alinha perfeitamente com grid de 3 colunas
   const spotsWithAds: (BeachCondition | 'ad')[] = isPremium
     ? spots
     : spots.reduce<(BeachCondition | 'ad')[]>((acc, spot, idx) => {
         acc.push(spot)
-        if ((idx + 1) % 4 === 0 && idx !== spots.length - 1) acc.push('ad')
+        if ((idx + 1) % 3 === 0 && idx !== spots.length - 1) acc.push('ad')
         return acc
       }, [])
 
@@ -375,7 +359,6 @@ export default function Home() {
     <div className={`min-h-screen bg-gradient-to-b ${topSpot ? getThemeGradient(topSpot.score) : 'bg-background'}`}>
       <style>{animStyles}</style>
 
-      {/* ── Header ── */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -504,7 +487,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {spotsWithAds.map((item, idx) =>
               item === 'ad' ? (
-                <div key={`ad-${idx}`} className="md:col-span-2 lg:col-span-3" style={{ animation: `slideUp 0.4s ${idx * 0.03}s ease-out both` }}>
+                // ✅ CORRIGIDO: col-span-full ocupa linha inteira sem espaço em branco
+                <div key={`ad-${idx}`} className="col-span-1 md:col-span-2 lg:col-span-3" style={{ animation: `slideUp 0.4s ${idx * 0.03}s ease-out both` }}>
                   <AdCard />
                 </div>
               ) : (
