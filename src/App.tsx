@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useEffect } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
@@ -10,12 +10,22 @@ import Favorites from './pages/Favorites'
 import NavigationPage from './pages/Navigation'
 import CamerasPage from './pages/Cameras'
 import PremiumPage from './pages/Premium'
+import ComparePage from './pages/Compare'
+import HistoryPage from './pages/History'
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    })
+  }
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-      <div className="text-[#5dcaa5] text-sm">Carregando...</div>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-primary text-sm">Carregando...</div>
     </div>
   )
   if (!user) return <Navigate to="/login" replace />
@@ -24,11 +34,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user, loading } = useAuth()
+  useEffect(() => { registerServiceWorker() }, [])
+
   if (loading) return (
-    <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-      <div className="text-[#5dcaa5] text-sm">Carregando...</div>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-primary text-sm">Carregando...</div>
     </div>
   )
+
   return (
     <>
       <Routes>
@@ -41,6 +54,10 @@ function AppRoutes() {
         <Route path="/navigation" element={<ProtectedRoute><NavigationPage /></ProtectedRoute>} />
         <Route path="/cameras" element={<ProtectedRoute><CamerasPage /></ProtectedRoute>} />
         <Route path="/premium" element={<ProtectedRoute><PremiumPage /></ProtectedRoute>} />
+        <Route path="/compare" element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+        <Route path="/history/:id" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" />
     </>
