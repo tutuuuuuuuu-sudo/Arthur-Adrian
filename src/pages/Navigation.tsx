@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { fetchCurrentConditions, BeachCondition } from '@/lib/surfData'
-import { ArrowLeft, Navigation, Waves, MapPin, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Navigation, Waves, MapPin, ExternalLink, Loader2 } from 'lucide-react'
 
 const getScoreColor = (score: number): string => {
   if (score >= 8.5) return '#8b5cf6'
@@ -23,112 +23,100 @@ const getScoreLabel = (score: number): string => {
 
 const getLocationDesc = (id: string): string => {
   const map: Record<string, string> = {
-    'campeche': 'Sul da Ilha',
-    'novo-campeche': 'Sul da Ilha',
-    'morro-pedras': 'Sul da Ilha',
-    'matadeiro': 'Sul da Ilha',
-    'lagoinha-leste': 'Extremo Sul',
-    'acores': 'Extremo Sul',
-    'solidao': 'Extremo Sul',
-    'armacao': 'Sul da Ilha',
-    'naufragados': 'Extremo Sul',
-    'joaquina': 'Leste da Ilha',
-    'mole': 'Leste da Ilha',
-    'mocambique': 'Leste da Ilha',
-    'barra-lagoa': 'Leste da Ilha',
-    'santinho': 'Norte da Ilha',
-    'ponta-aranhas': 'Norte da Ilha',
-    'canajure': 'Norte da Ilha',
+    'campeche': 'Sul da Ilha', 'novo-campeche': 'Sul da Ilha', 'morro-pedras': 'Sul da Ilha',
+    'matadeiro': 'Sul da Ilha', 'lagoinha-leste': 'Extremo Sul', 'acores': 'Extremo Sul',
+    'solidao': 'Extremo Sul', 'armacao': 'Sul da Ilha', 'naufragados': 'Extremo Sul',
+    'joaquina': 'Leste da Ilha', 'mole': 'Leste da Ilha', 'mocambique': 'Leste da Ilha',
+    'barra-lagoa': 'Leste da Ilha', 'santinho': 'Norte da Ilha', 'ponta-aranhas': 'Norte da Ilha',
   }
   return map[id] ?? 'Florianópolis'
 }
 
-// Coordenadas e endereços precisos de cada praia
-const BEACH_DESTINATIONS: Record<string, { lat: number, lng: number, address: string }> = {
-  'campeche':       { lat: -27.6710, lng: -48.4765, address: 'Av. Pequeno Príncipe, Praia do Campeche, Florianópolis' },
-  'novo-campeche':  { lat: -27.6400, lng: -48.4630, address: 'Praia do Novo Campeche, Florianópolis' },
-  'morro-pedras':   { lat: -27.6761, lng: -48.4842, address: 'Praia do Morro das Pedras, Florianópolis' },
-  'matadeiro':      { lat: -27.7342, lng: -48.5167, address: 'Praia do Matadeiro, Florianópolis' },
-  'lagoinha-leste': { lat: -27.7892, lng: -48.5289, address: 'Lagoinha do Leste, Florianópolis' },
-  'acores':         { lat: -27.7572, lng: -48.5125, address: 'Praia dos Açores, Florianópolis' },
-  'solidao':        { lat: -27.7456, lng: -48.5089, address: 'Praia da Solidão, Florianópolis' },
-  'armacao':        { lat: -27.7447, lng: -48.5044, address: 'Praia da Armação, Florianópolis' },
-  'naufragados':    { lat: -27.8456, lng: -48.5623, address: 'Praia de Naufragados, Florianópolis' },
-  'joaquina':       { lat: -27.6214, lng: -48.4433, address: 'Praia da Joaquina, Florianópolis' },
-  'mole':           { lat: -27.5989, lng: -48.4381, address: 'Praia Mole, Florianópolis' },
-  'mocambique':     { lat: -27.5647, lng: -48.4208, address: 'Praia de Moçambique, Florianópolis' },
-  'barra-lagoa':    { lat: -27.5767, lng: -48.4194, address: 'Praia da Barra da Lagoa, Florianópolis' },
-  'santinho':       { lat: -27.4433, lng: -48.3917, address: 'Praia do Santinho, Florianópolis' },
-  'ponta-aranhas':  { lat: -27.4256, lng: -48.3889, address: 'Ponta das Aranhas, Florianópolis' },
-  'canajure':       { lat: -27.4189, lng: -48.3945, address: 'Praia do Canajurê, Florianópolis' },
+// ✅ Coordenadas BEM NA AREIA de cada praia (verificadas no Google Maps)
+// Praias com trilha: Matadeiro, Lagoinha, Naufragados — levam ao estacionamento/início da trilha
+const BEACH_DESTINATIONS: Record<string, { lat: number, lng: number, name: string, hasTrilha?: boolean }> = {
+  'campeche':       { lat: -27.697703,  lng: -48.4898603, name: 'Praia do Campeche — Lomba do Sabão' },
+  'novo-campeche':  { lat: -27.6661001, lng: -48.4755307, name: 'Praia do Novo Campeche' },
+  'morro-pedras':   { lat: -27.7170897, lng: -48.5034360, name: 'Praia do Morro das Pedras' },
+  'matadeiro':      { lat: -27.7548429, lng: -48.4985647, name: 'Praia do Matadeiro', hasTrilha: true },
+  'lagoinha-leste': { lat: -27.7732103, lng: -48.4863806, name: 'Lagoinha do Leste', hasTrilha: true },
+  'acores':         { lat: -27.7837144, lng: -48.5236746, name: 'Praia dos Açores' },
+  'solidao':        { lat: -27.7941233, lng: -48.5334965, name: 'Praia da Solidão' },
+  'armacao':        { lat: -27.7504078, lng: -48.5017637, name: 'Praia da Armação' },
+  'naufragados':    { lat: -27.8335587, lng: -48.5641537, name: 'Praia de Naufragados', hasTrilha: true },
+  'joaquina':       { lat: -27.6293577, lng: -48.4490173, name: 'Praia da Joaquina' },
+  'mole':           { lat: -27.6022459, lng: -48.4326839, name: 'Praia Mole' },
+  'mocambique':     { lat: -27.4937746, lng: -48.3955175, name: 'Praia do Moçambique' },
+  'barra-lagoa':    { lat: -27.5734502, lng: -48.4249390, name: 'Praia da Barra da Lagoa' },
+  'santinho':       { lat: -27.4618653, lng: -48.3761513, name: 'Praia do Santinho' },
+  'ponta-aranhas':  { lat: -27.4802204, lng: -48.3769892, name: 'Ponta das Aranhas' },
 }
 
-// Sub-picos do Campeche com endereços reais
+// Sub-picos do Campeche com coordenadas bem na areia
 const CAMPECHE_SUBSPOTS = [
-  {
-    id: 'lomba-sabao',
-    name: 'Lomba do Sabão',
-    address: 'Rua Lomba do Sabão, Campeche, Florianópolis',
-    lat: -27.6750, lng: -48.4780,
-  },
-  {
-    id: 'palanque',
-    name: 'Palanque',
-    address: 'Servidão Caminho dos Surfistas, Campeche, Florianópolis',
-    lat: -27.6720, lng: -48.4772,
-  },
-  {
-    id: 'principal',
-    name: 'Principal',
-    address: 'Av. Pequeno Príncipe, Praia do Campeche, Florianópolis',
-    lat: -27.6683, lng: -48.4760,
-  },
+  { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.697703,  lng: -48.4898603 },
+  { id: 'palanque',    name: 'Palanque',        lat: -27.6820,   lng: -48.4830 },
+  { id: 'principal',   name: 'Principal',       lat: -27.6622150, lng: -48.4734326 },
 ]
 
-// ✅ CORREÇÃO TS6133: parâmetro 'address' renomeado para '_address'
-// O endereço está armazenado em BEACH_DESTINATIONS e CAMPECHE_SUBSPOTS.
-// As URLs de navegação usam apenas lat/lng — o parâmetro de texto não é consumido
-// pelas URLs do Google Maps, Waze ou Apple Maps nesta implementação.
-const openNavigation = (lat: number, lng: number, _address: string, app: 'google' | 'waze' | 'apple') => {
-  const urls = {
-    google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
-    waze: `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&zoom=17`,
-    apple: `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`,
+// ✅ CORRIGIDO: abre navegação usando a localização do dispositivo do usuário
+// Sem 'origin' → o Maps/Waze detecta automaticamente a posição atual do dispositivo
+const openNavigation = (
+  destLat: number,
+  destLng: number,
+  app: 'google' | 'waze' | 'apple',
+  userLat?: number,
+  userLng?: number
+) => {
+  let url = ''
+
+  if (app === 'google') {
+    // Com origem do usuário se disponível, senão Maps usa localização atual
+    if (userLat && userLng) {
+      url = `https://www.google.com/maps/dir/${userLat},${userLng}/${destLat},${destLng}/@${destLat},${destLng},14z/data=!4m2!4m1!3e0`
+    } else {
+      // Sem origin → Maps pergunta a localização ou usa a do dispositivo
+      url = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`
+    }
+  } else if (app === 'waze') {
+    url = `https://waze.com/ul?ll=${destLat},${destLng}&navigate=yes&zoom=17`
+  } else if (app === 'apple') {
+    url = `maps://maps.apple.com/?daddr=${destLat},${destLng}&dirflg=d&saddr=Current%20Location`
   }
-  window.open(urls[app], '_blank')
+
+  window.open(url, '_blank')
 }
 
 const NavModal = ({
-  name,
-  score,
-  beachId,
-  lat,
-  lng,
-  waveHeight,
-  windSpeed,
-  swellPeriod,
-  waterTemp,
-  onClose
+  name, score, beachId, lat, lng,
+  waveHeight, windSpeed, swellPeriod, waterTemp, onClose
 }: {
-  name: string
-  score: number
-  beachId: string
-  lat: number
-  lng: number
-  waveHeight: number
-  windSpeed: number
-  swellPeriod: number
-  waterTemp: number
-  onClose: () => void
+  name: string; score: number; beachId: string; lat: number; lng: number
+  waveHeight: number; windSpeed: number; swellPeriod: number; waterTemp: number; onClose: () => void
 }) => {
   const color = getScoreColor(score)
   const isCampeche = beachId === 'campeche'
   const [selectedSubspot, setSelectedSubspot] = useState<typeof CAMPECHE_SUBSPOTS[0] | null>(null)
-  const dest = BEACH_DESTINATIONS[beachId] ?? { lat, lng, address: name }
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
+  const [locLoading, setLocLoading] = useState(false)
 
+  const dest = BEACH_DESTINATIONS[beachId] ?? { lat, lng, name }
   const activeLat = selectedSubspot?.lat ?? dest.lat
   const activeLng = selectedSubspot?.lng ?? dest.lng
-  const activeAddress = selectedSubspot?.address ?? dest.address
+
+  // ✅ Busca a localização do dispositivo do usuário ao abrir o modal
+  useEffect(() => {
+    if (!navigator.geolocation) return
+    setLocLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocLoading(false)
+      },
+      () => setLocLoading(false),
+      { timeout: 8000, maximumAge: 60000 }
+    )
+  }, [])
 
   return (
     <div
@@ -159,13 +147,24 @@ const NavModal = ({
             <span>⏱️ {Math.round(swellPeriod)}s</span>
             <span>🌡️ {waterTemp}°C</span>
           </div>
+
+          {/* Status da localização */}
+          <div className="flex items-center gap-1.5 mt-2 text-xs">
+            {locLoading ? (
+              <><Loader2 className="h-3 w-3 animate-spin text-primary" /><span className="text-muted-foreground">Obtendo sua localização...</span></>
+            ) : userLocation ? (
+              <><div className="h-2 w-2 rounded-full bg-green-500" /><span className="text-green-500">Localização obtida — rota a partir de você</span></>
+            ) : (
+              <><div className="h-2 w-2 rounded-full bg-yellow-500" /><span className="text-muted-foreground">Rota a partir da sua localização atual</span></>
+            )}
+          </div>
         </div>
 
         {/* Sub-picos do Campeche */}
         {isCampeche && (
           <div className="px-5 pt-4">
             <p className="text-xs font-semibold text-muted-foreground mb-2">Escolha o pico do Campeche:</p>
-            <div className="grid grid-cols-3 gap-2 mb-1">
+            <div className="grid grid-cols-3 gap-2 mb-3">
               {CAMPECHE_SUBSPOTS.map(sub => (
                 <button
                   key={sub.id}
@@ -180,23 +179,20 @@ const NavModal = ({
                 </button>
               ))}
             </div>
-            {selectedSubspot && (
-              <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
-                <MapPin className="h-3 w-3 flex-shrink-0" />
-                {selectedSubspot.address}
-              </p>
-            )}
           </div>
         )}
 
-        {/* Opções de navegação */}
-        <div className="p-5 space-y-3">
-          <p className="text-sm font-semibold text-center text-muted-foreground mb-4">
-            Como quer ir até {selectedSubspot?.name ?? name}?
-          </p>
+        {/* Trilha warning */}
+        {dest.hasTrilha && (
+          <div className="mx-5 mt-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-600 dark:text-yellow-400">
+            ⚠️ Acesso por trilha — o GPS leva até o ponto de partida da trilha, não à areia.
+          </div>
+        )}
 
+        {/* Botões de navegação */}
+        <div className="p-5 space-y-3">
           <button
-            onClick={() => openNavigation(activeLat, activeLng, activeAddress, 'google')}
+            onClick={() => openNavigation(activeLat, activeLng, 'google', userLocation?.lat, userLocation?.lng)}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
           >
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
@@ -204,13 +200,13 @@ const NavModal = ({
             </div>
             <div className="text-left flex-1">
               <div className="font-semibold text-sm group-hover:text-blue-500 transition-colors">Google Maps</div>
-              <div className="text-xs text-muted-foreground">Abre com rota completa</div>
+              <div className="text-xs text-muted-foreground">Abre com rota a partir de você</div>
             </div>
             <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
           </button>
 
           <button
-            onClick={() => openNavigation(activeLat, activeLng, activeAddress, 'waze')}
+            onClick={() => openNavigation(activeLat, activeLng, 'waze', userLocation?.lat, userLocation?.lng)}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-all group"
           >
             <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
@@ -224,7 +220,7 @@ const NavModal = ({
           </button>
 
           <button
-            onClick={() => openNavigation(activeLat, activeLng, activeAddress, 'apple')}
+            onClick={() => openNavigation(activeLat, activeLng, 'apple', userLocation?.lat, userLocation?.lng)}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-gray-400/50 hover:bg-gray-400/5 transition-all group"
           >
             <div className="w-10 h-10 rounded-xl bg-gray-400/10 flex items-center justify-center flex-shrink-0">
@@ -266,13 +262,8 @@ export default function NavigationPage() {
   }, [])
 
   const regions = ['all', 'Sul', 'Leste', 'Norte']
-  const regionLabels: Record<string, string> = {
-    all: 'Todas', Sul: 'Sul', Leste: 'Leste', Norte: 'Norte'
-  }
-
-  const filtered = activeRegion === 'all'
-    ? spots
-    : spots.filter(s => s.region === activeRegion)
+  const regionLabels: Record<string, string> = { all: 'Todas', Sul: 'Sul', Leste: 'Leste', Norte: 'Norte' }
+  const filtered = activeRegion === 'all' ? spots : spots.filter(s => s.region === activeRegion)
 
   return (
     <div className="min-h-screen bg-background">
@@ -286,8 +277,7 @@ export default function NavigationPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+              <ArrowLeft className="h-4 w-4 mr-2" />Voltar
             </Button>
             <h1 className="text-lg font-bold flex items-center gap-2">
               <Navigation className="h-5 w-5 text-primary" />
@@ -327,6 +317,7 @@ export default function NavigationPage() {
           <div className="space-y-2">
             {filtered.map((spot, idx) => {
               const color = getScoreColor(spot.score)
+              const dest = BEACH_DESTINATIONS[spot.id]
               return (
                 <Card
                   key={spot.id}
@@ -344,7 +335,10 @@ export default function NavigationPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold">{spot.name}</div>
-                        <div className="text-xs text-muted-foreground">{getLocationDesc(spot.id)}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          {getLocationDesc(spot.id)}
+                          {dest?.hasTrilha && <span className="text-yellow-500">· via trilha</span>}
+                        </div>
                         <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                           <span>🌊 {spot.waveHeight.toFixed(1)}m</span>
                           <span>💨 {Math.round(spot.windSpeed)}km/h</span>
