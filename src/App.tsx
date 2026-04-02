@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, useEffect } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
