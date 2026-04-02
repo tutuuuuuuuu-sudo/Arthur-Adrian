@@ -329,7 +329,6 @@ const ShareButton = ({ spot }: { spot: BeachCondition }) => {
 const CameraPlayer = ({ spot }: { spot: BeachCondition }) => {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
-  const navigate = useNavigate()
 
   if (!spot.cameraEmbed) {
     return (
