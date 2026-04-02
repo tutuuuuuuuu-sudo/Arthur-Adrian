@@ -8,7 +8,6 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePremium } from '@/lib/premium'
 import { getFavorites } from '@/lib/favorites'
-import { getComments } from '@/lib/comments'
 import { getCurrentConditions, fetchCurrentConditions } from '@/lib/surfData'
 import { supabase } from '@/lib/supabase'
 import {
