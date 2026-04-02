@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { fetchCurrentConditions, BeachCondition } from '@/lib/surfData'
-import { ArrowLeft, Navigation, Waves, MapPin, ExternalLink, Loader2 } from 'lucide-react'
+import { ArrowLeft, Navigation, Waves, MapPin, ExternalLink } from 'lucide-react'
 
 const getScoreColor = (score: number): string => {
   if (score >= 8.5) return '#8b5cf6'
@@ -59,32 +59,18 @@ const CAMPECHE_SUBSPOTS = [
   { id: 'principal',   name: 'Principal',       lat: -27.6622150, lng: -48.4734326 },
 ]
 
-// ✅ CORRIGIDO: abre navegação usando a localização do dispositivo do usuário
-// Sem 'origin' → o Maps/Waze detecta automaticamente a posição atual do dispositivo
-const openNavigation = (
-  destLat: number,
-  destLng: number,
-  app: 'google' | 'waze' | 'apple',
-  userLat?: number,
-  userLng?: number
-) => {
-  let url = ''
-
-  if (app === 'google') {
-    // Com origem do usuário se disponível, senão Maps usa localização atual
-    if (userLat && userLng) {
-      url = `https://www.google.com/maps/dir/${userLat},${userLng}/${destLat},${destLng}/@${destLat},${destLng},14z/data=!4m2!4m1!3e0`
-    } else {
-      // Sem origin → Maps pergunta a localização ou usa a do dispositivo
-      url = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`
-    }
-  } else if (app === 'waze') {
-    url = `https://waze.com/ul?ll=${destLat},${destLng}&navigate=yes&zoom=17`
-  } else if (app === 'apple') {
-    url = `maps://maps.apple.com/?daddr=${destLat},${destLng}&dirflg=d&saddr=Current%20Location`
+// ✅ NUNCA passa origem na URL — Maps/Waze/Apple sempre detectam a posição atual do dispositivo
+// Passar origin causa o bug onde usa um ponto fixo errado em vez da posição real do usuário
+const openNavigation = (destLat: number, destLng: number, app: 'google' | 'waze' | 'apple') => {
+  const urls = {
+    // Sem &origin= → Google Maps usa "Sua localização" (GPS do dispositivo)
+    google: `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`,
+    // Waze sempre usa GPS do dispositivo quando não tem origem
+    waze: `https://waze.com/ul?ll=${destLat},${destLng}&navigate=yes&zoom=17`,
+    // Apple Maps usa localização atual do dispositivo
+    apple: `maps://maps.apple.com/?daddr=${destLat},${destLng}&dirflg=d`,
   }
-
-  window.open(url, '_blank')
+  window.open(urls[app], '_blank')
 }
 
 const NavModal = ({
@@ -97,26 +83,13 @@ const NavModal = ({
   const color = getScoreColor(score)
   const isCampeche = beachId === 'campeche'
   const [selectedSubspot, setSelectedSubspot] = useState<typeof CAMPECHE_SUBSPOTS[0] | null>(null)
-  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
-  const [locLoading, setLocLoading] = useState(false)
+
 
   const dest = BEACH_DESTINATIONS[beachId] ?? { lat, lng, name }
   const activeLat = selectedSubspot?.lat ?? dest.lat
   const activeLng = selectedSubspot?.lng ?? dest.lng
 
-  // ✅ Busca a localização do dispositivo do usuário ao abrir o modal
-  useEffect(() => {
-    if (!navigator.geolocation) return
-    setLocLoading(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setLocLoading(false)
-      },
-      () => setLocLoading(false),
-      { timeout: 8000, maximumAge: 60000 }
-    )
-  }, [])
+
 
   return (
     <div
@@ -148,15 +121,10 @@ const NavModal = ({
             <span>🌡️ {waterTemp}°C</span>
           </div>
 
-          {/* Status da localização */}
-          <div className="flex items-center gap-1.5 mt-2 text-xs">
-            {locLoading ? (
-              <><Loader2 className="h-3 w-3 animate-spin text-primary" /><span className="text-muted-foreground">Obtendo sua localização...</span></>
-            ) : userLocation ? (
-              <><div className="h-2 w-2 rounded-full bg-green-500" /><span className="text-green-500">Localização obtida — rota a partir de você</span></>
-            ) : (
-              <><div className="h-2 w-2 rounded-full bg-yellow-500" /><span className="text-muted-foreground">Rota a partir da sua localização atual</span></>
-            )}
+          {/* O Maps/Waze detecta automaticamente a posição do dispositivo */}
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span>Rota a partir da sua posição atual 📍</span>
           </div>
         </div>
 
@@ -192,7 +160,7 @@ const NavModal = ({
         {/* Botões de navegação */}
         <div className="p-5 space-y-3">
           <button
-            onClick={() => openNavigation(activeLat, activeLng, 'google', userLocation?.lat, userLocation?.lng)}
+            onClick={() => openNavigation(activeLat, activeLng, 'google')}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
           >
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
@@ -206,7 +174,7 @@ const NavModal = ({
           </button>
 
           <button
-            onClick={() => openNavigation(activeLat, activeLng, 'waze', userLocation?.lat, userLocation?.lng)}
+            onClick={() => openNavigation(activeLat, activeLng, 'waze')}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-all group"
           >
             <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
@@ -220,7 +188,7 @@ const NavModal = ({
           </button>
 
           <button
-            onClick={() => openNavigation(activeLat, activeLng, 'apple', userLocation?.lat, userLocation?.lng)}
+            onClick={() => openNavigation(activeLat, activeLng, 'apple')}
             className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-gray-400/50 hover:bg-gray-400/5 transition-all group"
           >
             <div className="w-10 h-10 rounded-xl bg-gray-400/10 flex items-center justify-center flex-shrink-0">
