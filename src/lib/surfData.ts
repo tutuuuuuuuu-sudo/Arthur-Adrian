@@ -211,65 +211,92 @@ const CAMERAS: Record<string, { cameraUrl: string, cameraEmbed: string, cameraSo
 
 // ✅ Canajurê REMOVIDO
 const BEACHES = [
-  { id: 'campeche', name: 'Campeche', region: 'Sul' as const, lat: -27.6709, lng: -48.4765, orientation: 90, // Acesso: Servidão Cristóvão Luiz Martins, 212
+  // ✅ GPS corrigido conforme verificação no Google Maps (prints do usuário)
+  { id: 'campeche', name: 'Campeche', region: 'Sul' as const,
+    lat: -27.6810, lng: -48.4976, // Servidão Cristóvão Luiz Martins, 212 — Campeche
+    orientation: 90,
     subRegions: [
       { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.6720, lng: -48.4780, swellDirections: ['E', 'SE'] },
       { id: 'palanque', name: 'Palanque', lat: -27.6683, lng: -48.4772, swellDirections: ['SE', 'S', 'SSE'] },
       { id: 'principal', name: 'Principal', lat: -27.6650, lng: -48.4760, swellDirections: ['E', 'NE'] },
     ], bestTimeWindow: '06h - 09h' },
-  { id: 'novo-campeche', name: 'Novo Campeche', region: 'Sul' as const, lat: -27.6400, lng: -48.4630, orientation: 90, // Acesso norte do Novo Campeche
+  { id: 'novo-campeche', name: 'Novo Campeche', region: 'Sul' as const,
+    lat: -27.6400, lng: -48.4630, // Acesso norte — Novo Campeche
+    orientation: 90,
     subRegions: [
       { id: 'norte-novo-campeche', name: 'Lado Norte', lat: -27.6400, lng: -48.4630, swellDirections: ['E', 'NE'] },
       { id: 'sul-novo-campeche', name: 'Lado Sul', lat: -27.6500, lng: -48.4670, swellDirections: ['SE', 'E'] },
     ], bestTimeWindow: '06h - 09h' },
-  { id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const, lat: -27.6867, lng: -48.5021, orientation: 100, // Av. Campeche, s/n - Lagoa Pequena
+  { id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const,
+    lat: -27.6867, lng: -48.5202, // Av. Campeche, s/n — Lagoa Pequena
+    orientation: 100,
     subRegions: [
       { id: 'canto-direito', name: 'Canto Direito', lat: -27.6750, lng: -48.4830, swellDirections: ['SE', 'S'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.6761, lng: -48.4842, swellDirections: ['E', 'SE'] },
     ], bestTimeWindow: '07h - 10h' },
-  { id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const, lat: -27.7342, lng: -48.5167, orientation: 110, bestTimeWindow: '06h - 09h' }, // Rod. Baldicero Filomeno, 370
-  { id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const, lat: -27.7872, lng: -48.5334, orientation: 180, bestTimeWindow: 'Dia todo (acesso por trilha)' }, // Praia das Pacas — início trilha
-  { id: 'acores', name: 'Açores', region: 'Sul' as const, lat: -27.7572, lng: -48.5125, orientation: 120, // Servidão do Náufrago, 57 - Armação
+  { id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const,
+    lat: -27.7243, lng: -48.5360, // Rod. Baldicero Filomeno, 370 — Ribeirão da Ilha
+    orientation: 110, bestTimeWindow: '06h - 09h' },
+  { id: 'lagoinha-leste', name: 'Lagoinha do Leste', region: 'Sul' as const,
+    lat: -27.7316, lng: -48.5557, // Praia das Pacas — início da trilha para Lagoinha do Leste
+    orientation: 180, bestTimeWindow: 'Dia todo (acesso por trilha)' },
+  { id: 'acores', name: 'Açores', region: 'Sul' as const,
+    lat: -27.7361, lng: -48.5678, // Servidão do Náufrago, 57 — Armação do Pântano do Sul
+    orientation: 120,
     subRegions: [
       { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7565, lng: -48.5110, swellDirections: ['SE', 'S'] },
       { id: 'meio', name: 'Meio', lat: -27.7572, lng: -48.5125, swellDirections: ['E', 'SE'] },
     ], bestTimeWindow: '07h - 11h' },
-  { id: 'solidao', name: 'Solidão', region: 'Sul' as const, lat: -27.7421, lng: -48.5051, orientation: 130, bestTimeWindow: '08h - 11h' }, // R. Hermes Guedes da Fonseca, 217 - Armação
-  { id: 'armacao', name: 'Armação', region: 'Sul' as const, lat: -27.7447, lng: -48.5044, orientation: 115,
+  { id: 'solidao', name: 'Solidão', region: 'Sul' as const,
+    lat: -27.7421, lng: -48.5851, // R. Hermes Guedes da Fonseca, 217 — Armação
+    orientation: 130, bestTimeWindow: '08h - 11h' },
+  { id: 'armacao', name: 'Armação', region: 'Sul' as const,
+    lat: -27.7447, lng: -48.5044, orientation: 115,
     subRegions: [
       { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7440, lng: -48.5035, swellDirections: ['SE', 'S'] },
       { id: 'centro', name: 'Centro', lat: -27.7447, lng: -48.5044, swellDirections: ['E', 'SE'] },
       { id: 'matadouro', name: 'Matadouro', lat: -27.7455, lng: -48.5055, swellDirections: ['S', 'SW'] },
     ], bestTimeWindow: '06h - 09h e 16h - 18h' },
-  { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const, lat: -27.8272, lng: -48.5631, orientation: 180, bestTimeWindow: 'Depende da maré (acesso por trilha)' }, // Início da Trilha Caminho dos Naufragados
-  { id: 'joaquina', name: 'Joaquina', region: 'Leste' as const, lat: -27.6350, lng: -48.4495, orientation: 90, // Dunas da Joaquina — estacionamento principal
+  { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const,
+    lat: -27.8273, lng: -48.5632, // Trilha Caminho dos Naufragados — início da trilha
+    orientation: 180, bestTimeWindow: 'Depende da maré (acesso por trilha)' },
+  { id: 'joaquina', name: 'Joaquina', region: 'Leste' as const,
+    lat: -27.6214, lng: -48.4433, // Dunas da Joaquina — estacionamento principal
+    orientation: 90,
     subRegions: [
       { id: 'canto-esquerdo', name: 'Canto Esquerdo (Dunas)', lat: -27.6230, lng: -48.4440, swellDirections: ['SE', 'S'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.6214, lng: -48.4433, swellDirections: ['E', 'SE'] },
       { id: 'canto-direito', name: 'Canto Direito', lat: -27.6195, lng: -48.4420, swellDirections: ['NE', 'E'] },
     ], bestTimeWindow: 'Agora até 11h' },
-  { id: 'mole', name: 'Praia Mole', region: 'Leste' as const, lat: -27.5989, lng: -48.4381, orientation: 85,
+  { id: 'mole', name: 'Praia Mole', region: 'Leste' as const,
+    lat: -27.5989, lng: -48.4381, orientation: 85,
     subRegions: [
       { id: 'gruta', name: 'Gruta', lat: -27.5995, lng: -48.4390, swellDirections: ['SE', 'E'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.5989, lng: -48.4381, swellDirections: ['E', 'NE'] },
     ], bestTimeWindow: '07h - 10h' },
-  { id: 'mocambique', name: 'Moçambique', region: 'Leste' as const, lat: -27.5647, lng: -48.4208, orientation: 80,
+  { id: 'mocambique', name: 'Moçambique', region: 'Leste' as const,
+    lat: -27.5647, lng: -48.4208, // Praia do Moçambique — acesso principal
+    orientation: 80,
     subRegions: [
       { id: 'norte', name: 'Norte (Barra)', lat: -27.5600, lng: -48.4195, swellDirections: ['NE', 'E'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.5647, lng: -48.4208, swellDirections: ['E', 'SE'] },
       { id: 'sul', name: 'Sul', lat: -27.5700, lng: -48.4220, swellDirections: ['SE', 'S'] },
     ], bestTimeWindow: '08h - 11h' },
-  { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const, lat: -27.5767, lng: -48.4194, orientation: 75,
+  { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const,
+    lat: -27.5767, lng: -48.4194, orientation: 75,
     subRegions: [
       { id: 'canal', name: 'Canal da Barra', lat: -27.5760, lng: -48.4185, swellDirections: ['NE', 'E'] },
       { id: 'prainha', name: 'Prainha', lat: -27.5775, lng: -48.4200, swellDirections: ['E', 'SE'] },
     ], bestTimeWindow: 'Melhor na maré enchente' },
-  { id: 'santinho', name: 'Santinho', region: 'Norte' as const, lat: -27.4499, lng: -48.4491, orientation: 70, // Servidão Floresta, 90 - Ingleses do Rio Vermelho
+  { id: 'santinho', name: 'Santinho', region: 'Norte' as const,
+    lat: -27.4499, lng: -48.4491, // Servidão Floresta, 90 — Ingleses do Rio Vermelho
+    orientation: 70,
     subRegions: [
       { id: 'costao', name: 'Costão do Santinho', lat: -27.4420, lng: -48.3905, swellDirections: ['NE', 'E'] },
       { id: 'centro', name: 'Centro', lat: -27.4433, lng: -48.3917, swellDirections: ['E', 'SE'] },
     ], bestTimeWindow: '15h - 17h' },
-  { id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const, lat: -27.4256, lng: -48.3889, orientation: 65, bestTimeWindow: '09h - 12h' },
+  { id: 'ponta-aranhas', name: 'Ponta das Aranhas', region: 'Norte' as const,
+    lat: -27.4256, lng: -48.3889, orientation: 65, bestTimeWindow: '09h - 12h' },
 ]
 
 let cachedConditions: BeachCondition[] | null = null
