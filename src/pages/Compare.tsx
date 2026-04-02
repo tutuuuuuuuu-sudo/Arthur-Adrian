@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { fetchCurrentConditions, BeachCondition } from '@/lib/surfData'
 import { ArrowLeft, Waves, Wind, Thermometer, X, Plus, TrendingUp } from 'lucide-react'
 
