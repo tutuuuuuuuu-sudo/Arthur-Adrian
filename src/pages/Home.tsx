@@ -20,7 +20,7 @@ import {
 import {
   Waves, TrendingUp, MapPin, Info, Heart, Settings,
   Bell, BellOff, Map, X, ChevronDown, ChevronUp,
-  ExternalLink, Navigation, Camera, Crown
+  Navigation, Camera, Crown
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
@@ -155,32 +155,72 @@ const getThemeGradient = (score: number) => {
 
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
-  const [expanded, setExpanded] = useState(false)
-  const iframeSrc = `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d${expanded ? 95000 : 75000}!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1234567890`
+  const [tooltip, setTooltip] = useState<string | null>(null)
+
+  // Bounds da Ilha de Florianópolis para projeção lat/lng → SVG
+  const LAT_MIN = -27.90, LAT_MAX = -27.40
+  const LNG_MIN = -48.62, LNG_MAX = -48.32
+  const W = 400, H = 560
+
+  const project = (lat: number, lng: number) => ({
+    x: Math.round(((lng - LNG_MIN) / (LNG_MAX - LNG_MIN)) * W),
+    y: Math.round(H - ((lat - LAT_MIN) / (LAT_MAX - LAT_MIN)) * H),
+  })
+
   return (
     <Card className="anim-slide card-hover" style={{ animationDelay: '0.35s' }}>
-      <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Map className="h-5 w-5 text-primary" />Mapa das Praias</CardTitle></CardHeader>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Map className="h-5 w-5 text-primary" />Mapa dos Picos
+          <span className="text-xs text-muted-foreground font-normal ml-auto">Toque para ver as condições</span>
+        </CardTitle>
+      </CardHeader>
       <CardContent className="space-y-3">
-        <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ height: expanded ? '480px' : '260px', transition: 'height 0.3s ease' }}>
-          <iframe width="100%" height="100%" style={{ border: 0, display: 'block' }} loading="lazy" allowFullScreen src={iframeSrc} />
-          <button onClick={() => setExpanded(!expanded)} className="absolute top-2 right-2 z-10 px-3 py-1.5 rounded-lg bg-background/90 border border-border text-xs font-medium hover:bg-muted transition-colors flex items-center gap-1.5">
-            {expanded ? <><X className="h-3.5 w-3.5" /> Minimizar</> : <><ExternalLink className="h-3.5 w-3.5" /> Expandir</>}
-          </button>
+        <div className="relative w-full rounded-xl overflow-hidden border border-border/30">
+          <svg viewBox="0 0 400 560" className="w-full" style={{ display: 'block' }}>
+            {/* Mar */}
+            <rect width="400" height="560" fill="#b8d4e8" />
+            {/* Ilha de Florianópolis — forma aproximada */}
+            <path d="M200,30 C220,28 245,34 260,44 C275,55 282,72 285,90 C288,108 285,126 280,142 C274,160 265,176 258,192 C250,210 242,226 236,244 C229,263 224,282 220,301 C217,318 215,336 215,354 C215,370 217,387 218,404 C219,420 220,436 218,452 C215,467 210,482 204,495 C197,508 188,520 178,528 C167,537 154,541 142,539 C130,537 119,529 110,519 C100,508 94,494 91,480 C88,464 89,448 92,432 C95,416 101,400 105,384 C110,366 113,348 114,330 C115,312 113,294 110,277 C107,258 102,241 98,223 C94,205 91,187 91,168 C91,150 95,132 102,116 C110,99 121,84 135,72 C149,60 165,51 182,44 C190,40 195,32 200,30Z" fill="#e8dcc8" stroke="#c4a882" strokeWidth="1.5" />
+            {/* Lagoa da Conceição */}
+            <ellipse cx="238" cy="262" rx="20" ry="35" fill="#a8cce0" stroke="#88aac0" strokeWidth="1" opacity="0.8" />
+            <text x="238" y="265" textAnchor="middle" fontSize="6" fill="#3a6a8a" fontWeight="600" opacity="0.8">Lagoa</text>
+            {/* Lagoa do Peri */}
+            <ellipse cx="198" cy="415" rx="12" ry="18" fill="#a8cce0" stroke="#88aac0" strokeWidth="1" opacity="0.7" />
+            {/* Marcadores das praias */}
+            {spots.map((spot) => {
+              const { x, y } = project(spot.lat, spot.lng)
+              const color = getScoreColor(spot.score)
+              const hov = tooltip === spot.id
+              const tipRight = x < 280
+              return (
+                <g key={spot.id} onClick={() => navigate(`/spot/${spot.id}`)}
+                  onMouseEnter={() => setTooltip(spot.id)} onMouseLeave={() => setTooltip(null)}
+                  style={{ cursor: 'pointer' }}>
+                  {/* Pulso ao hover */}
+                  {hov && <circle cx={x} cy={y} r="18" fill={color} opacity="0.25" />}
+                  {/* Sombra */}
+                  <circle cx={x+1} cy={y+1} r={hov ? 13 : 11} fill="rgba(0,0,0,0.2)" />
+                  {/* Marcador */}
+                  <circle cx={x} cy={y} r={hov ? 13 : 11} fill={color} stroke="white" strokeWidth="2.5" />
+                  {/* Score */}
+                  <text x={x} y={y+4} textAnchor="middle" fontSize="8" fontWeight="bold" fill="white">{spot.score.toFixed(1)}</text>
+                  {/* Tooltip */}
+                  {hov && (
+                    <g>
+                      <rect x={tipRight ? x+16 : x-112} y={y-32} width="96" height="50" rx="7" fill="rgba(10,10,20,0.90)" />
+                      <text x={tipRight ? x+64 : x-64} y={y-16} textAnchor="middle" fontSize="9.5" fontWeight="bold" fill="white">{spot.name}</text>
+                      <text x={tipRight ? x+64 : x-64} y={y-4} textAnchor="middle" fontSize="8.5" fill={color}>{getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m</text>
+                      <text x={tipRight ? x+64 : x-64} y={y+8} textAnchor="middle" fontSize="7.5" fill="rgba(255,255,255,0.65)">💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s</text>
+                    </g>
+                  )}
+                </g>
+              )
+            })}
+            <text x="16" y="20" fontSize="9" fill="rgba(0,0,0,0.35)" fontWeight="700">N ↑</text>
+          </svg>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {spots.map((spot, idx) => (
-            <button key={spot.id} onClick={() => navigate(`/spot/${spot.id}`)}
-              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/40 hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-left group"
-              style={{ animation: `slideInLeft 0.3s ${idx * 0.03}s ease-out both` }}>
-              <div className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: getScoreColor(spot.score) }} />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{spot.name}</div>
-                <div className="text-xs text-muted-foreground truncate">{getLocationDescription(spot)}</div>
-                <div className="text-xs font-medium" style={{ color: getScoreColor(spot.score) }}>{spot.score.toFixed(1)} · {getScoreLabel(spot.score)}</div>
-              </div>
-            </button>
-          ))}
-        </div>
+        {/* Legenda */}
         <div className="flex flex-wrap gap-3 pt-1 border-t">
           {[{ color: '#8b5cf6', label: 'Épico' }, { color: '#06b6d4', label: 'Excelente' }, { color: '#22c55e', label: 'Bom' }, { color: '#f59e0b', label: 'Regular' }, { color: '#ef4444', label: 'Ruim' }].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
@@ -189,11 +229,11 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground text-center">Selecione uma praia na lista para ver as condições detalhadas</p>
       </CardContent>
     </Card>
   )
 }
+
 
 const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
   const [dismissed, setDismissed] = useState(false)
@@ -377,9 +417,9 @@ export default function Home() {
               </button>
 
               <Button variant="outline" size="sm" onClick={() => navigate('/navigation')} className="hidden sm:flex">
-                <Navigation className="h-4 w-4 mr-1.5" />GPS
+                <Navigation className="h-4 w-4 mr-1.5" />Me Leva ao Pico
               </Button>
-              <button onClick={() => navigate('/navigation')} className="sm:hidden p-2 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors" title="GPS">
+              <button onClick={() => navigate('/navigation')} className="sm:hidden p-2 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors" title="Me Leva ao Pico">
                 <Navigation className="h-4 w-4 text-muted-foreground" />
               </button>
 
