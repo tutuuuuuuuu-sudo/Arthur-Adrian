@@ -103,7 +103,7 @@ export async function getWeatherForecast(
   try {
     const [marineRes, weatherRes] = await Promise.all([
       fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${coords.lat}&longitude=${coords.lng}&daily=wave_height_max,wave_period_max,swell_wave_height_max,swell_wave_period_max&length_unit=metric&timezone=America%2FSao_Paulo`),
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=wind_speed_10m_max,wind_direction_10m_dominant,temperature_2m_max&wind_speed_unit=kmh&timezone=America%2FSao_Paulo`)
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&hourly=temperature_2m&daily=wind_speed_10m_max,wind_direction_10m_dominant,temperature_2m_max&wind_speed_unit=kmh&timezone=America%2FSao_Paulo`)
     ])
 
     const marine = await marineRes.json() as any
@@ -119,16 +119,25 @@ export async function getWeatherForecast(
 
       let waveHeight: number, windSpeed: number, swellPeriod: number, temperature: number, score: number
 
+      // Temperatura atual: usa valor horário da hora atual (index = hora atual do dia)
+      const currentHour = new Date().getHours()
+      const hourlyTemps: number[] = weather.hourly?.temperature_2m ?? []
+      // Cada dia tem 24 horas no array hourly; dia i começa no índice i*24
+      const hourIdx = i === 0 ? currentHour : i * 24 + 12 // hora atual no dia 0, meio-dia nos demais
+      const hourlyTemp = hourlyTemps[hourIdx] != null ? Math.round(hourlyTemps[hourIdx]) : null
+
       if (i === 0 && currentConditions) {
         waveHeight = currentConditions.waveHeight
         windSpeed = currentConditions.windSpeed
         swellPeriod = currentConditions.swellPeriod
-        temperature = currentConditions.waterTemperature ?? Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
+        // ✅ Temperatura do ar atual: valor horário real, não máximo diário
+        temperature = hourlyTemp ?? Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
         score = currentConditions.score
       } else {
         waveHeight = Number((marine.daily?.swell_wave_height_max?.[i] ?? marine.daily?.wave_height_max?.[i] ?? 1.0).toFixed(1))
         swellPeriod = Math.round(marine.daily?.swell_wave_period_max?.[i] ?? marine.daily?.wave_period_max?.[i] ?? 10)
         windSpeed = Math.round(weather.daily?.wind_speed_10m_max?.[i] ?? 12)
+        // Para dias futuros usa temperatura máxima (previsão)
         temperature = Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
         score = calculateForecastScore(waveHeight, windSpeed, swellPeriod)
       }
