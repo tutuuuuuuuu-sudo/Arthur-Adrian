@@ -135,16 +135,6 @@ const getScoreLabel = (score: number) => {
   if (score >= 4) return 'Regular'
   return 'Ruim'
 }
-const getLocationDescription = (spot: BeachCondition) => {
-  const map: Record<string, string> = {
-    campeche: 'Sul da Ilha', 'novo-campeche': 'Sul da Ilha', 'morro-pedras': 'Sul da Ilha',
-    matadeiro: 'Sul da Ilha', 'lagoinha-leste': 'Extremo Sul', acores: 'Extremo Sul',
-    solidao: 'Extremo Sul', armacao: 'Sul da Ilha', naufragados: 'Extremo Sul',
-    joaquina: 'Leste da Ilha', mole: 'Leste da Ilha', mocambique: 'Leste da Ilha',
-    'barra-lagoa': 'Leste da Ilha', santinho: 'Norte da Ilha', 'ponta-aranhas': 'Norte da Ilha',
-  }
-  return map[spot.id] ?? `${spot.region} da Ilha`
-}
 const getThemeGradient = (score: number) => {
   if (score >= 8.5) return 'from-purple-900/40 via-background to-background'
   if (score >= 7) return 'from-cyan-900/40 via-background to-background'
