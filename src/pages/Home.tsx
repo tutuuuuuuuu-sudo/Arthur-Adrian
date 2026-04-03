@@ -145,15 +145,13 @@ const getThemeGradient = (score: number) => {
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
   const mapRef = useRef<HTMLDivElement>(null)
-  const leafletRef = useRef<any>(null)
-  const markersRef = useRef<any[]>([])
+  const mapInstanceRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!mapRef.current || leafletRef.current) return
+    if (!mapRef.current || spots.length === 0) return
 
-    // Carrega Leaflet via CDN dinâmico
-    const loadLeaflet = async () => {
-      // CSS do Leaflet
+    const initMap = async () => {
+      // Carrega CSS do Leaflet
       if (!document.getElementById('leaflet-css')) {
         const link = document.createElement('link')
         link.id = 'leaflet-css'
@@ -162,101 +160,84 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
         document.head.appendChild(link)
       }
 
-      // Script do Leaflet
+      // Carrega JS do Leaflet se ainda não carregou
       if (!(window as any).L) {
-        await new Promise<void>((resolve) => {
+        await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script')
           script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
           script.onload = () => resolve()
+          script.onerror = () => reject()
           document.head.appendChild(script)
         })
       }
 
       const L = (window as any).L
-      if (!mapRef.current || leafletRef.current) return
+      if (!mapRef.current) return
 
-      // Cria o mapa centrado em Florianópolis
+      // Destrói mapa anterior se existir
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
+      }
+
+      // Cria novo mapa
       const map = L.map(mapRef.current, {
-        center: [-27.615, -48.48],
+        center: [-27.62, -48.48],
         zoom: 11,
-        zoomControl: true,
         scrollWheelZoom: false,
+        zoomControl: true,
       })
 
-      // Tiles do OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap',
-        maxZoom: 18,
       }).addTo(map)
 
-      leafletRef.current = map
-    }
+      // Adiciona marcador para cada praia
+      spots.forEach(spot => {
+        const color = getScoreColor(spot.score)
+        const label = getScoreLabel(spot.score)
 
-    loadLeaflet()
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="width:36px;height:36px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white;cursor:pointer;">${spot.score.toFixed(1)}</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -22],
+        })
 
-    return () => {
-      if (leafletRef.current) {
-        leafletRef.current.remove()
-        leafletRef.current = null
-      }
-    }
-  }, [])
-
-  // Atualiza marcadores quando os spots mudam
-  useEffect(() => {
-    const L = (window as any).L
-    if (!leafletRef.current || !L || spots.length === 0) return
-
-    const map = leafletRef.current
-
-    // Remove marcadores antigos
-    markersRef.current.forEach(m => m.remove())
-    markersRef.current = []
-
-    spots.forEach(spot => {
-      const color = getScoreColor(spot.score)
-      const label = getScoreLabel(spot.score)
-
-      // Ícone customizado colorido
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="
-          width:34px;height:34px;border-radius:50%;
-          background:${color};border:2.5px solid white;
-          box-shadow:0 2px 8px rgba(0,0,0,0.4);
-          display:flex;align-items:center;justify-content:center;
-          font-size:9px;font-weight:bold;color:white;cursor:pointer;
-        ">${spot.score.toFixed(1)}</div>`,
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
-        popupAnchor: [0, -20],
+        const spotId = spot.id
+        L.marker([spot.lat, spot.lng], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="min-width:160px;font-family:system-ui,sans-serif;padding:4px">
+              <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#111">${spot.name}</div>
+              <div style="color:${color};font-weight:600;font-size:12px;margin-bottom:4px">${label} · ${spot.waveHeight.toFixed(1)}m</div>
+              <div style="color:#666;font-size:11px;margin-bottom:10px">💨 ${Math.round(spot.windSpeed)}km/h &nbsp;⏱ ${Math.round(spot.swellPeriod)}s</div>
+              <button id="btn-${spotId}" style="width:100%;padding:7px;border-radius:8px;background:${color};color:white;font-size:11px;font-weight:600;border:none;cursor:pointer;">
+                Ver detalhes →
+              </button>
+            </div>
+          `)
+          .on('popupopen', () => {
+            setTimeout(() => {
+              const btn = document.getElementById(`btn-${spotId}`)
+              if (btn) btn.addEventListener('click', () => navigate(`/spot/${spotId}`))
+            }, 100)
+          })
       })
 
-      const marker = L.marker([spot.lat, spot.lng], { icon })
-        .addTo(map)
-        .bindPopup(`
-          <div style="min-width:150px;font-family:sans-serif">
-            <div style="font-weight:bold;font-size:13px;margin-bottom:4px">${spot.name}</div>
-            <div style="color:${color};font-weight:600;font-size:12px;margin-bottom:4px">${label} · ${spot.waveHeight.toFixed(1)}m</div>
-            <div style="color:#888;font-size:11px;margin-bottom:8px">💨 ${Math.round(spot.windSpeed)}km/h · ⏱ ${Math.round(spot.swellPeriod)}s</div>
-            <a href="/spot/${spot.id}" style="
-              display:block;text-align:center;padding:6px;border-radius:8px;
-              background:${color};color:white;font-size:11px;font-weight:600;
-              text-decoration:none;
-            " onclick="event.preventDefault();window.__navigateTo('/spot/${spot.id}')">
-              Ver detalhes →
-            </a>
-          </div>
-        `)
+      mapInstanceRef.current = map
+    }
 
-      markersRef.current.push(marker)
-    })
-  }, [spots])
+    initMap()
 
-  // Expõe navigate para o popup do Leaflet
-  useEffect(() => {
-    (window as any).__navigateTo = navigate
-  }, [navigate])
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
+      }
+    }
+  }, [spots, navigate])
 
   return (
     <Card className="anim-slide card-hover" style={{ animationDelay: '0.35s' }}>
@@ -267,13 +248,11 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Mapa Leaflet — marcadores nas coordenadas GPS exatas */}
         <div
           ref={mapRef}
           className="w-full rounded-xl overflow-hidden border border-border/30"
-          style={{ height: '400px' }}
+          style={{ height: '420px', zIndex: 0 }}
         />
-        {/* Legenda */}
         <div className="flex flex-wrap gap-3 pt-1 border-t">
           {[{ color: '#8b5cf6', label: 'Épico' }, { color: '#06b6d4', label: 'Excelente' }, { color: '#22c55e', label: 'Bom' }, { color: '#f59e0b', label: 'Regular' }, { color: '#ef4444', label: 'Ruim' }].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
