@@ -26,8 +26,8 @@ const getLocationDesc = (id: string): string => {
     'campeche': 'Sul da Ilha', 'novo-campeche': 'Sul da Ilha', 'morro-pedras': 'Sul da Ilha',
     'matadeiro': 'Sul da Ilha', 'lagoinha-leste': 'Extremo Sul', 'acores': 'Extremo Sul',
     'solidao': 'Extremo Sul', 'armacao': 'Sul da Ilha', 'naufragados': 'Extremo Sul',
-    'joaquina': 'Leste da Ilha', 'mole': 'Leste da Ilha', 'mocambique': 'Leste da Ilha',
-    'barra-lagoa': 'Leste da Ilha', 'santinho': 'Norte da Ilha', 'ponta-aranhas': 'Norte da Ilha',
+    'joaquina': 'Centro', 'mole': 'Centro', 'mocambique': 'Leste da Ilha',
+    'barra-lagoa': 'Centro', 'novo-campeche': 'Centro', 'santinho': 'Norte da Ilha', 'ponta-aranhas': 'Norte da Ilha',
   }
   return map[id] ?? 'Florianópolis'
 }
@@ -229,9 +229,14 @@ export default function NavigationPage() {
     })
   }, [])
 
-  const regions = ['all', 'Sul', 'Leste', 'Norte']
-  const regionLabels: Record<string, string> = { all: 'Todas', Sul: 'Sul', Leste: 'Leste', Norte: 'Norte' }
-  const filtered = activeRegion === 'all' ? spots : spots.filter(s => s.region === activeRegion)
+  const regions = ['all', 'Sul', 'Centro', 'Leste', 'Norte']
+  const regionLabels: Record<string, string> = { all: 'Todas', Sul: 'Sul', Centro: 'Centro', Leste: 'Leste', Norte: 'Norte' }
+  const CENTRO_IDS = ['novo-campeche', 'joaquina', 'mole', 'barra-lagoa']
+  const filtered = activeRegion === 'all'
+    ? spots
+    : activeRegion === 'Centro'
+      ? spots.filter(s => CENTRO_IDS.includes(s.id))
+      : spots.filter(s => s.region === activeRegion && !CENTRO_IDS.includes(s.id))
 
   return (
     <div className="min-h-screen bg-background">
