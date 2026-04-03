@@ -146,24 +146,25 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
   const [active, setActive] = useState<string | null>(null)
 
-  // ✅ Posições % calibradas manualmente pelo usuário nos prints do Google Maps
-  // Cada praia tem left% e top% exatos para o iframe zoom 11 centrado em Floripa
+  // ✅ Posições % calculadas via projeção Mercator correta
+  // iframe: zoom=11, center=-27.615,-48.485, container 4:3
+  // Bounds: lat -27.8475 (S) a -27.3825 (N), lng -48.7597 (W) a -48.2103 (E)
   const POSITIONS: Record<string, { left: number, top: number }> = {
-    'santinho':       { left: 76, top: 12 },
-    'ponta-aranhas':  { left: 75, top: 16 },
-    'mocambique':     { left: 72, top: 20 },
-    'barra-lagoa':    { left: 66, top: 33 },
-    'mole':           { left: 65, top: 38 },
-    'joaquina':       { left: 62, top: 42 },
-    'novo-campeche':  { left: 57, top: 48 },
-    'campeche':       { left: 54, top: 54 },
-    'morro-pedras':   { left: 52, top: 58 },
-    'armacao':        { left: 52, top: 64 },
-    'matadeiro':      { left: 53, top: 66 },
-    'lagoinha-leste': { left: 55, top: 68 },
-    'acores':         { left: 47, top: 72 },
-    'solidao':        { left: 44, top: 76 },
-    'naufragados':    { left: 38, top: 86 },
+    'santinho':       { left: 69.8, top: 17.1 },
+    'ponta-aranhas':  { left: 69.7, top: 21.0 },
+    'mocambique':     { left: 66.3, top: 23.9 },
+    'barra-lagoa':    { left: 60.9, top: 41.1 },
+    'mole':           { left: 59.5, top: 47.2 },
+    'joaquina':       { left: 56.6, top: 53.1 },
+    'novo-campeche':  { left: 51.7, top: 61.0 },
+    'campeche':       { left: 49.1, top: 67.8 },
+    'morro-pedras':   { left: 46.7, top: 72.0 },
+    'armacao':        { left: 46.9, top: 79.1 },
+    'matadeiro':      { left: 47.5, top: 80.1 },
+    'lagoinha-leste': { left: 49.7, top: 84.0 },
+    'acores':         { left: 43.0, top: 86.3 },
+    'solidao':        { left: 41.2, top: 88.5 },
+    'naufragados':    { left: 35.6, top: 97.0 },
   }
 
   return (
@@ -176,7 +177,6 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ paddingBottom: '75%' }}>
-          {/* Google Maps iframe — zoom 11, centro Florianópolis */}
           <iframe
             className="absolute inset-0 w-full h-full"
             style={{ border: 0 }}
@@ -184,43 +184,33 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
             allowFullScreen
             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1700000000000"
           />
-          {/* Marcadores calibrados manualmente */}
           {spots.map(spot => {
             const pos = POSITIONS[spot.id]
             if (!pos) return null
             const color = getScoreColor(spot.score)
             const isActive = active === spot.id
-            const tipLeft = pos.left < 60
+            const tipLeft = pos.left < 55
             return (
-              <div
-                key={spot.id}
-                className="absolute"
+              <div key={spot.id} className="absolute"
                 style={{ left: `${pos.left}%`, top: `${pos.top}%`, transform: 'translate(-50%, -50%)', zIndex: isActive ? 30 : 10 }}
                 onClick={() => setActive(isActive ? null : spot.id)}
               >
-                <div
-                  className="flex items-center justify-center rounded-full font-bold text-white shadow-lg cursor-pointer"
+                <div className="flex items-center justify-center rounded-full font-bold text-white shadow-lg cursor-pointer"
                   style={{
-                    width: isActive ? 40 : 32,
-                    height: isActive ? 40 : 32,
-                    fontSize: isActive ? 10 : 8,
-                    backgroundColor: color,
-                    border: '2px solid white',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                    width: isActive ? 40 : 32, height: isActive ? 40 : 32,
+                    fontSize: isActive ? 10 : 8, backgroundColor: color,
+                    border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   {spot.score.toFixed(1)}
                 </div>
                 {isActive && (
-                  <div
-                    className="absolute z-40 rounded-xl shadow-2xl p-3"
+                  <div className="absolute z-40 rounded-xl shadow-2xl p-3"
                     style={{
                       bottom: '110%',
-                      left: tipLeft ? '0%' : 'auto',
-                      right: tipLeft ? 'auto' : '0%',
-                      minWidth: '150px',
-                      background: 'rgba(10,10,20,0.95)',
+                      left: tipLeft ? '0%' : 'auto', right: tipLeft ? 'auto' : '0%',
+                      minWidth: '150px', background: 'rgba(10,10,20,0.95)',
                       border: `1.5px solid ${color}50`,
                     }}
                     onClick={e => e.stopPropagation()}
@@ -228,13 +218,10 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
                     <div className="font-bold text-white text-xs mb-1">{spot.name}</div>
                     <div className="text-xs font-semibold mb-1" style={{ color }}>{getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m</div>
                     <div className="text-xs text-gray-400 mb-2">💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s</div>
-                    <button
-                      onClick={() => navigate(`/spot/${spot.id}`)}
+                    <button onClick={() => navigate(`/spot/${spot.id}`)}
                       className="w-full text-xs py-1.5 rounded-lg font-semibold text-white"
                       style={{ backgroundColor: color }}
-                    >
-                      Ver detalhes →
-                    </button>
+                    >Ver detalhes →</button>
                   </div>
                 )}
               </div>
@@ -242,7 +229,6 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
           })}
           {active && <div className="absolute inset-0" style={{ zIndex: 5 }} onClick={() => setActive(null)} />}
         </div>
-        {/* Legenda */}
         <div className="flex flex-wrap gap-3 pt-1 border-t">
           {[{ color: '#8b5cf6', label: 'Épico' }, { color: '#06b6d4', label: 'Excelente' }, { color: '#22c55e', label: 'Bom' }, { color: '#f59e0b', label: 'Regular' }, { color: '#ef4444', label: 'Ruim' }].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
@@ -255,7 +241,6 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
     </Card>
   )
 }
-
 const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
   const [dismissed, setDismissed] = useState(false)
   const bigSwellSpots = spots.filter(s => s.waveHeight >= 1.5)
