@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,8 @@ import { getCurrentConditions, fetchCurrentConditions } from '@/lib/surfData'
 import { supabase } from '@/lib/supabase'
 import {
   ArrowLeft, Crown, Heart, MessageCircle, Waves, Settings,
-  LogOut, User, TrendingUp, MapPin, Star, Calendar, Award
+  LogOut, User, TrendingUp, MapPin, Star, Calendar, Award,
+  Camera, Edit2, Check, X, Image
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -38,6 +39,17 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [favoriteSpots, setFavoriteSpots] = useState<any[]>([])
 
+  // Estados de edição
+  const [editingBio, setEditingBio] = useState(false)
+  const [bio, setBio] = useState('')
+  const [bioInput, setBioInput] = useState('')
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+
   const userName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split('@')[0] ?? 'Surfista'
   const userInitial = userName.charAt(0).toUpperCase()
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '—'
@@ -45,25 +57,33 @@ export default function ProfilePage() {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
-      const [favs, spots] = await Promise.all([
-        getFavorites(),
-        fetchCurrentConditions(),
-      ])
+      const [favs, spots] = await Promise.all([getFavorites(), fetchCurrentConditions()])
       setFavorites(favs)
+      setFavoriteSpots(spots.filter(s => favs.includes(s.id)))
 
-      // Busca detalhes das praias favoritas
-      const favSpots = spots.filter(s => favs.includes(s.id))
-      setFavoriteSpots(favSpots)
-
-      // Conta comentários do usuário
       if (user) {
+        // Carrega contagem de comentários
         const { count } = await supabase
           .from('beach_comments')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
         setCommentCount(count ?? 0)
-      }
 
+        // Carrega bio e avatar salvos no perfil
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('bio, avatar_url')
+          .eq('id', user.id)
+          .single()
+
+        if (profile) {
+          setBio(profile.bio ?? '')
+          setBioInput(profile.bio ?? '')
+          setAvatarUrl(profile.avatar_url ?? user.user_metadata?.avatar_url ?? null)
+        } else {
+          setAvatarUrl(user.user_metadata?.avatar_url ?? null)
+        }
+      }
       setLoading(false)
     }
     load()
@@ -73,6 +93,53 @@ export default function ProfilePage() {
     await supabase.auth.signOut()
     toast.success('Até logo! 🤙')
     navigate('/')
+  }
+
+  // Salva bio no Supabase
+  const handleSaveBio = async () => {
+    if (!user) return
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: user.id, bio: bioInput, updated_at: new Date().toISOString() })
+    if (error) { toast.error('Erro ao salvar bio.'); return }
+    setBio(bioInput)
+    setEditingBio(false)
+    toast.success('Bio atualizada! 🤙')
+  }
+
+  // Faz upload da foto de perfil
+  const handlePhotoUpload = async (file: File) => {
+    if (!user || !file) return
+    if (file.size > 5 * 1024 * 1024) { toast.error('Foto muito grande. Máximo 5MB.'); return }
+
+    setUploadingPhoto(true)
+    setShowPhotoOptions(false)
+
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `avatars/${user.id}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const publicUrl = data.publicUrl + `?t=${Date.now()}` // cache bust
+
+      // Salva URL no perfil
+      await supabase.from('profiles').upsert({ id: user.id, avatar_url: publicUrl, updated_at: new Date().toISOString() })
+
+      // Atualiza metadata do usuário
+      await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
+
+      setAvatarUrl(publicUrl)
+      toast.success('Foto de perfil atualizada! 📸')
+    } catch {
+      toast.error('Erro ao fazer upload da foto.')
+    }
+    setUploadingPhoto(false)
   }
 
   const animStyles = `
@@ -99,6 +166,23 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background">
       <style>{animStyles}</style>
 
+      {/* Inputs de arquivo ocultos */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={e => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+      />
+
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
@@ -121,20 +205,63 @@ export default function ProfilePage() {
           <div className="h-16 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/10" />
           <CardContent className="pb-5 -mt-8">
             <div className="flex items-end justify-between">
+              {/* Avatar com botão de edição */}
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-primary/20 border-4 border-background flex items-center justify-center overflow-hidden shadow-lg">
-                  {user.user_metadata?.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt={userName} className="w-full h-full object-cover" />
+                <div
+                  className="w-20 h-20 rounded-full bg-primary/20 border-4 border-background flex items-center justify-center overflow-hidden shadow-lg cursor-pointer"
+                  onClick={() => setShowPhotoOptions(!showPhotoOptions)}
+                >
+                  {uploadingPhoto ? (
+                    <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                      <Waves className="h-6 w-6 text-primary animate-bounce" />
+                    </div>
+                  ) : avatarUrl ? (
+                    <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-3xl font-bold text-primary">{userInitial}</span>
                   )}
+                  {/* Overlay de câmera ao hover */}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
                 </div>
                 {isPremium && (
                   <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center border-2 border-background">
                     <Crown className="h-3 w-3 text-white" />
                   </div>
                 )}
+
+                {/* Menu de opções de foto */}
+                {showPhotoOptions && (
+                  <div className="absolute top-full left-0 mt-2 z-50 bg-card border border-border rounded-xl shadow-xl overflow-hidden min-w-[180px]"
+                    style={{ animation: 'fadeIn 0.15s ease-out' }}>
+                    <button
+                      onClick={() => { setShowPhotoOptions(false); fileInputRef.current?.click() }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <Image className="h-4 w-4 text-primary" />
+                      Escolher da galeria
+                    </button>
+                    <Separator />
+                    <button
+                      onClick={() => { setShowPhotoOptions(false); cameraInputRef.current?.click() }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <Camera className="h-4 w-4 text-primary" />
+                      Tirar foto
+                    </button>
+                    <Separator />
+                    <button
+                      onClick={() => setShowPhotoOptions(false)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
+
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
                 <LogOut className="h-4 w-4 mr-1.5" />Sair
               </Button>
@@ -154,6 +281,52 @@ export default function ProfilePage() {
                 <Calendar className="h-3 w-3" />
                 Membro desde {memberSince}
               </p>
+            </div>
+
+            {/* Bio editável */}
+            <div className="mt-4">
+              {editingBio ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={bioInput}
+                    onChange={e => setBioInput(e.target.value)}
+                    placeholder="Conta um pouco sobre você... praia favorita, nível de surf, onde mora..."
+                    className="w-full text-sm px-3 py-2 rounded-xl border border-border bg-muted/20 outline-none focus:border-primary transition-colors resize-none"
+                    rows={3}
+                    maxLength={200}
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{bioInput.length}/200</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setEditingBio(false); setBioInput(bio) }}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/30 transition-colors"
+                      >
+                        <X className="h-3 w-3" />Cancelar
+                      </button>
+                      <button
+                        onClick={handleSaveBio}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        <Check className="h-3 w-3" />Salvar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="flex items-start gap-2 cursor-pointer group"
+                  onClick={() => { setEditingBio(true); setBioInput(bio) }}
+                >
+                  {bio ? (
+                    <p className="text-sm text-muted-foreground flex-1">{bio}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground/50 italic flex-1">Adicionar bio...</p>
+                  )}
+                  <Edit2 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
+                </div>
+              )}
             </div>
 
             {/* Premium info */}
@@ -247,45 +420,42 @@ export default function ProfilePage() {
         )}
 
         {/* Melhor pico hoje */}
-        {!loading && (
-          <Card className="anim" style={{ animationDelay: '0.3s' }}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Melhor Pico Agora
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const spots = getCurrentConditions().sort((a, b) => b.score - a.score)
-                const best = spots[0]
-                if (!best) return <p className="text-sm text-muted-foreground">Carregando...</p>
-                const label = getScoreLabel(best.score)
-                const color = SCORE_COLORS[label]
-                return (
-                  <button
-                    onClick={() => navigate(`/spot/${best.id}`)}
-                    className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-muted/20 transition-colors text-left"
-                  >
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-white text-lg flex-shrink-0" style={{ backgroundColor: color }}>
-                      {best.score.toFixed(1)}
+        {!loading && (() => {
+          const best = getCurrentConditions().sort((a, b) => b.score - a.score)[0]
+          if (!best) return null
+          const label = getScoreLabel(best.score)
+          const color = SCORE_COLORS[label]
+          return (
+            <Card className="anim" style={{ animationDelay: '0.3s' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Melhor Pico Agora
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <button
+                  onClick={() => navigate(`/spot/${best.id}`)}
+                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-muted/20 transition-colors text-left"
+                >
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-white text-lg flex-shrink-0" style={{ backgroundColor: color }}>
+                    {best.score.toFixed(1)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-base">{best.name}</div>
+                    <div className="text-xs text-muted-foreground">{best.region} da Ilha</div>
+                    <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                      <span>🌊 {best.waveHeight.toFixed(1)}m</span>
+                      <span>💨 {Math.round(best.windSpeed)}km/h</span>
+                      <span>⏱️ {Math.round(best.swellPeriod)}s</span>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-base">{best.name}</div>
-                      <div className="text-xs text-muted-foreground">{best.region} da Ilha</div>
-                      <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-                        <span>🌊 {best.waveHeight.toFixed(1)}m</span>
-                        <span>💨 {Math.round(best.windSpeed)}km/h</span>
-                        <span>⏱️ {Math.round(best.swellPeriod)}s</span>
-                      </div>
-                    </div>
-                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
-                  </button>
-                )
-              })()}
-            </CardContent>
-          </Card>
-        )}
+                  </div>
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                </button>
+              </CardContent>
+            </Card>
+          )
+        })()}
 
         {/* Ações */}
         <Card className="anim" style={{ animationDelay: '0.4s' }}>
