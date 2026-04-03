@@ -145,16 +145,17 @@ const getThemeGradient = (score: number) => {
 
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
-  const [tooltip, setTooltip] = useState<string | null>(null)
+  const [active, setActive] = useState<string | null>(null)
 
-  // Bounds da Ilha de Florianópolis para projeção lat/lng → SVG
-  const LAT_MIN = -27.90, LAT_MAX = -27.40
-  const LNG_MIN = -48.62, LNG_MAX = -48.32
-  const W = 400, H = 560
+  // Bounds do mapa do Google Maps que está embarcado no iframe
+  // Centro: -27.615, -48.485 | Zoom ~11 — bounds aproximados
+  const MAP_LAT_MAX = -27.33, MAP_LAT_MIN = -27.92
+  const MAP_LNG_MIN = -48.67, MAP_LNG_MAX = -48.28
 
-  const project = (lat: number, lng: number) => ({
-    x: Math.round(((lng - LNG_MIN) / (LNG_MAX - LNG_MIN)) * W),
-    y: Math.round(H - ((lat - LAT_MIN) / (LAT_MAX - LAT_MIN)) * H),
+  // Converte lat/lng para % de posição sobre o iframe
+  const toPercent = (lat: number, lng: number) => ({
+    left: `${((lng - MAP_LNG_MIN) / (MAP_LNG_MAX - MAP_LNG_MIN)) * 100}%`,
+    top:  `${((MAP_LAT_MAX - lat) / (MAP_LAT_MAX - MAP_LAT_MIN)) * 100}%`,
   })
 
   return (
@@ -166,49 +167,75 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="relative w-full rounded-xl overflow-hidden border border-border/30">
-          <svg viewBox="0 0 400 560" className="w-full" style={{ display: 'block' }}>
-            {/* Mar */}
-            <rect width="400" height="560" fill="#b8d4e8" />
-            {/* Ilha de Florianópolis — forma aproximada */}
-            <path d="M200,30 C220,28 245,34 260,44 C275,55 282,72 285,90 C288,108 285,126 280,142 C274,160 265,176 258,192 C250,210 242,226 236,244 C229,263 224,282 220,301 C217,318 215,336 215,354 C215,370 217,387 218,404 C219,420 220,436 218,452 C215,467 210,482 204,495 C197,508 188,520 178,528 C167,537 154,541 142,539 C130,537 119,529 110,519 C100,508 94,494 91,480 C88,464 89,448 92,432 C95,416 101,400 105,384 C110,366 113,348 114,330 C115,312 113,294 110,277 C107,258 102,241 98,223 C94,205 91,187 91,168 C91,150 95,132 102,116 C110,99 121,84 135,72 C149,60 165,51 182,44 C190,40 195,32 200,30Z" fill="#e8dcc8" stroke="#c4a882" strokeWidth="1.5" />
-            {/* Lagoa da Conceição */}
-            <ellipse cx="238" cy="262" rx="20" ry="35" fill="#a8cce0" stroke="#88aac0" strokeWidth="1" opacity="0.8" />
-            <text x="238" y="265" textAnchor="middle" fontSize="6" fill="#3a6a8a" fontWeight="600" opacity="0.8">Lagoa</text>
-            {/* Lagoa do Peri */}
-            <ellipse cx="198" cy="415" rx="12" ry="18" fill="#a8cce0" stroke="#88aac0" strokeWidth="1" opacity="0.7" />
-            {/* Marcadores das praias */}
-            {spots.map((spot) => {
-              const { x, y } = project(spot.lat, spot.lng)
-              const color = getScoreColor(spot.score)
-              const hov = tooltip === spot.id
-              const tipRight = x < 280
-              return (
-                <g key={spot.id} onClick={() => navigate(`/spot/${spot.id}`)}
-                  onMouseEnter={() => setTooltip(spot.id)} onMouseLeave={() => setTooltip(null)}
-                  style={{ cursor: 'pointer' }}>
-                  {/* Pulso ao hover */}
-                  {hov && <circle cx={x} cy={y} r="18" fill={color} opacity="0.25" />}
-                  {/* Sombra */}
-                  <circle cx={x+1} cy={y+1} r={hov ? 13 : 11} fill="rgba(0,0,0,0.2)" />
-                  {/* Marcador */}
-                  <circle cx={x} cy={y} r={hov ? 13 : 11} fill={color} stroke="white" strokeWidth="2.5" />
-                  {/* Score */}
-                  <text x={x} y={y+4} textAnchor="middle" fontSize="8" fontWeight="bold" fill="white">{spot.score.toFixed(1)}</text>
-                  {/* Tooltip */}
-                  {hov && (
-                    <g>
-                      <rect x={tipRight ? x+16 : x-112} y={y-32} width="96" height="50" rx="7" fill="rgba(10,10,20,0.90)" />
-                      <text x={tipRight ? x+64 : x-64} y={y-16} textAnchor="middle" fontSize="9.5" fontWeight="bold" fill="white">{spot.name}</text>
-                      <text x={tipRight ? x+64 : x-64} y={y-4} textAnchor="middle" fontSize="8.5" fill={color}>{getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m</text>
-                      <text x={tipRight ? x+64 : x-64} y={y+8} textAnchor="middle" fontSize="7.5" fill="rgba(255,255,255,0.65)">💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s</text>
-                    </g>
-                  )}
-                </g>
-              )
-            })}
-            <text x="16" y="20" fontSize="9" fill="rgba(0,0,0,0.35)" fontWeight="700">N ↑</text>
-          </svg>
+        {/* Mapa + marcadores sobrepostos */}
+        <div className="relative w-full rounded-xl overflow-hidden border border-border/30" style={{ paddingBottom: '75%' }}>
+          {/* Google Maps iframe real de Florianópolis */}
+          <iframe
+            className="absolute inset-0 w-full h-full"
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.485!3d-27.615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1700000000000"
+          />
+          {/* Marcadores das praias posicionados sobre o iframe */}
+          {spots.map(spot => {
+            const pos = toPercent(spot.lat, spot.lng)
+            const color = getScoreColor(spot.score)
+            const isActive = active === spot.id
+            return (
+              <div
+                key={spot.id}
+                className="absolute"
+                style={{ left: pos.left, top: pos.top, transform: 'translate(-50%, -50%)', zIndex: isActive ? 30 : 10 }}
+                onClick={() => setActive(isActive ? null : spot.id)}
+              >
+                {/* Bolha do marcador */}
+                <div
+                  className="flex items-center justify-center rounded-full font-bold text-white shadow-lg cursor-pointer transition-all"
+                  style={{
+                    width: isActive ? 42 : 34,
+                    height: isActive ? 42 : 34,
+                    fontSize: isActive ? 11 : 9,
+                    backgroundColor: color,
+                    border: '2.5px solid white',
+                    boxShadow: `0 2px 8px rgba(0,0,0,0.35)`,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {spot.score.toFixed(1)}
+                </div>
+                {/* Tooltip ao clicar */}
+                {isActive && (
+                  <div
+                    className="absolute z-40 rounded-xl shadow-2xl p-3 min-w-[160px]"
+                    style={{
+                      bottom: '110%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: 'rgba(10,10,20,0.95)',
+                      border: `1.5px solid ${color}40`,
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="font-bold text-white text-xs mb-1">{spot.name}</div>
+                    <div className="text-xs font-semibold mb-1" style={{ color }}>{getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m</div>
+                    <div className="text-xs text-gray-400 mb-2">💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s</div>
+                    <button
+                      onClick={() => navigate(`/spot/${spot.id}`)}
+                      className="w-full text-xs py-1.5 rounded-lg font-semibold text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      Ver detalhes →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          {/* Fecha tooltip ao clicar fora */}
+          {active && (
+            <div className="absolute inset-0 z-5" onClick={() => setActive(null)} />
+          )}
         </div>
         {/* Legenda */}
         <div className="flex flex-wrap gap-3 pt-1 border-t">
