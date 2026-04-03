@@ -23,7 +23,7 @@ const getScoreLabel = (score: number): string => {
 
 const getLocationDesc = (id: string): string => {
   const map: Record<string, string> = {
-    'campeche': 'Sul da Ilha', 'novo-campeche': 'Sul da Ilha', 'morro-pedras': 'Sul da Ilha',
+    'campeche': 'Sul da Ilha', 'morro-pedras': 'Sul da Ilha',
     'matadeiro': 'Sul da Ilha', 'lagoinha-leste': 'Extremo Sul', 'acores': 'Extremo Sul',
     'solidao': 'Extremo Sul', 'armacao': 'Sul da Ilha', 'naufragados': 'Extremo Sul',
     'joaquina': 'Centro', 'mole': 'Centro', 'mocambique': 'Leste da Ilha',
