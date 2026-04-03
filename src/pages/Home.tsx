@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { SpotCard } from '@/components/surf/SpotCard'
-import { RegionFilter } from '@/components/surf/RegionFilter'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getFavorites } from '@/lib/favorites'
 import { useAuth } from '@/contexts/AuthContext'
@@ -149,8 +148,9 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
 
   // Bounds do mapa do Google Maps que está embarcado no iframe
   // Centro: -27.615, -48.485 | Zoom ~11 — bounds aproximados
-  const MAP_LAT_MAX = -27.33, MAP_LAT_MIN = -27.92
-  const MAP_LNG_MIN = -48.67, MAP_LNG_MAX = -48.28
+  // Bounds calibrados para o iframe do Google Maps (zoom 11, centro -27.615, -48.485)
+  const MAP_LAT_MAX = -27.28, MAP_LAT_MIN = -27.95
+  const MAP_LNG_MIN = -48.70, MAP_LNG_MAX = -48.20
 
   // Converte lat/lng para % de posição sobre o iframe
   const toPercent = (lat: number, lng: number) => ({
@@ -367,7 +367,9 @@ export default function Home() {
       setFavorites(favs)
       setAllSpots(allConditions)
       let filtered = [...allConditions]
-      if (activeRegion !== 'all') filtered = filtered.filter(s => s.region === activeRegion)
+      const CENTRO_IDS = ['novo-campeche', 'joaquina', 'mole', 'barra-lagoa']
+      if (activeRegion === 'Centro') filtered = filtered.filter(s => CENTRO_IDS.includes(s.id))
+      else if (activeRegion !== 'all') filtered = filtered.filter(s => s.region === activeRegion && !CENTRO_IDS.includes(s.id))
       if (showOnlyFavorites) filtered = filtered.filter(s => favs.includes(s.id))
       filtered.sort((a, b) => b.score - a.score)
       setSpots(filtered)
@@ -536,7 +538,22 @@ export default function Home() {
           </div>
         </div>
 
-        <RegionFilter activeRegion={activeRegion} onRegionChange={setActiveRegion} />
+        {/* Filtro de região inline — inclui Centro */}
+        <div className="flex gap-2 overflow-x-auto pb-1 anim-slide" style={{ animationDelay: '0.42s' }}>
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+          {(['all', 'Sul', 'Centro', 'Leste', 'Norte'] as const).map(region => (
+            <button key={region}
+              onClick={() => setActiveRegion(region)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
+                activeRegion === region
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/40'
+              }`}
+            >
+              {{ all: 'Todas', Sul: 'Sul', Centro: 'Centro', Leste: 'Leste', Norte: 'Norte' }[region]}
+            </button>
+          ))}
+        </div>
 
         {showMap ? (
           <BeachMap spots={spots.length > 0 ? spots : allSpots} />
