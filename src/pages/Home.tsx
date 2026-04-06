@@ -405,7 +405,8 @@ export default function Home() {
         {!isPremium && (
           <div className="anim-slide" style={{ animationDelay: '0.25s' }}>
             <AdBanner />
-        </div>
+          </div>
+        )}
 
         <SwellPeriodWidget />
 
@@ -417,7 +418,6 @@ export default function Home() {
         <div className="flex items-center justify-between anim-slide" style={{ animationDelay: '0.4s' }}>
           <h2 className="text-xl font-bold">Todas as Praias</h2>
           <div className="flex items-center gap-2">
-
             <Button variant={favorites.length > 0 ? 'default' : 'outline'} size="sm" onClick={() => navigate('/favorites')}>
               <Heart className={`h-4 w-4 mr-2 ${favorites.length > 0 ? 'fill-current' : ''}`} />
               {favorites.length > 0 ? `${favorites.length}` : 'Favoritas'}
@@ -443,26 +443,24 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {spotsWithAds.map((item, idx) =>
-              item === 'ad' ? (
-                // ✅ CORRIGIDO: col-span-full ocupa linha inteira sem espaço em branco
-                <div key={`ad-${idx}`} className="col-span-1 md:col-span-2 lg:col-span-3" style={{ animation: `slideUp 0.4s ${idx * 0.03}s ease-out both` }}>
-                  <AdCard />
-                </div>
-              ) : (
-                <div key={(item as BeachCondition).id} style={{ animation: `slideUp 0.4s ${idx * 0.05}s ease-out both` }}>
-                  <SpotCard spot={item as BeachCondition} />
-                </div>
-              )
-            )}
-            {spots.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                <Waves className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p>Nenhuma praia encontrada nesta região.</p>
+          {spotsWithAds.map((item, idx) =>
+            item === 'ad' ? (
+              <div key={`ad-${idx}`} className="col-span-1 md:col-span-2 lg:col-span-3" style={{ animation: `slideUp 0.4s ${idx * 0.03}s ease-out both` }}>
+                <AdCard />
               </div>
-            )}
-          </div>
-        )}
+            ) : (
+              <div key={(item as BeachCondition).id} style={{ animation: `slideUp 0.4s ${idx * 0.05}s ease-out both` }}>
+                <SpotCard spot={item as BeachCondition} />
+              </div>
+            )
+          )}
+          {spots.length === 0 && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <Waves className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p>Nenhuma praia encontrada nesta região.</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )
