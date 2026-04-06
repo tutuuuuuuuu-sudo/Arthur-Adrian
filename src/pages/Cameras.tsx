@@ -23,9 +23,17 @@ interface BeachCamera {
   status: CameraStatus
   source?: CameraSource
   embedUrl?: string
+  embedType?: 'iframe' | 'windy' | 'youtube'
   sourceUrl?: string
   description?: string
 }
+
+// ─── FONTES DE CÂMERAS ──────────────────────────────────────────────────────
+// SkylineWebcams: embed público gratuito — Barra da Lagoa ✅
+// Windy Webcams: embed público gratuito — Joaquina ✅ (ID 1385233278)
+// YouTube Live: embed gratuito — canais locais de Floripa
+// CondicaoAtual: câmeras de surf SC
+// ClimaAoVivo: condições meteorológicas
 
 const CAMERAS: BeachCamera[] = [
   {
@@ -36,7 +44,7 @@ const CAMERAS: BeachCamera[] = [
     source: 'skylinewebcams',
     embedUrl: 'https://www.skylinewebcams.com/embed/barra-da-lagoa.html',
     sourceUrl: 'https://www.skylinewebcams.com/webcam/brasil/santa-catarina/florianopolis/barra-da-lagoa.html',
-    description: 'Vista da praia e canal — boa para avaliar ondas e vento',
+    description: 'Vista HD da praia e canal — SkylineWebcams',
   },
   {
     id: 'joaquina',
@@ -44,23 +52,38 @@ const CAMERAS: BeachCamera[] = [
     region: 'Leste',
     status: 'live',
     source: 'condicaoatual',
-    embedUrl: 'https://condicaoatual.com.br/embed/joaquina',
-    sourceUrl: 'https://condicaoatual.com.br/joaquina-2/',
-    description: 'Câmera do Restaurante Pedra Careca — vista do pico principal',
+    embedUrl: 'https://webcams.windy.com/webcams/1385233278/player/400/225/content.js',
+    embedType: 'windy',
+    sourceUrl: 'https://www.windy.com/webcams/1385233278',
+    description: 'Câmera ao vivo — Windy Webcams',
   },
   {
     id: 'mole',
     name: 'Praia Mole',
     region: 'Leste',
-    status: 'soon',
-    description: 'Câmera em breve — aguardando parceria com estabelecimento local',
+    status: 'live',
+    source: 'condicaoatual',
+    embedUrl: 'https://www.skylinewebcams.com/embed/florianopolis.html',
+    sourceUrl: 'https://www.skylinewebcams.com/webcam/brasil/santa-catarina/florianopolis/florianopolis.html',
+    description: 'Vista de Florianópolis — SkylineWebcams',
+  },
+  {
+    id: 'santinho',
+    name: 'Santinho',
+    region: 'Norte',
+    status: 'live',
+    source: 'climaaovivo',
+    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCFbbd8kMazLUHniw08-IzUg&autoplay=1&mute=1',
+    embedType: 'youtube',
+    sourceUrl: 'https://www.youtube.com/@barradalagoaonline',
+    description: 'Barra da Lagoa Online — YouTube ao vivo',
   },
   {
     id: 'campeche',
     name: 'Campeche',
     region: 'Sul',
     status: 'soon',
-    description: 'Câmera em breve — uma das praias mais procuradas do app',
+    description: 'Câmera em breve',
   },
   {
     id: 'mocambique',
@@ -70,25 +93,15 @@ const CAMERAS: BeachCamera[] = [
     description: 'Câmera em breve',
   },
   {
-    id: 'santinho',
-    name: 'Santinho',
-    region: 'Norte',
+    id: 'armacao',
+    name: 'Armação',
+    region: 'Sul',
     status: 'soon',
     description: 'Câmera em breve',
   },
   {
-    id: 'ingleses',
-    name: 'Ingleses',
-    region: 'Norte',
-    status: 'live',
-    source: 'climaaovivo',
-    embedUrl: 'https://climaaovivo.com.br/embed/florianopolis-ingleses',
-    sourceUrl: 'https://climaaovivo.com.br/',
-    description: 'Vista panorâmica — condições do tempo e mar',
-  },
-  {
-    id: 'armacao',
-    name: 'Armação',
+    id: 'morro-pedras',
+    name: 'Morro das Pedras',
     region: 'Sul',
     status: 'soon',
     description: 'Câmera em breve',
@@ -148,7 +161,9 @@ const CameraCard = ({ camera }: { camera: BeachCamera }) => {
             </div>
           )}
           <iframe
-            src={camera.embedUrl}
+            src={camera.embedType === 'windy'
+              ? `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=12&overlay=wind&product=ecmwf&level=surface&lat=-27.62&lon=-48.49&detailLat=-27.6294&detailLon=-48.449&detail=true&pressure=true&message=true&webcam=${camera.embedUrl.match(/\/([0-9]+)\//)?.[1]}`
+              : camera.embedUrl}
             className="w-full h-full"
             style={{ border: 0, display: loaded ? 'block' : 'none' }}
             allowFullScreen
@@ -156,6 +171,7 @@ const CameraCard = ({ camera }: { camera: BeachCamera }) => {
             onLoad={() => setLoaded(true)}
             onError={() => setError(true)}
             title={`Câmera ao vivo — ${camera.name}`}
+            allow="autoplay; encrypted-media"
           />
           {error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/10">
