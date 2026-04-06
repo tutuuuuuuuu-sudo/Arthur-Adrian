@@ -18,7 +18,7 @@ import {
 } from '@/lib/notifications'
 import {
   Waves, TrendingUp, MapPin, Info, Heart, Settings,
-  Bell, BellOff, Map, X, ChevronDown, ChevronUp,
+  Bell, BellOff, X, ChevronDown, ChevronUp,
   Navigation, Camera, Crown
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -126,13 +126,6 @@ const getScoreColor = (score: number) => {
   if (score >= 5.5) return '#22c55e'
   if (score >= 4) return '#f59e0b'
   return '#ef4444'
-}
-const getScoreLabel = (score: number) => {
-  if (score >= 8.5) return 'Épico'
-  if (score >= 7) return 'Excelente'
-  if (score >= 5.5) return 'Bom'
-  if (score >= 4) return 'Regular'
-  return 'Ruim'
 }
 const getThemeGradient = (score: number) => {
   if (score >= 8.5) return 'from-purple-900/40 via-background to-background'
