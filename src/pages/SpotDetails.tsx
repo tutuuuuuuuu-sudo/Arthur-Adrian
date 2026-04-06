@@ -583,6 +583,8 @@ export default function SpotDetails() {
               </Card>
             )}
 
+            <div className="anim-slide"><CommentsSection spot={spot} /></div>
+
             {/* ✅ Temperatura da água SEM descrição "Quentinha" — apenas números */}
             <Card className="card-hover anim-slide">
               <CardHeader className="pb-3">
@@ -622,7 +624,11 @@ export default function SpotDetails() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-muted-foreground">Altura</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold">{usesFeet ? metersToFeet(spot.waveHeight) : `${Number(spot.waveHeight).toFixed(1)}m`}</span>
+                        <span className="text-2xl font-bold">
+                          {usesFeet
+                            ? `${metersToFeet(Number((spot.waveHeight * 0.8).toFixed(1)))} - ${metersToFeet(Number((spot.waveHeight * 1.2).toFixed(1)))}`
+                            : `${(spot.waveHeight * 0.8).toFixed(1)}m - ${(spot.waveHeight * 1.2).toFixed(1)}m`}
+                        </span>
                         <button onClick={() => setUsesFeet(!usesFeet)} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">{usesFeet ? 'm' : 'ft'}</button>
                       </div>
                     </div>
@@ -682,7 +688,6 @@ export default function SpotDetails() {
               </Card>
             )}
 
-            <div className="anim-slide"><CommentsSection spot={spot} /></div>
 
             {spot.score < 4 && (
               <Alert variant="destructive" className="anim-slide">
