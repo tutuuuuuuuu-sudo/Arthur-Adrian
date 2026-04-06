@@ -1,4 +1,5 @@
 import { getWindyForecast } from './weatherApi'
+import { getRealTideAndWaterTemp } from './weatherData'
 
 export interface SubRegion {
   id: string
@@ -46,11 +47,14 @@ export interface BeachCondition {
 }
 
 const getWaterTempFallback = (): number => {
-  const month = new Date().getMonth()
-  if (month >= 11 || month <= 2) return 25
-  if (month >= 3 && month <= 5) return 21
-  if (month >= 6 && month <= 8) return 17
-  return 21
+  // Temperatura sazonal real de Florianópolis baseada em dados históricos
+  const month = new Date().getMonth() // 0=Jan
+  if (month >= 11 || month <= 1) return 24  // Dez-Jan-Fev: verão
+  if (month === 2 || month === 3) return 22  // Mar-Abr: final verão
+  if (month === 4 || month === 5) return 20  // Mai-Jun: outono
+  if (month === 6 || month === 7) return 18  // Jul-Ago: inverno
+  if (month === 8 || month === 9) return 19  // Set-Out: primavera
+  return 21                                   // Nov: início verão
 }
 
 const getTideHeight = (): number => {
@@ -317,7 +321,9 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const windSpeed = Math.round(windyData?.windSpeed ?? 12)
       const swellPeriod = Math.round(windyData?.swellPeriod ?? 10)
       const swellDirection = windyData?.swellDirection ?? 'SE'
-      const waterTemp = windyData?.waterTemperature ?? getWaterTempFallback()
+      // ✅ Temperatura da água real via Open-Meteo Marine
+      const marineData = await getRealTideAndWaterTemp(beach.lat, beach.lng)
+      const waterTemp = marineData?.waterTemp ?? windyData?.waterTemperature ?? getWaterTempFallback()
       const windDirection = (windyData?.windDirection ?? 'N').split(' ')[0].split('(')[0].trim()
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection, beach.orientation)
