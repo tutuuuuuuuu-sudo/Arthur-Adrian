@@ -173,8 +173,19 @@ const TideChartSVG = ({ tide, expanded = false, realLevels }: { tide: string, ex
     const rect = svgRef.current.getBoundingClientRect()
     const rawX = (e.clientX - rect.left) * (viewWidth / rect.width)
     const hour = Math.max(0, Math.min(24, (rawX - padding.left) / chartWidth * 24))
-    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (hour + phaseOffset)) / period)
-    setTooltip({ x: rawX, y: yScale(height), hour, height: Number(height.toFixed(2)) })
+    // Usa interpolação dos dados reais se disponível, senão fórmula senoidal
+    let height: number
+    if (realLevels && realLevels.length >= 24) {
+      const i = Math.min(23, Math.floor(hour))
+      const frac = hour - Math.floor(hour)
+      const h0 = realLevels[i] ?? 0
+      const h1 = realLevels[Math.min(23, i + 1)] ?? h0
+      height = h0 + (h1 - h0) * frac
+    } else {
+      height = midLevel + amplitude * Math.cos((2 * Math.PI * (hour + phaseOffset)) / period)
+    }
+    height = Number(height.toFixed(2))
+    setTooltip({ x: rawX, y: yScale(height), hour, height })
   }
   const gradId = expanded ? 'tideGradExp' : 'tideGrad'
   return (
@@ -199,7 +210,7 @@ const TideChartSVG = ({ tide, expanded = false, realLevels }: { tide: string, ex
           <rect x={Math.min(currentX - 16, viewWidth - padding.right - 32)} y={padding.top - 14} width="32" height="13" rx="3" fill="#06b6d4" opacity="0.9" />
           <text x={Math.min(currentX, viewWidth - padding.right - 16)} y={padding.top - 4} textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">Agora</text>
           <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
-          {tooltip && (<><line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top} stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.5" /><circle cx={tooltip.x} cy={tooltip.y} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" /></>)}
+          {tooltip && (<><line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top} stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.5" /><circle cx={tooltip.x} cy={yScale(tooltip.height)} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" /></>)}
         </svg>
       </div>
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
