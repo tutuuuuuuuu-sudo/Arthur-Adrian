@@ -146,15 +146,14 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
   const [selected, setSelected] = useState<string | null>(null)
 
-  // Posições % calculadas via projeção Mercator correta
-  // iframe zoom=11, center=-27.62,-48.48, container 4:3 (800x600px equivalente)
-  // Bounds: lat -27.855 a -27.385, lng -48.755 a -48.205
+  // Projeção Mercator correta para iframe zoom=11, center=-27.62,-48.48
+  // Mapa TRAVADO (não interativo) para pins ficarem sempre alinhados
   const getPos = (lat: number, lng: number) => {
     const latMax = -27.355, latMin = -27.875
     const lngMin = -48.755, lngMax = -48.205
     return {
-      left: ((lng - lngMin) / (lngMax - lngMin) * 100).toFixed(1) + '%',
-      top:  ((latMax - lat) / (latMax - latMin) * 100).toFixed(1) + '%',
+      left: ((lng - lngMin) / (lngMax - lngMin) * 100).toFixed(2) + '%',
+      top:  ((latMax - lat) / (latMax - latMin) * 100).toFixed(2) + '%',
     }
   }
 
@@ -172,96 +171,76 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
           style={{ paddingBottom: '75%' }}
           onClick={() => setSelected(null)}
         >
-          {/* Google Maps iframe */}
+          {/* Mapa TRAVADO — não pode ser arrastado, pins ficam fixos */}
           <iframe
             className="absolute inset-0 w-full h-full"
-            style={{ border: 0 }}
+            style={{ border: 0, pointerEvents: 'none' }}
             loading="lazy"
-            allowFullScreen
             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.48!3d-27.62!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1700000000000"
           />
 
-          {/* Marcadores posicionados via Mercator */}
+          {/* Pins posicionados via Mercator — ficam fixos pq mapa não move */}
           {spots.map(spot => {
             const pos = getPos(spot.lat, spot.lng)
             const color = getScoreColor(spot.score)
             const isSelected = selected === spot.id
             const leftNum = parseFloat(pos.left)
-            const tipRight = leftNum < 55
+            const tipRight = leftNum < 60
 
             return (
-              <div
-                key={spot.id}
-                className="absolute"
-                style={{
-                  left: pos.left,
-                  top: pos.top,
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: isSelected ? 50 : 20,
-                }}
+              <div key={spot.id} className="absolute"
+                style={{ left: pos.left, top: pos.top, transform: 'translate(-50%, -50%)', zIndex: isSelected ? 50 : 20 }}
                 onClick={e => { e.stopPropagation(); setSelected(isSelected ? null : spot.id) }}
               >
-                {/* Pin */}
                 <div
                   className="flex items-center justify-center rounded-full font-bold text-white cursor-pointer select-none"
                   style={{
-                    width: isSelected ? 42 : 34,
-                    height: isSelected ? 42 : 34,
-                    fontSize: isSelected ? 11 : 9,
-                    backgroundColor: color,
-                    border: '2.5px solid white',
-                    boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+                    width: isSelected ? 42 : 34, height: isSelected ? 42 : 34,
+                    fontSize: isSelected ? 11 : 9, backgroundColor: color,
+                    border: '2.5px solid white', boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   {spot.score.toFixed(1)}
                 </div>
 
-                {/* Tooltip */}
                 {isSelected && (
-                  <div
-                    className="absolute rounded-xl p-3 shadow-2xl"
+                  <div className="absolute rounded-xl p-3 shadow-2xl"
                     style={{
                       bottom: 'calc(100% + 8px)',
-                      left: tipRight ? '0' : 'auto',
-                      right: tipRight ? 'auto' : '0',
-                      minWidth: 160,
-                      background: 'rgba(8,8,20,0.96)',
-                      border: `1.5px solid ${color}60`,
-                      zIndex: 100,
+                      left: tipRight ? '0' : 'auto', right: tipRight ? 'auto' : '0',
+                      minWidth: 160, background: 'rgba(8,8,20,0.96)',
+                      border: `1.5px solid ${color}60`, zIndex: 100,
                     }}
                     onClick={e => e.stopPropagation()}
                   >
                     <div className="font-bold text-white text-xs mb-1">{spot.name}</div>
-                    <div className="text-xs font-semibold mb-1" style={{ color }}>
-                      {getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m
-                    </div>
-                    <div className="text-xs text-gray-400 mb-2">
-                      💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s
-                    </div>
-                    <button
-                      className="w-full text-xs py-1.5 rounded-lg font-semibold text-white"
+                    <div className="text-xs font-semibold mb-1" style={{ color }}>{getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m</div>
+                    <div className="text-xs text-gray-400 mb-2">💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s</div>
+                    <button className="w-full text-xs py-1.5 rounded-lg font-semibold text-white"
                       style={{ backgroundColor: color }}
                       onClick={() => navigate(`/spot/${spot.id}`)}
-                    >
-                      Ver detalhes →
-                    </button>
+                    >Ver detalhes →</button>
                   </div>
                 )}
               </div>
             )
           })}
+
+          {/* Botão "Abrir no Maps" para quem quiser interagir */}
+          <a
+            href="https://www.google.com/maps/@-27.62,-48.48,11z"
+            target="_blank" rel="noopener noreferrer"
+            className="absolute bottom-2 right-2 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ background: 'rgba(255,255,255,0.9)', color: '#333', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <MapPin className="h-3 w-3" />Abrir no Maps
+          </a>
         </div>
 
-        {/* Legenda */}
         <div className="flex flex-wrap gap-3 pt-1 border-t">
-          {[
-            { color: '#8b5cf6', label: 'Épico' },
-            { color: '#06b6d4', label: 'Excelente' },
-            { color: '#22c55e', label: 'Bom' },
-            { color: '#f59e0b', label: 'Regular' },
-            { color: '#ef4444', label: 'Ruim' },
-          ].map(item => (
+          {[{ color: '#8b5cf6', label: 'Épico' }, { color: '#06b6d4', label: 'Excelente' }, { color: '#22c55e', label: 'Bom' }, { color: '#f59e0b', label: 'Regular' }, { color: '#ef4444', label: 'Ruim' }].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
               <span className="text-xs text-muted-foreground">{item.label}</span>
