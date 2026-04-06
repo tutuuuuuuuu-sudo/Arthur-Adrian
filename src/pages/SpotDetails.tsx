@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
-import { getWeatherForecast, WeatherForecast } from '@/lib/weatherData'
+import { getWeatherForecast, WeatherForecast, getRealTide } from '@/lib/weatherData'
 import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import { getComments, addComment, deleteComment, formatCommentTime, Comment } from '@/lib/comments'
 import { supabase } from '@/lib/supabase'
@@ -106,31 +106,56 @@ const WindCompass = ({ direction, speed }: { direction: string, speed: number })
   )
 }
 
-const generateTideData = () => {
+const generateTideData = (realLevels?: number[]) => {
   const now = new Date()
   const points: { hour: number, height: number }[] = []
-  const amplitude = 0.20, midLevel = 0.5, period = 12.4
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
-  const phaseOffset = (dayOfYear * 0.8) % period
-  for (let h = 0; h <= 24; h += 0.25) {
-    const height = midLevel + amplitude * Math.cos((2 * Math.PI * (h + phaseOffset)) / period)
-    points.push({ hour: h, height: Number(height.toFixed(2)) })
+
+  if (realLevels && realLevels.length >= 24) {
+    // ✅ Usa dados reais da API (sea_level horário)
+    for (let h = 0; h <= 24; h += 0.25) {
+      const i = Math.min(23, Math.floor(h))
+      const frac = h - Math.floor(h)
+      const h0 = realLevels[i] ?? 0
+      const h1 = realLevels[Math.min(23, i + 1)] ?? h0
+      points.push({ hour: h, height: Number((h0 + (h1 - h0) * frac).toFixed(2)) })
+    }
+  } else {
+    // Fallback senoidal
+    const amplitude = 0.20, midLevel = 0.5, period = 12.4
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+    const phaseOffset = (dayOfYear * 0.8) % period
+    for (let h = 0; h <= 24; h += 0.25) {
+      const height = midLevel + amplitude * Math.cos((2 * Math.PI * (h + phaseOffset)) / period)
+      points.push({ hour: h, height: Number(height.toFixed(2)) })
+    }
   }
+
+  const allHeights = points.map(p => p.height)
+  const midLevel = (Math.max(...allHeights) + Math.min(...allHeights)) / 2
+  const amplitude = (Math.max(...allHeights) - Math.min(...allHeights)) / 2
+
   const tideEvents: { hour: number, type: 'alta' | 'baixa', height: number }[] = []
   for (let i = 1; i < points.length - 1; i++) {
     const prev = points[i - 1].height, curr = points[i].height, next = points[i + 1].height
-    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.7) tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
-    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.7) tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
+    if (curr > prev && curr > next && curr > midLevel + amplitude * 0.5) tideEvents.push({ hour: points[i].hour, type: 'alta', height: curr })
+    if (curr < prev && curr < next && curr < midLevel - amplitude * 0.5) tideEvents.push({ hour: points[i].hour, type: 'baixa', height: curr })
   }
+
   const currentHour = now.getHours() + now.getMinutes() / 60
-  const currentHeight = midLevel + amplitude * Math.cos((2 * Math.PI * (currentHour + phaseOffset)) / period)
+  const ci = Math.min(23, Math.floor(currentHour))
+  const frac = currentHour - ci
+  const currentHeight = realLevels && realLevels.length >= 24
+    ? Number(((realLevels[ci] ?? 0) + ((realLevels[Math.min(23, ci + 1)] ?? 0) - (realLevels[ci] ?? 0)) * frac).toFixed(2))
+    : points.find(p => Math.abs(p.hour - currentHour) < 0.13)?.height ?? midLevel
+
+  const phaseOffset = 0, period = 12.4
   return { points, amplitude, midLevel, phaseOffset, period, tideEvents, currentHeight: Number(currentHeight.toFixed(2)) }
 }
 
-const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boolean }) => {
+const TideChartSVG = ({ tide, expanded = false, realLevels }: { tide: string, expanded?: boolean, realLevels?: number[] }) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const [tooltip, setTooltip] = useState<{ x: number, y: number, hour: number, height: number } | null>(null)
-  const { points, midLevel, amplitude, phaseOffset, period, tideEvents, currentHeight } = generateTideData()
+  const { points, midLevel, amplitude, phaseOffset, period, tideEvents, currentHeight } = generateTideData(realLevels)
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
   const viewWidth = expanded ? 560 : 340, viewHeight = expanded ? 220 : 160
@@ -187,10 +212,22 @@ const TideChartSVG = ({ tide, expanded = false }: { tide: string, expanded?: boo
 
 const TideChart = ({ tide }: { tide: string }) => {
   const [expanded, setExpanded] = useState(false)
+  const [realLevels, setRealLevels] = useState<number[] | undefined>(undefined)
+  const [realState, setRealState] = useState<string>(tide)
+
+  useEffect(() => {
+    getRealTide().then(data => {
+      if (data) {
+        setRealLevels(data.hourlyLevels)
+        setRealState(data.state)
+      }
+    })
+  }, [])
+
   return (
     <>
       <div className="relative">
-        <TideChartSVG tide={tide} />
+        <TideChartSVG tide={realState} realLevels={realLevels} />
         <button onClick={() => setExpanded(true)} className="absolute top-0 right-0 p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"><Maximize2 className="h-4 w-4 text-muted-foreground" /></button>
       </div>
       {expanded && (
@@ -200,7 +237,7 @@ const TideChart = ({ tide }: { tide: string }) => {
               <h3 className="text-lg font-bold">Como vai estar o mar hoje?</h3>
               <button onClick={() => setExpanded(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors"><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
-            <TideChartSVG tide={tide} expanded={true} />
+            <TideChartSVG tide={realState} expanded={true} realLevels={realLevels} />
           </div>
         </div>
       )}
