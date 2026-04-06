@@ -1,5 +1,5 @@
 import { getWindyForecast } from './weatherApi'
-import { getRealTideAndWaterTemp } from './weatherData'
+import { getRealWaterTemp } from './weatherData'
 
 export interface SubRegion {
   id: string
@@ -312,6 +312,8 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
   if (cachedConditions && (now - lastFetchTime) < CACHE_DURATION) return cachedConditions
 
   const tide = getTide()
+  // ✅ Busca temperatura da água real UMA vez para toda a ilha
+  const realWaterTemp = await getRealWaterTemp()
 
   const conditions = await Promise.all(
     BEACHES.map(async (beach) => {
@@ -321,9 +323,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       const windSpeed = Math.round(windyData?.windSpeed ?? 12)
       const swellPeriod = Math.round(windyData?.swellPeriod ?? 10)
       const swellDirection = windyData?.swellDirection ?? 'SE'
-      // ✅ Temperatura da água real via Open-Meteo Marine
-      const marineData = await getRealTideAndWaterTemp(beach.lat, beach.lng)
-      const waterTemp = marineData?.waterTemp ?? windyData?.waterTemperature ?? getWaterTempFallback()
+      const waterTemp = realWaterTemp
       const windDirection = (windyData?.windDirection ?? 'N').split(' ')[0].split('(')[0].trim()
 
       const score = calculateScore(waveHeight, windSpeed, swellPeriod, windDirection, beach.orientation)
