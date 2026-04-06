@@ -1,38 +1,54 @@
-// ✅ Busca nível de maré e temperatura da água real via Open-Meteo Marine
-export async function getRealTideAndWaterTemp(lat: number, lng: number): Promise<{
-  tideLevel: number
-  waterTemp: number | null
-  tideState: string
+// ✅ MARÉ REAL via Open-Meteo Marine (sea_level via Copernicus)
+// Disponível desde 2025 para costas abertas como Florianópolis
+export async function getRealTide(): Promise<{
+  level: number
+  state: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia'
+  hourlyLevels: number[]
 } | null> {
   try {
     const res = await fetch(
-      `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&hourly=wave_height,sea_surface_temperature&timezone=America%2FSao_Paulo&forecast_days=1`
+      'https://marine-api.open-meteo.com/v1/marine?latitude=-27.62&longitude=-48.48&hourly=sea_level&timezone=America%2FSao_Paulo&forecast_days=1'
     )
     const data = await res.json() as any
-    const hourlyTimes: string[] = data.hourly?.time ?? []
-    const waveHeights: number[] = data.hourly?.wave_height ?? []
-    const seaTemps: number[] = data.hourly?.sea_surface_temperature ?? []
+    if (data.error || !data.hourly?.sea_level) return null
 
-    const nowStr = new Date().toISOString().slice(0, 13) // "2026-04-06T08"
-    const idx = hourlyTimes.findIndex(t => t.startsWith(nowStr))
-    const currentIdx = idx >= 0 ? idx : new Date().getHours()
+    const levels: number[] = data.hourly.sea_level
+    const hour = new Date().getHours()
+    const current = levels[hour] ?? 0
+    const prev = levels[Math.max(0, hour - 1)] ?? current
+    const next = levels[Math.min(23, hour + 1)] ?? current
 
-    const prevIdx = Math.max(0, currentIdx - 1)
-    const currWave = waveHeights[currentIdx] ?? 0
-    const prevWave = waveHeights[prevIdx] ?? 0
-    const waterTemp = seaTemps[currentIdx] != null ? Math.round(seaTemps[currentIdx]) : null
+    let state: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia'
+    if (next > current + 0.03) state = 'Enchendo'
+    else if (next < current - 0.03) state = 'Secando'
+    else if (current > 0.6) state = 'Cheia'
+    else state = 'Vazia'
 
-    // Determina estado da maré pela tendência da hora anterior
-    let tideState = 'Estável'
-    if (currWave > prevWave + 0.02) tideState = 'Enchendo'
-    else if (currWave < prevWave - 0.02) tideState = 'Secando'
-    else if (currWave > 0.55) tideState = 'Cheia'
-    else tideState = 'Vazia'
-
-    return { tideLevel: Number(currWave.toFixed(2)), waterTemp, tideState }
+    return { level: Number(current.toFixed(2)), state, hourlyLevels: levels }
   } catch {
     return null
   }
+}
+
+// ✅ TEMPERATURA DA ÁGUA REAL via Open-Meteo Marine (sea_surface_temperature)
+// Se API retornar null (resolução insuficiente), usa sazonalidade real de Florianópolis
+export async function getRealWaterTemp(): Promise<number> {
+  try {
+    const res = await fetch(
+      'https://marine-api.open-meteo.com/v1/marine?latitude=-27.62&longitude=-48.48&current=sea_surface_temperature&timezone=America%2FSao_Paulo'
+    )
+    const data = await res.json() as any
+    const sst = data.current?.sea_surface_temperature
+    // Só usa se for um valor razoável para o Atlântico Sul em Floripa (15-27°C)
+    if (sst != null && sst >= 15 && sst <= 27) {
+      return Math.round(sst)
+    }
+  } catch { /* ignora */ }
+
+  // Fallback sazonal CORRETO para Florianópolis (dados históricos reais)
+  const month = new Date().getMonth() // 0=Jan
+  const temps = [25, 25, 24, 22, 21, 20, 19, 19, 20, 21, 22, 24]
+  return temps[month]
 }
 
 export interface WeatherForecast {
