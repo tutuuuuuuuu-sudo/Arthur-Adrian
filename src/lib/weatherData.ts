@@ -15,7 +15,6 @@ export async function getRealTide(): Promise<{
     const levels: number[] = data.hourly.sea_level
     const hour = new Date().getHours()
     const current = levels[hour] ?? 0
-    const prev = levels[Math.max(0, hour - 1)] ?? current
     const next = levels[Math.min(23, hour + 1)] ?? current
 
     let state: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia'
