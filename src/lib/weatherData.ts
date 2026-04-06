@@ -29,25 +29,43 @@ export async function getRealTide(): Promise<{
   }
 }
 
-// ✅ TEMPERATURA DA ÁGUA REAL via Open-Meteo Marine (sea_surface_temperature)
-// Se API retornar null (resolução insuficiente), usa sazonalidade real de Florianópolis
+// ✅ TEMPERATURA DA ÁGUA REAL
+// Fonte 1: NOAA CoastWatch ERDDAP — SST satélite real do Atlântico Sul (sem API key)
+// Fonte 2: Open-Meteo Marine com modelo Copernicus
+// Fonte 3: Fallback sazonal calibrado para Florianópolis
 export async function getRealWaterTemp(): Promise<number> {
+  // Fonte 1: NOAA ERDDAP — SST satélite (produto GHRSST MUR 0.01°)
+  try {
+    const now = new Date()
+    // ERDDAP usa data de ontem pois há delay de 1 dia no produto MUR
+    const yesterday = new Date(now.getTime() - 86400000)
+    const dateStr = yesterday.toISOString().split('T')[0]
+    const url = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.json?analysed_sst[${dateStr}T09:00:00Z][(-27.62)][(-48.48)]`
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    if (res.ok) {
+      const data = await res.json() as any
+      const sst = data?.table?.rows?.[0]?.[3]
+      if (sst != null && typeof sst === 'number' && sst >= 15 && sst <= 27) {
+        return Math.round(sst)
+      }
+    }
+  } catch { /* tenta próxima fonte */ }
+
+  // Fonte 2: Open-Meteo Marine com modelo Copernicus
   try {
     const res = await fetch(
-      'https://marine-api.open-meteo.com/v1/marine?latitude=-27.62&longitude=-48.48&current=sea_surface_temperature&timezone=America%2FSao_Paulo'
+      'https://marine-api.open-meteo.com/v1/marine?latitude=-27.62&longitude=-48.48&current=sea_surface_temperature&models=meteofrance_wave',
+      { signal: AbortSignal.timeout(5000) }
     )
     const data = await res.json() as any
     const sst = data.current?.sea_surface_temperature
-    // Só usa se for um valor razoável para o Atlântico Sul em Floripa (15-27°C)
-    if (sst != null && sst >= 15 && sst <= 27) {
-      return Math.round(sst)
-    }
+    if (sst != null && sst >= 15 && sst <= 27) return Math.round(sst)
   } catch { /* ignora */ }
 
-  // Fallback sazonal CORRETO para Florianópolis (dados históricos reais)
-  const month = new Date().getMonth() // 0=Jan
-  const temps = [25, 25, 24, 22, 21, 20, 19, 19, 20, 21, 22, 24]
-  return temps[month]
+  // Fonte 3: Fallback sazonal CORRETO para Florianópolis (médias históricas reais)
+  // Jan Feb Mar Abr Mai Jun Jul Ago Set Out Nov Dez
+  const month = new Date().getMonth()
+  return [25, 25, 24, 22, 21, 20, 19, 18, 19, 20, 22, 24][month]
 }
 
 export interface WeatherForecast {
