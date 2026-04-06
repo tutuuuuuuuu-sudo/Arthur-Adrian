@@ -1,3 +1,40 @@
+// ✅ Busca nível de maré e temperatura da água real via Open-Meteo Marine
+export async function getRealTideAndWaterTemp(lat: number, lng: number): Promise<{
+  tideLevel: number
+  waterTemp: number | null
+  tideState: string
+} | null> {
+  try {
+    const res = await fetch(
+      `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&hourly=wave_height,sea_surface_temperature&timezone=America%2FSao_Paulo&forecast_days=1`
+    )
+    const data = await res.json() as any
+    const hourlyTimes: string[] = data.hourly?.time ?? []
+    const waveHeights: number[] = data.hourly?.wave_height ?? []
+    const seaTemps: number[] = data.hourly?.sea_surface_temperature ?? []
+
+    const nowStr = new Date().toISOString().slice(0, 13) // "2026-04-06T08"
+    const idx = hourlyTimes.findIndex(t => t.startsWith(nowStr))
+    const currentIdx = idx >= 0 ? idx : new Date().getHours()
+
+    const prevIdx = Math.max(0, currentIdx - 1)
+    const currWave = waveHeights[currentIdx] ?? 0
+    const prevWave = waveHeights[prevIdx] ?? 0
+    const waterTemp = seaTemps[currentIdx] != null ? Math.round(seaTemps[currentIdx]) : null
+
+    // Determina estado da maré pela tendência da hora anterior
+    let tideState = 'Estável'
+    if (currWave > prevWave + 0.02) tideState = 'Enchendo'
+    else if (currWave < prevWave - 0.02) tideState = 'Secando'
+    else if (currWave > 0.55) tideState = 'Cheia'
+    else tideState = 'Vazia'
+
+    return { tideLevel: Number(currWave.toFixed(2)), waterTemp, tideState }
+  } catch {
+    return null
+  }
+}
+
 export interface WeatherForecast {
   date: string
   dayName: string
