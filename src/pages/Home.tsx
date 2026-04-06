@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -144,100 +144,19 @@ const getThemeGradient = (score: number) => {
 
 const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
   const navigate = useNavigate()
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<any>(null)
+  const [selected, setSelected] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!mapRef.current || spots.length === 0) return
-
-    const initMap = async () => {
-      // Carrega CSS do Leaflet
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link')
-        link.id = 'leaflet-css'
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
-      }
-
-      // Carrega JS do Leaflet se ainda não carregou
-      if (!(window as any).L) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script')
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-          script.onload = () => resolve()
-          script.onerror = () => reject()
-          document.head.appendChild(script)
-        })
-      }
-
-      const L = (window as any).L
-      if (!mapRef.current) return
-
-      // Destrói mapa anterior se existir
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-
-      // Cria novo mapa
-      const map = L.map(mapRef.current, {
-        center: [-27.62, -48.48],
-        zoom: 11,
-        scrollWheelZoom: false,
-        zoomControl: true,
-      })
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-      }).addTo(map)
-
-      // Adiciona marcador para cada praia
-      spots.forEach(spot => {
-        const color = getScoreColor(spot.score)
-        const label = getScoreLabel(spot.score)
-
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="width:36px;height:36px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white;cursor:pointer;">${spot.score.toFixed(1)}</div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18],
-          popupAnchor: [0, -22],
-        })
-
-        const spotId = spot.id
-        L.marker([spot.lat, spot.lng], { icon })
-          .addTo(map)
-          .bindPopup(`
-            <div style="min-width:160px;font-family:system-ui,sans-serif;padding:4px">
-              <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#111">${spot.name}</div>
-              <div style="color:${color};font-weight:600;font-size:12px;margin-bottom:4px">${label} · ${spot.waveHeight.toFixed(1)}m</div>
-              <div style="color:#666;font-size:11px;margin-bottom:10px">💨 ${Math.round(spot.windSpeed)}km/h &nbsp;⏱ ${Math.round(spot.swellPeriod)}s</div>
-              <button id="btn-${spotId}" style="width:100%;padding:7px;border-radius:8px;background:${color};color:white;font-size:11px;font-weight:600;border:none;cursor:pointer;">
-                Ver detalhes →
-              </button>
-            </div>
-          `)
-          .on('popupopen', () => {
-            setTimeout(() => {
-              const btn = document.getElementById(`btn-${spotId}`)
-              if (btn) btn.addEventListener('click', () => navigate(`/spot/${spotId}`))
-            }, 100)
-          })
-      })
-
-      mapInstanceRef.current = map
+  // Posições % calculadas via projeção Mercator correta
+  // iframe zoom=11, center=-27.62,-48.48, container 4:3 (800x600px equivalente)
+  // Bounds: lat -27.855 a -27.385, lng -48.755 a -48.205
+  const getPos = (lat: number, lng: number) => {
+    const latMax = -27.355, latMin = -27.875
+    const lngMin = -48.755, lngMax = -48.205
+    return {
+      left: ((lng - lngMin) / (lngMax - lngMin) * 100).toFixed(1) + '%',
+      top:  ((latMax - lat) / (latMax - latMin) * 100).toFixed(1) + '%',
     }
-
-    initMap()
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-    }
-  }, [spots, navigate])
+  }
 
   return (
     <Card className="anim-slide card-hover" style={{ animationDelay: '0.35s' }}>
@@ -249,12 +168,100 @@ const BeachMap = ({ spots }: { spots: BeachCondition[] }) => {
       </CardHeader>
       <CardContent className="space-y-3">
         <div
-          ref={mapRef}
-          className="w-full rounded-xl overflow-hidden border border-border/30"
-          style={{ height: '420px', zIndex: 0 }}
-        />
+          className="relative w-full rounded-xl overflow-hidden border border-border/30"
+          style={{ paddingBottom: '75%' }}
+          onClick={() => setSelected(null)}
+        >
+          {/* Google Maps iframe */}
+          <iframe
+            className="absolute inset-0 w-full h-full"
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d95000!2d-48.48!3d-27.62!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1700000000000"
+          />
+
+          {/* Marcadores posicionados via Mercator */}
+          {spots.map(spot => {
+            const pos = getPos(spot.lat, spot.lng)
+            const color = getScoreColor(spot.score)
+            const isSelected = selected === spot.id
+            const leftNum = parseFloat(pos.left)
+            const tipRight = leftNum < 55
+
+            return (
+              <div
+                key={spot.id}
+                className="absolute"
+                style={{
+                  left: pos.left,
+                  top: pos.top,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: isSelected ? 50 : 20,
+                }}
+                onClick={e => { e.stopPropagation(); setSelected(isSelected ? null : spot.id) }}
+              >
+                {/* Pin */}
+                <div
+                  className="flex items-center justify-center rounded-full font-bold text-white cursor-pointer select-none"
+                  style={{
+                    width: isSelected ? 42 : 34,
+                    height: isSelected ? 42 : 34,
+                    fontSize: isSelected ? 11 : 9,
+                    backgroundColor: color,
+                    border: '2.5px solid white',
+                    boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {spot.score.toFixed(1)}
+                </div>
+
+                {/* Tooltip */}
+                {isSelected && (
+                  <div
+                    className="absolute rounded-xl p-3 shadow-2xl"
+                    style={{
+                      bottom: 'calc(100% + 8px)',
+                      left: tipRight ? '0' : 'auto',
+                      right: tipRight ? 'auto' : '0',
+                      minWidth: 160,
+                      background: 'rgba(8,8,20,0.96)',
+                      border: `1.5px solid ${color}60`,
+                      zIndex: 100,
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="font-bold text-white text-xs mb-1">{spot.name}</div>
+                    <div className="text-xs font-semibold mb-1" style={{ color }}>
+                      {getScoreLabel(spot.score)} · {spot.waveHeight.toFixed(1)}m
+                    </div>
+                    <div className="text-xs text-gray-400 mb-2">
+                      💨 {Math.round(spot.windSpeed)}km/h · ⏱ {Math.round(spot.swellPeriod)}s
+                    </div>
+                    <button
+                      className="w-full text-xs py-1.5 rounded-lg font-semibold text-white"
+                      style={{ backgroundColor: color }}
+                      onClick={() => navigate(`/spot/${spot.id}`)}
+                    >
+                      Ver detalhes →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Legenda */}
         <div className="flex flex-wrap gap-3 pt-1 border-t">
-          {[{ color: '#8b5cf6', label: 'Épico' }, { color: '#06b6d4', label: 'Excelente' }, { color: '#22c55e', label: 'Bom' }, { color: '#f59e0b', label: 'Regular' }, { color: '#ef4444', label: 'Ruim' }].map(item => (
+          {[
+            { color: '#8b5cf6', label: 'Épico' },
+            { color: '#06b6d4', label: 'Excelente' },
+            { color: '#22c55e', label: 'Bom' },
+            { color: '#f59e0b', label: 'Regular' },
+            { color: '#ef4444', label: 'Ruim' },
+          ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
               <span className="text-xs text-muted-foreground">{item.label}</span>
