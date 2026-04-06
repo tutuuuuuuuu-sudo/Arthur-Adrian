@@ -191,14 +191,14 @@ const CAMERAS: Record<string, { cameraUrl: string, cameraEmbed: string, cameraSo
     cameraSource: 'SkylineWebcams',
   },
   'joaquina': {
-    cameraUrl: 'https://condicaoatual.com.br/joaquina-2/',
-    cameraEmbed: 'https://condicaoatual.com.br/embed/joaquina',
-    cameraSource: 'Condição Atual',
+    cameraUrl: 'https://www.windy.com/webcams/1385233278',
+    cameraEmbed: 'https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=13&overlay=wind&product=ecmwf&level=surface&lat=-27.6294&lon=-48.449&detail=true&webcam=1385233278',
+    cameraSource: 'Windy Webcams',
   },
-  'santinho': {
-    cameraUrl: 'https://climaaovivo.com.br/',
-    cameraEmbed: 'https://climaaovivo.com.br/embed/florianopolis-ingleses',
-    cameraSource: 'Clima ao Vivo',
+  'mole': {
+    cameraUrl: 'https://www.skylinewebcams.com/webcam/brasil/santa-catarina/florianopolis/florianopolis.html',
+    cameraEmbed: 'https://www.skylinewebcams.com/embed/florianopolis.html',
+    cameraSource: 'SkylineWebcams',
   },
 }
 
