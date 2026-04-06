@@ -46,17 +46,6 @@ export interface BeachCondition {
   cameraSource?: string
 }
 
-const getWaterTempFallback = (): number => {
-  // Temperatura sazonal real de Florianópolis baseada em dados históricos
-  const month = new Date().getMonth() // 0=Jan
-  if (month >= 11 || month <= 1) return 24  // Dez-Jan-Fev: verão
-  if (month === 2 || month === 3) return 22  // Mar-Abr: final verão
-  if (month === 4 || month === 5) return 20  // Mai-Jun: outono
-  if (month === 6 || month === 7) return 18  // Jul-Ago: inverno
-  if (month === 8 || month === 9) return 19  // Set-Out: primavera
-  return 21                                   // Nov: início verão
-}
-
 const getTideHeight = (): number => {
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
