@@ -391,24 +391,60 @@ const CameraPlayer = ({ spot }: { spot: BeachCondition }) => {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="relative rounded-xl overflow-hidden bg-black border border-border/30" style={{ aspectRatio: '16/9' }}>
-        {!loaded && !error && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/10"><div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" /><span className="text-xs text-muted-foreground">Conectando câmera...</span></div>}
-        {!error ? (
-          <iframe src={spot.cameraEmbed} className="w-full h-full" style={{ border: 0, display: loaded ? 'block' : 'none' }} allowFullScreen loading="lazy" onLoad={() => setLoaded(true)} onError={() => setError(true)} title={`Câmera ao vivo — ${spot.name}`} />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <WifiOff className="h-10 w-10 text-muted-foreground opacity-30" />
-            <p className="text-xs text-muted-foreground">Câmera temporariamente indisponível</p>
-            {spot.cameraUrl && <a href={spot.cameraUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline">Abrir no site original <ExternalLink className="h-3 w-3" /></a>}
+    <div className="space-y-4">
+      {/* Preview com botão de abrir — evita problemas de X-Frame-Options */}
+      <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30" style={{ aspectRatio: '16/9' }}>
+        {!loaded ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <div className="relative">
+              <Camera className="h-16 w-16 text-muted-foreground opacity-20" />
+              <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 animate-pulse border-2 border-background" />
+            </div>
+            <div className="text-center space-y-1">
+              <div className="flex items-center gap-1.5 justify-center">
+                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-sm font-semibold">AO VIVO</span>
+                {spot.cameraSource && <span className="text-xs text-muted-foreground">· {spot.cameraSource}</span>}
+              </div>
+              <p className="text-xs text-muted-foreground">Câmera disponível — toque para abrir</p>
+            </div>
+            <div className="flex flex-col gap-2 items-center">
+              <a
+                href={spot.cameraUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
+              >
+                <Camera className="h-4 w-4" />
+                Abrir câmera ao vivo
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <button
+                onClick={() => setLoaded(true)}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors underline"
+              >
+                Tentar embed direto
+              </button>
+            </div>
           </div>
+        ) : (
+          <>
+            {!error ? (
+              <iframe src={spot.cameraEmbed} className="w-full h-full" style={{ border: 0 }} allowFullScreen loading="lazy" onError={() => setError(true)} title={`Câmera ao vivo — ${spot.name}`} allow="autoplay; encrypted-media" />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <WifiOff className="h-10 w-10 text-muted-foreground opacity-30" />
+                <p className="text-xs text-muted-foreground">Embed bloqueado pelo site da câmera</p>
+                <a href={spot.cameraUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-primary hover:underline font-medium">
+                  Abrir câmera em nova aba <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            )}
+          </>
         )}
       </div>
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /><span>Ao vivo{spot.cameraSource ? ` · ${spot.cameraSource}` : ''}</span></div>
-        {spot.cameraUrl && <a href={spot.cameraUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">Abrir em tela cheia <ExternalLink className="h-3 w-3" /></a>}
-      </div>
-      <p className="text-xs text-muted-foreground text-center">Confira as condições em tempo real antes de ir 🤙</p>
+      <p className="text-xs text-muted-foreground text-center">📷 Confira as condições em tempo real antes de ir ao pico 🤙</p>
     </div>
   )
 }
@@ -425,6 +461,7 @@ export default function SpotDetails() {
   const [showScoreExplainer, setShowScoreExplainer] = useState(false)
   const [usesFeet, setUsesFeet] = useState(false)
   const { isPremium } = usePremium()
+  const [selectedSubRegion, setSelectedSubRegion] = useState<any>(null)
 
   useEffect(() => {
     if (id) {
@@ -536,9 +573,14 @@ export default function SpotDetails() {
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="text-sm">{spot.region} da Ilha</Badge>
               <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
-              {/* Temperaturas no cabeçalho */}
               {airTemp && <Badge variant="outline" className="text-sm">☁️ Ar: {airTemp}°C</Badge>}
               <Badge variant="outline" className="text-sm">🌊 Água: {spot.waterConditions.temperature}°C</Badge>
+              {spot.bestTimeWindow && spot.bestTimeWindow !== 'Não recomendado hoje' && (
+                <Badge variant="outline" className="text-sm">⏰ {spot.bestTimeWindow}</Badge>
+              )}
+              <Badge variant="outline" className="text-sm">
+                {spot.crowdLevel === 'Cheio' ? '🔴' : spot.crowdLevel === 'Pouca gente' ? '🟡' : '🟢'} {spot.crowdLevel}
+              </Badge>
             </div>
           </div>
           <div className="text-center bg-card rounded-xl p-5 border shadow-sm min-w-[120px] cursor-pointer hover:border-primary/50 transition-all active:scale-95" onClick={() => setShowScoreExplainer(true)}>
@@ -565,19 +607,107 @@ export default function SpotDetails() {
                 <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><MapPin className="h-5 w-5 text-accent" />Picos da Praia — Qual está melhor agora?</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {spot.subRegions.map((subRegion, idx) => (
-                      <div key={subRegion.id} className={`flex items-start gap-3 p-3 rounded-lg ${subRegion.bestNow ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`} style={{ animation: `slideInLeft 0.4s ${idx * 0.08}s ease-out both` }}>
-                        <div className="flex-shrink-0 mt-0.5">{subRegion.bestNow ? <Star className="h-4 w-4 text-primary fill-primary" /> : <div className="h-2 w-2 rounded-full bg-muted-foreground mt-1" />}</div>
-                        <div className="flex-1">
-                          <div className="font-semibold flex items-center gap-2">{subRegion.name}{subRegion.bestNow && <Badge className="text-xs bg-primary text-primary-foreground">Melhor agora</Badge>}</div>
-                          {subRegion.description && <div className="text-sm text-muted-foreground">{subRegion.description}</div>}
+                    {spot.subRegions.map((subRegion, idx) => {
+                      // Estima altura de onda por sub-região: melhor pico tem +15%, outros -10%
+                      const waveEst = subRegion.bestNow
+                        ? spot.waveHeight * 1.15
+                        : spot.waveHeight * 0.9
+                      const waveMin = (waveEst * 0.8).toFixed(1)
+                      const waveMax = (waveEst * 1.2).toFixed(1)
+                      return (
+                        <div key={subRegion.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${subRegion.bestNow ? 'bg-primary/10 border border-primary/30 hover:bg-primary/15' : 'bg-muted/30 hover:bg-muted/50 border border-transparent'}`}
+                          style={{ animation: `slideInLeft 0.4s ${idx * 0.08}s ease-out both` }}
+                          onClick={() => setSelectedSubRegion(selectedSubRegion?.id === subRegion.id ? null : { ...subRegion, waveMin, waveMax })}
+                        >
+                          <div className="flex-shrink-0 mt-0.5">{subRegion.bestNow ? <Star className="h-4 w-4 text-primary fill-primary" /> : <div className="h-2 w-2 rounded-full bg-muted-foreground mt-1" />}</div>
+                          <div className="flex-1">
+                            <div className="font-semibold flex items-center gap-2">
+                              {subRegion.name}
+                              {subRegion.bestNow && <Badge className="text-xs bg-primary text-primary-foreground">Melhor agora</Badge>}
+                              <span className="text-xs text-muted-foreground ml-auto">{waveMin}m - {waveMax}m</span>
+                            </div>
+                            {subRegion.description && <div className="text-sm text-muted-foreground">{subRegion.description}</div>}
+                            {/* Detalhes expandidos ao clicar */}
+                            {selectedSubRegion?.id === subRegion.id && (
+                              <div className="mt-3 pt-3 border-t border-border/40 space-y-2" style={{ animation: 'slideUp 0.2s ease-out' }}>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                  <div className="bg-background/60 rounded-lg p-2">
+                                    <div className="text-xs text-muted-foreground">Ondas</div>
+                                    <div className="text-sm font-bold text-primary">{waveMin}m - {waveMax}m</div>
+                                  </div>
+                                  <div className="bg-background/60 rounded-lg p-2">
+                                    <div className="text-xs text-muted-foreground">Período</div>
+                                    <div className="text-sm font-bold">{Math.round(spot.swellPeriod)}s</div>
+                                  </div>
+                                  <div className="bg-background/60 rounded-lg p-2">
+                                    <div className="text-xs text-muted-foreground">Vento</div>
+                                    <div className="text-sm font-bold">{Math.round(spot.windSpeed)}km/h</div>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground bg-background/40 rounded-lg p-2">
+                                  {subRegion.bestNow
+                                    ? `🔥 Este pico está recebendo melhor o swell de ${spot.swellDirection}. Ondas mais limpas e organizadas agora.`
+                                    : `Este pico funciona melhor com swell de ${subRegion.swellDirections?.join(', ') ?? spot.swellDirection}. Agora as ondas estão um pouco menores aqui.`}
+                                </div>
+                                <Button size="sm" className="w-full" onClick={() => navigate('/navigation')}>
+                                  <Navigation className="h-3.5 w-3.5 mr-1.5" />Ir para este pico
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="card-hover anim-slide">
+                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Waves className="h-5 w-5 text-primary" />Ondulação</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-muted-foreground">Altura</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">
+                          {usesFeet
+                            ? `${metersToFeet(Number((spot.waveHeight * 0.8).toFixed(1)))} - ${metersToFeet(Number((spot.waveHeight * 1.2).toFixed(1)))}`
+                            : `${(spot.waveHeight * 0.8).toFixed(1)}m - ${(spot.waveHeight * 1.2).toFixed(1)}m`}
+                        </span>
+                        <button onClick={() => setUsesFeet(!usesFeet)} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">{usesFeet ? 'm' : 'ft'}</button>
+                      </div>
+                    </div>
+                    <AnimatedProgress value={spot.waveHeight * 20} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                    <div><div className="text-xs text-muted-foreground">Período</div><SwellPeriodBadge period={spot.swellPeriod} /></div>
+                    <div><div className="text-xs text-muted-foreground">Direção</div><div className="text-lg font-semibold">{spot.swellDirection}</div></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="card-hover anim-slide">
+                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Wind className="h-5 w-5 text-accent" />Vento</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-3 flex-1">
+                      <div>
+                        <div className="flex items-center justify-between mb-1"><span className="text-sm text-muted-foreground">Velocidade</span><span className="text-2xl font-bold">{Math.round(spot.windSpeed)}km/h</span></div>
+                        <AnimatedProgress value={Math.min(spot.windSpeed * 2.5, 100)} />
+                      </div>
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-muted-foreground">Direção</div>
+                        <div className="text-lg font-semibold">{windInfo.code} — {windInfo.name}</div>
+                      </div>
+                    </div>
+                    <WindCompass direction={spot.windDirection} speed={Math.round(spot.windSpeed)} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             <Alert className="bg-primary/5 border-primary/20 anim-slide">
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -627,50 +757,7 @@ export default function SpotDetails() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="card-hover anim-slide">
-                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Waves className="h-5 w-5 text-primary" />Ondulação</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-muted-foreground">Altura</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold">
-                          {usesFeet
-                            ? `${metersToFeet(Number((spot.waveHeight * 0.8).toFixed(1)))} - ${metersToFeet(Number((spot.waveHeight * 1.2).toFixed(1)))}`
-                            : `${(spot.waveHeight * 0.8).toFixed(1)}m - ${(spot.waveHeight * 1.2).toFixed(1)}m`}
-                        </span>
-                        <button onClick={() => setUsesFeet(!usesFeet)} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">{usesFeet ? 'm' : 'ft'}</button>
-                      </div>
-                    </div>
-                    <AnimatedProgress value={spot.waveHeight * 20} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                    <div><div className="text-xs text-muted-foreground">Período</div><SwellPeriodBadge period={spot.swellPeriod} /></div>
-                    <div><div className="text-xs text-muted-foreground">Direção</div><div className="text-lg font-semibold">{spot.swellDirection}</div></div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card className="card-hover anim-slide">
-                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Wind className="h-5 w-5 text-accent" />Vento</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="space-y-3 flex-1">
-                      <div>
-                        <div className="flex items-center justify-between mb-1"><span className="text-sm text-muted-foreground">Velocidade</span><span className="text-2xl font-bold">{Math.round(spot.windSpeed)}km/h</span></div>
-                        <AnimatedProgress value={Math.min(spot.windSpeed * 2.5, 100)} />
-                      </div>
-                      <div className="pt-2 border-t">
-                        <div className="text-xs text-muted-foreground">Direção</div>
-                        <div className="text-lg font-semibold">{windInfo.code} — {windInfo.name}</div>
-                      </div>
-                    </div>
-                    <WindCompass direction={spot.windDirection} speed={Math.round(spot.windSpeed)} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
             <Card className="anim-slide">
               <CardHeader className="pb-3"><CardTitle className="text-lg flex items-center gap-2"><Navigation className="h-5 w-5 text-cyan-500" />Como vai estar o mar hoje?</CardTitle></CardHeader>
