@@ -68,37 +68,6 @@ export function degreesToWindDir(deg: number): string {
   return dirs[Math.round(deg / 22.5) % 16]
 }
 
-function windQuality(windDir: string, windSpeed: number, beachOrientation: number): number {
-  const windDegMap: Record<string, number> = {
-    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5, 'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
-    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5, 'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
-  }
-  const windDeg = windDegMap[windDir] ?? 0
-  const offshoreDir = (beachOrientation + 180) % 360
-  let diff = Math.abs(windDeg - offshoreDir)
-  if (diff > 180) diff = 360 - diff
-
-  if (diff <= 45) {
-    if (windSpeed <= 5) return 3.5
-    if (windSpeed <= 10) return 3.2
-    if (windSpeed <= 15) return 2.6
-    if (windSpeed <= 20) return 1.8
-    if (windSpeed <= 25) return 1.2
-    return 0.6
-  } else if (diff <= 90) {
-    if (windSpeed <= 5) return 3.0
-    if (windSpeed <= 10) return 2.4
-    if (windSpeed <= 15) return 1.8
-    if (windSpeed <= 20) return 1.2
-    return 0.5
-  } else {
-    if (windSpeed <= 5) return 2.2
-    if (windSpeed <= 10) return 1.6
-    if (windSpeed <= 15) return 1.0
-    if (windSpeed <= 20) return 0.5
-    return 0.1
-  }
-}
 
 const calculateScore = (waveHeight: number, windSpeed: number, swellPeriod: number, windDir: string, beachOrientation: number): number => {
   // Escala baseada na realidade de Florianópolis:
