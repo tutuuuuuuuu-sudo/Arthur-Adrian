@@ -101,30 +101,68 @@ function windQuality(windDir: string, windSpeed: number, beachOrientation: numbe
 }
 
 const calculateScore = (waveHeight: number, windSpeed: number, swellPeriod: number, windDir: string, beachOrientation: number): number => {
-  let waveScore = 0
-  if (waveHeight >= 2.0) waveScore = 4.5
-  else if (waveHeight >= 1.5) waveScore = 4.0
-  else if (waveHeight >= 1.2) waveScore = 3.5
-  else if (waveHeight >= 1.0) waveScore = 3.2
-  else if (waveHeight >= 0.8) waveScore = 2.8
-  else if (waveHeight >= 0.6) waveScore = 2.4
-  else if (waveHeight >= 0.4) waveScore = 2.0
-  else if (waveHeight >= 0.2) waveScore = 1.2
-  else waveScore = 0.5
+  // Escala baseada na realidade de Florianópolis:
+  // 0.5m-1m = nota 6-8 base, vento >15km/h penaliza abaixo de 7, período curto = 5 base
 
-  const windScore = windQuality(windDir, windSpeed, beachOrientation)
+  // ONDA: 0.5m já dá nota 6, 1m dá nota 8, 2m+ nota 10
+  let waveBase = 0
+  if (waveHeight >= 2.5) waveBase = 10
+  else if (waveHeight >= 2.0) waveBase = 9.5
+  else if (waveHeight >= 1.5) waveBase = 9.0
+  else if (waveHeight >= 1.2) waveBase = 8.5
+  else if (waveHeight >= 1.0) waveBase = 8.0
+  else if (waveHeight >= 0.8) waveBase = 7.5
+  else if (waveHeight >= 0.6) waveBase = 7.0
+  else if (waveHeight >= 0.5) waveBase = 6.5
+  else if (waveHeight >= 0.4) waveBase = 5.5
+  else waveBase = 4.0
 
-  let periodScore = 0
-  if (swellPeriod >= 16) periodScore = 3.0
-  else if (swellPeriod >= 14) periodScore = 2.8
-  else if (swellPeriod >= 12) periodScore = 2.4
-  else if (swellPeriod >= 10) periodScore = 2.0
-  else if (swellPeriod >= 9) periodScore = 1.6
-  else if (swellPeriod >= 8) periodScore = 1.2
-  else if (swellPeriod >= 7) periodScore = 0.8
-  else periodScore = 0.4
+  // VENTO: penalização sobre o waveBase
+  // Offshore (<= 45° da direção offshore) = bônus
+  // Onshore (> 90°) = penaliza muito
+  const windDegMap: Record<string, number> = {
+    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5, 'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5, 'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
+  }
+  const wDir = windDegMap[windDir] ?? 0
+  const offshoreDir = (beachOrientation + 180) % 360
+  let angleDiff = Math.abs(wDir - offshoreDir)
+  if (angleDiff > 180) angleDiff = 360 - angleDiff
 
-  return Math.min(10, Math.max(1, Number((waveScore + windScore + periodScore).toFixed(1))))
+  let windPenalty = 0
+  if (angleDiff <= 45) {
+    // Offshore — penaliza pouco mesmo com vento forte
+    if (windSpeed <= 10) windPenalty = 0
+    else if (windSpeed <= 15) windPenalty = -0.3
+    else if (windSpeed <= 20) windPenalty = -0.8
+    else windPenalty = -1.5
+  } else if (angleDiff <= 90) {
+    // Lateral
+    if (windSpeed <= 10) windPenalty = -0.5
+    else if (windSpeed <= 15) windPenalty = -1.0
+    else if (windSpeed <= 20) windPenalty = -1.8
+    else windPenalty = -2.5
+  } else {
+    // Onshore — penaliza bastante
+    if (windSpeed <= 10) windPenalty = -1.0
+    else if (windSpeed <= 15) windPenalty = -2.0
+    else if (windSpeed <= 20) windPenalty = -3.0
+    else windPenalty = -4.0
+  }
+
+  // PERÍODO: ajuste fino em Floripa, período curto é normal (nota base 5)
+  // Período longo é bônus, curto não penaliza muito
+  let periodAdjust = 0
+  if (swellPeriod >= 16) periodAdjust = +0.5
+  else if (swellPeriod >= 14) periodAdjust = +0.3
+  else if (swellPeriod >= 12) periodAdjust = +0.2
+  else if (swellPeriod >= 10) periodAdjust = 0
+  else if (swellPeriod >= 8) periodAdjust = -0.2
+  else if (swellPeriod >= 7) periodAdjust = -0.4
+  else periodAdjust = -0.6  // 5s = ruim mas não catastrófico
+
+  const finalScore = waveBase + windPenalty + periodAdjust
+  return Math.min(10, Math.max(1, Number(finalScore.toFixed(1))))
 }
 
 const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
