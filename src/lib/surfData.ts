@@ -232,9 +232,9 @@ const BEACHES = [
     lat: -27.7170897, lng: -48.503436, // Av. Campeche, s/n — Lagoa Pequena
     orientation: 100,
     subRegions: [
-      { id: 'canto-norte', name: 'Canto Norte', lat: -27.7095, lng: -48.4998, swellDirections: ['E', 'SE', 'ESE'] },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.7155, lng: -48.5025, swellDirections: ['SE', 'E'] },
-      { id: 'costao', name: 'Costão', lat: -27.7200, lng: -48.5050, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'canto-norte', name: 'Canto Norte', lat: -27.7105, lng: -48.5005, swellDirections: ['E', 'SE', 'ESE'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.7148, lng: -48.5020, swellDirections: ['SE', 'E'] },
+      { id: 'costao', name: 'Costão', lat: -27.7195, lng: -48.5048, swellDirections: ['SE', 'S', 'SSE'] },
     ], bestTimeWindow: '07h - 10h' },
   { id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const,
     lat: -27.7548429, lng: -48.4985647, // Matadeiro — estacionamento início trilha
@@ -246,8 +246,8 @@ const BEACHES = [
     lat: -27.7837144, lng: -48.5236746, // Praia dos Açores — bem na areia
     orientation: 120,
     subRegions: [
-      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7812, lng: -48.5188, swellDirections: ['SE', 'S', 'SSE'] },
-      { id: 'meio', name: 'Meio', lat: -27.7840, lng: -48.5210, swellDirections: ['SE', 'E', 'ESE'] },
+      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7810, lng: -48.5185, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'meio', name: 'Meio', lat: -27.7842, lng: -48.5212, swellDirections: ['SE', 'E', 'ESE'] },
     ], bestTimeWindow: '07h - 11h' },
   { id: 'solidao', name: 'Solidão', region: 'Sul' as const,
     lat: -27.7941233, lng: -48.5334965, // Praia da Solidão — acesso areia
@@ -255,7 +255,7 @@ const BEACHES = [
   { id: 'armacao', name: 'Armação', region: 'Sul' as const,
     lat: -27.7504078, lng: -48.5017637, orientation: 115,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7415, lng: -48.5015, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7420, lng: -48.5018, swellDirections: ['SE', 'S', 'SSE'] },
       { id: 'centro', name: 'Centro', lat: -27.7492, lng: -48.5042, swellDirections: ['SE', 'E'] },
       { id: 'matadouro', name: 'Matadouro', lat: -27.7535, lng: -48.5062, swellDirections: ['S', 'SW', 'SSW'] },
     ], bestTimeWindow: '06h - 09h e 16h - 18h' },
@@ -281,16 +281,16 @@ const BEACHES = [
     lat: -27.4937746, lng: -48.3955175, // Moçambique — bem na areia
     orientation: 80,
     subRegions: [
-      { id: 'norte', name: 'Norte', lat: -27.4692, lng: -48.3845, swellDirections: ['NE', 'E', 'ENE'] },
+      { id: 'norte', name: 'Norte', lat: -27.4695, lng: -48.3852, swellDirections: ['NE', 'E', 'ENE'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.4938, lng: -48.3910, swellDirections: ['E', 'NE'] },
-      { id: 'sul', name: 'Sul', lat: -27.5155, lng: -48.3985, swellDirections: ['SE', 'E', 'ESE'] },
+      { id: 'sul', name: 'Sul', lat: -27.5148, lng: -48.3988, swellDirections: ['SE', 'E', 'ESE'] },
     ], bestTimeWindow: '08h - 11h' },
   { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const,
     lat: -27.5734502, lng: -48.424939, orientation: 75,
     subRegions: [
       { id: 'canal', name: 'Canal da Barra', lat: -27.5765, lng: -48.4185, swellDirections: ['NE', 'E', 'ENE'] },
-      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5742, lng: -48.4215, swellDirections: ['E', 'NE'] },
-      { id: 'norte-da-barra', name: 'Norte da Barra', lat: -27.5715, lng: -48.4238, swellDirections: ['NE', 'ENE'] },
+      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5762, lng: -48.4182, swellDirections: ['E', 'NE'] },
+      { id: 'norte-da-barra', name: 'Norte da Barra', lat: -27.5688, lng: -48.4250, swellDirections: ['NE', 'ENE'] },
     ], bestTimeWindow: 'Melhor na maré enchente' },
   { id: 'santinho', name: 'Santinho', region: 'Norte' as const,
     lat: -27.4618653, lng: -48.3761513, // Praia do Santinho — bem na areia
