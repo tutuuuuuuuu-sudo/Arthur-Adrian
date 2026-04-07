@@ -18,7 +18,7 @@ import {
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
   Video, Heart, Calendar, Star, Sun, Info, Maximize2, X,
   Share2, MessageCircle, Trash2, Send, ChevronDown, ChevronUp,
-  ExternalLink, WifiOff, Lock, Crown
+  ExternalLink, WifiOff, Lock, Crown, Camera
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
