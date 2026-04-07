@@ -152,41 +152,55 @@ const CameraCard = ({ camera }: { camera: BeachCamera }) => {
       </div>
 
       {/* Área do player */}
-      {isLive && camera.embedUrl && !error ? (
-        <div className="relative bg-black" style={{ aspectRatio: '16/9' }}>
-          {!loaded && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/20">
-              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs text-muted-foreground">Conectando câmera...</span>
-            </div>
-          )}
-          <iframe
-            src={camera.embedType === 'windy'
-              ? `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=12&overlay=wind&product=ecmwf&level=surface&lat=-27.62&lon=-48.49&detailLat=-27.6294&detailLon=-48.449&detail=true&pressure=true&message=true&webcam=${camera.embedUrl.match(/\/([0-9]+)\//)?.[1]}`
-              : camera.embedUrl}
-            className="w-full h-full"
-            style={{ border: 0, display: loaded ? 'block' : 'none' }}
-            allowFullScreen
-            loading="lazy"
-            onLoad={() => setLoaded(true)}
-            onError={() => setError(true)}
-            title={`Câmera ao vivo — ${camera.name}`}
-            allow="autoplay; encrypted-media"
-          />
-          {error && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/10">
-              <WifiOff className="h-8 w-8 text-muted-foreground opacity-40" />
-              <p className="text-xs text-muted-foreground">Câmera temporariamente indisponível</p>
-              {camera.sourceUrl && (
+      {isLive && camera.sourceUrl ? (
+        <div className="relative bg-gradient-to-br from-muted/30 to-muted/10" style={{ aspectRatio: '16/9' }}>
+          {!loaded ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <div className="relative">
+                <Camera className="h-14 w-14 text-muted-foreground opacity-20" />
+                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 animate-pulse border-2 border-background" />
+              </div>
+              <div className="text-center space-y-3">
+                <div className="flex items-center gap-1.5 justify-center">
+                  <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-sm font-semibold">AO VIVO</span>
+                </div>
                 <a
                   href={camera.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-primary flex items-center gap-1 hover:underline mt-1"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all active:scale-95"
+                  style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
                 >
-                  Abrir no site original <ExternalLink className="h-3 w-3" />
+                  <Camera className="h-4 w-4" />
+                  Ver câmera ao vivo
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
-              )}
+                {camera.embedUrl && (
+                  <button onClick={() => setLoaded(true)} className="text-xs text-muted-foreground hover:text-primary transition-colors underline block mx-auto">
+                    Tentar embed direto
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : !error ? (
+            <iframe
+              src={camera.embedUrl}
+              className="w-full h-full absolute inset-0"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              onError={() => setError(true)}
+              title={`Câmera ao vivo — ${camera.name}`}
+              allow="autoplay; encrypted-media"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <WifiOff className="h-8 w-8 text-muted-foreground opacity-40" />
+              <p className="text-xs text-muted-foreground">Embed bloqueado — abra no site original</p>
+              <a href={camera.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary flex items-center gap-1 hover:underline font-medium">
+                Abrir câmera <ExternalLink className="h-3.5 w-3.5" />
+              </a>
             </div>
           )}
         </div>
