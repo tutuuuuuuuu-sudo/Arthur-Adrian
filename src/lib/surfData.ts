@@ -217,17 +217,17 @@ const BEACHES = [
     lat: -27.6661001, lng: -48.4755307, // Praia do Novo Campeche — bem na areia
     orientation: 90,
     subRegions: [
-      { id: 'norte', name: 'Canto Norte', lat: -27.6590, lng: -48.4720, swellDirections: ['E', 'NE', 'ENE'] },
-      { id: 'meio', name: 'Meio', lat: -27.6661, lng: -48.4755, swellDirections: ['E', 'SE'] },
-      { id: 'sul', name: 'Canto Sul', lat: -27.6720, lng: -48.4790, swellDirections: ['SE', 'SSE'] },
+      { id: 'riozinho', name: 'Riozinho', lat: -27.6540, lng: -48.4700, swellDirections: ['NE', 'E', 'ENE'] },
+      { id: 'centro', name: 'Centro', lat: -27.6610, lng: -48.4738, swellDirections: ['E', 'SE'] },
+      { id: 'pico-da-cruz', name: 'Pico da Cruz', lat: -27.6680, lng: -48.4775, swellDirections: ['SE', 'S', 'SSE'] },
     ], bestTimeWindow: '06h - 09h' },
   { id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const,
     lat: -27.7170897, lng: -48.503436, // Av. Campeche, s/n — Lagoa Pequena
     orientation: 100,
     subRegions: [
-      { id: 'costao-norte', name: 'Costão Norte', lat: -27.7140, lng: -48.5010, swellDirections: ['SE', 'S'] },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.7171, lng: -48.5034, swellDirections: ['E', 'SE'] },
-      { id: 'canto-sul', name: 'Canto Sul', lat: -27.7200, lng: -48.5060, swellDirections: ['SE', 'SSE'] },
+      { id: 'canto-norte', name: 'Canto Norte', lat: -27.7098, lng: -48.5000, swellDirections: ['E', 'SE', 'ESE'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.7145, lng: -48.5028, swellDirections: ['SE', 'E'] },
+      { id: 'costao', name: 'Costão', lat: -27.7188, lng: -48.5055, swellDirections: ['SE', 'S', 'SSE'] },
     ], bestTimeWindow: '07h - 10h' },
   { id: 'matadeiro', name: 'Matadeiro', region: 'Sul' as const,
     lat: -27.7548429, lng: -48.4985647, // Matadeiro — estacionamento início trilha
@@ -239,8 +239,8 @@ const BEACHES = [
     lat: -27.7837144, lng: -48.5236746, // Praia dos Açores — bem na areia
     orientation: 120,
     subRegions: [
-      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7565, lng: -48.5110, swellDirections: ['SE', 'S'] },
-      { id: 'meio', name: 'Meio', lat: -27.7572, lng: -48.5125, swellDirections: ['E', 'SE'] },
+      { id: 'ponta-esquerda', name: 'Ponta Esquerda', lat: -27.7820, lng: -48.5195, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'meio', name: 'Meio', lat: -27.7855, lng: -48.5220, swellDirections: ['SE', 'E', 'ESE'] },
     ], bestTimeWindow: '07h - 11h' },
   { id: 'solidao', name: 'Solidão', region: 'Sul' as const,
     lat: -27.7941233, lng: -48.5334965, // Praia da Solidão — acesso areia
@@ -248,9 +248,9 @@ const BEACHES = [
   { id: 'armacao', name: 'Armação', region: 'Sul' as const,
     lat: -27.7504078, lng: -48.5017637, orientation: 115,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7440, lng: -48.5035, swellDirections: ['SE', 'S'] },
-      { id: 'centro', name: 'Centro', lat: -27.7447, lng: -48.5044, swellDirections: ['E', 'SE'] },
-      { id: 'matadouro', name: 'Matadouro', lat: -27.7455, lng: -48.5055, swellDirections: ['S', 'SW'] },
+      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7420, lng: -48.5020, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'centro', name: 'Centro', lat: -27.7490, lng: -48.5048, swellDirections: ['SE', 'E'] },
+      { id: 'matadouro', name: 'Matadouro', lat: -27.7530, lng: -48.5060, swellDirections: ['S', 'SW', 'SSW'] },
     ], bestTimeWindow: '06h - 09h e 16h - 18h' },
   { id: 'naufragados', name: 'Naufragados', region: 'Sul' as const,
     lat: -27.8335587, lng: -48.5641537, // Naufragados — início da Trilha Caminho dos Naufragados
@@ -274,16 +274,16 @@ const BEACHES = [
     lat: -27.4937746, lng: -48.3955175, // Moçambique — bem na areia
     orientation: 80,
     subRegions: [
-      { id: 'norte', name: 'Norte (próx. Barra)', lat: -27.5100, lng: -48.4010, swellDirections: ['NE', 'E', 'ENE'] },
-      { id: 'meio', name: 'Meio da Praia', lat: -27.4938, lng: -48.3955, swellDirections: ['E', 'NE'] },
-      { id: 'sul', name: 'Sul', lat: -27.4780, lng: -48.3905, swellDirections: ['SE', 'E'] },
+      { id: 'norte', name: 'Norte', lat: -27.4700, lng: -48.3855, swellDirections: ['NE', 'E', 'ENE'] },
+      { id: 'meio', name: 'Meio da Praia', lat: -27.4938, lng: -48.3910, swellDirections: ['E', 'NE'] },
+      { id: 'sul', name: 'Sul', lat: -27.5180, lng: -48.3990, swellDirections: ['SE', 'E', 'ESE'] },
     ], bestTimeWindow: '08h - 11h' },
   { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const,
     lat: -27.5734502, lng: -48.424939, orientation: 75,
     subRegions: [
-      { id: 'canal', name: 'Canal da Barra', lat: -27.5735, lng: -48.4249, swellDirections: ['NE', 'E', 'ENE'] },
-      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5755, lng: -48.4230, swellDirections: ['E', 'NE'] },
-      { id: 'sul', name: 'Sul da Barra', lat: -27.5790, lng: -48.4215, swellDirections: ['SE', 'E'] },
+      { id: 'canal', name: 'Canal da Barra', lat: -27.5762, lng: -48.4188, swellDirections: ['NE', 'E', 'ENE'] },
+      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5748, lng: -48.4210, swellDirections: ['E', 'NE'] },
+      { id: 'norte-da-barra', name: 'Norte da Barra', lat: -27.5720, lng: -48.4235, swellDirections: ['NE', 'ENE'] },
     ], bestTimeWindow: 'Melhor na maré enchente' },
   { id: 'santinho', name: 'Santinho', region: 'Norte' as const,
     lat: -27.4618653, lng: -48.3761513, // Praia do Santinho — bem na areia
@@ -329,6 +329,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         const bestSubId = getBestSubRegion(beachSubs, swellDirection)
         subRegions = beachSubs.map((sub: any) => ({
           id: sub.id, name: sub.name, lat: sub.lat, lng: sub.lng,
+          swellDirections: sub.swellDirections ?? [],
           description: sub.id === bestSubId
             ? `🔥 Melhor com swell de ${swellDirection}`
             : `Funciona melhor com swell de ${sub.swellDirections?.join(', ') ?? 'E'}`,
