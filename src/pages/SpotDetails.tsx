@@ -628,8 +628,11 @@ export default function SpotDetails() {
                       // 0 = swell perfeito (×1.2), 1 = próximo (×1.05), 2 = ok (×0.9), 3+ = ruim (×0.7)
                       const waveMultiplier = minDiff === 0 ? 1.20 : minDiff === 1 ? 1.05 : minDiff === 2 ? 0.90 : minDiff <= 4 ? 0.75 : 0.60
                       const waveEst = spot.waveHeight * waveMultiplier
-                      const waveMin = (waveEst * 0.8).toFixed(1)
-                      const waveMax = (waveEst * 1.2).toFixed(1)
+                      // ✅ Range do sub-pico: baseado na compatibilidade de swell
+                      // Sem o ±20% extra — esse range já é da praia geral
+                      // Aqui mostramos apenas o valor estimado para cada pico ±10%
+                      const waveMin = (waveEst * 0.90).toFixed(1)
+                      const waveMax = (waveEst * 1.10).toFixed(1)
                       // Compatibilidade em texto
                       const swellMatch = minDiff === 0 ? '🔥 Swell perfeito' : minDiff <= 2 ? '✅ Swell bom' : minDiff <= 4 ? '⚠️ Swell parcial' : '❌ Swell ruim'
                       return (
