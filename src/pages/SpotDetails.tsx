@@ -14,7 +14,7 @@ import { getComments, addComment, deleteComment, formatCommentTime, Comment } fr
 import { supabase } from '@/lib/supabase'
 import { usePremium } from '@/lib/premium'
 import {
-  ArrowLeft, Waves, Wind, Navigation, Clock, Users,
+  ArrowLeft, Waves, Wind, Navigation, Users,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
   Video, Heart, Calendar, Star, Sun, Info, Maximize2, X,
   Share2, MessageCircle, Trash2, Send, ChevronDown, ChevronUp,
@@ -579,7 +579,7 @@ export default function SpotDetails() {
                 <Badge variant="outline" className="text-sm">⏰ {spot.bestTimeWindow}</Badge>
               )}
               <Badge variant="outline" className="text-sm">
-                {spot.crowdLevel === 'Cheio' ? '🔴' : spot.crowdLevel === 'Pouca gente' ? '🟡' : '🟢'} {spot.crowdLevel}
+                {spot.crowdLevel === 'Cheio' ? '🔴' : spot.crowdLevel === 'Pouca gente' ? '🟡' : '🟢'} Crowd: {spot.crowdLevel}
               </Badge>
             </div>
           </div>
@@ -608,12 +608,30 @@ export default function SpotDetails() {
                 <CardContent>
                   <div className="space-y-3">
                     {spot.subRegions.map((subRegion, idx) => {
-                      // Estima altura de onda por sub-região: melhor pico tem +15%, outros -10%
-                      const waveEst = subRegion.bestNow
-                        ? spot.waveHeight * 1.15
-                        : spot.waveHeight * 0.9
+                      // ✅ Calcula compatibilidade do swell atual com as direções ideais de cada sub-pico
+                      // Compara a direção do swell atual com as direções que o pico funciona melhor
+                      const swellDirOrder = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']
+                      const currentSwellIdx = swellDirOrder.indexOf(spot.swellDirection)
+                      const idealDirs: string[] = subRegion.swellDirections ?? []
+
+                      // Calcula diferença angular mínima entre swell atual e direções ideais do pico
+                      let minDiff = 8 // máximo (180°)
+                      idealDirs.forEach(dir => {
+                        const idealIdx = swellDirOrder.indexOf(dir)
+                        if (idealIdx >= 0 && currentSwellIdx >= 0) {
+                          let diff = Math.abs(currentSwellIdx - idealIdx)
+                          if (diff > 8) diff = 16 - diff // wraparound
+                          if (diff < minDiff) minDiff = diff
+                        }
+                      })
+
+                      // 0 = swell perfeito (×1.2), 1 = próximo (×1.05), 2 = ok (×0.9), 3+ = ruim (×0.7)
+                      const waveMultiplier = minDiff === 0 ? 1.20 : minDiff === 1 ? 1.05 : minDiff === 2 ? 0.90 : minDiff <= 4 ? 0.75 : 0.60
+                      const waveEst = spot.waveHeight * waveMultiplier
                       const waveMin = (waveEst * 0.8).toFixed(1)
                       const waveMax = (waveEst * 1.2).toFixed(1)
+                      // Compatibilidade em texto
+                      const swellMatch = minDiff === 0 ? '🔥 Swell perfeito' : minDiff <= 2 ? '✅ Swell bom' : minDiff <= 4 ? '⚠️ Swell parcial' : '❌ Swell ruim'
                       return (
                         <div key={subRegion.id}
                           className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${subRegion.bestNow ? 'bg-primary/10 border border-primary/30 hover:bg-primary/15' : 'bg-muted/30 hover:bg-muted/50 border border-transparent'}`}
@@ -646,13 +664,31 @@ export default function SpotDetails() {
                                   </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground bg-background/40 rounded-lg p-2">
-                                  {subRegion.bestNow
-                                    ? `🔥 Este pico está recebendo melhor o swell de ${spot.swellDirection}. Ondas mais limpas e organizadas agora.`
-                                    : `Este pico funciona melhor com swell de ${subRegion.swellDirections?.join(', ') ?? spot.swellDirection}. Agora as ondas estão um pouco menores aqui.`}
+                                  <span className="font-semibold">{swellMatch}</span>
+                                  {minDiff === 0
+                                    ? ` — Swell de ${spot.swellDirection} é ideal para este pico. Ondas chegando limpas e organizadas.`
+                                    : minDiff <= 2
+                                    ? ` — Swell de ${spot.swellDirection} funciona bem aqui. Ideal seria ${idealDirs.join(' ou ')}.`
+                                    : ` — Este pico funciona melhor com swell de ${idealDirs.join(', ')}. Hoje o swell é ${spot.swellDirection}, ondas menores e menos organizadas.`}
                                 </div>
-                                <Button size="sm" className="w-full" onClick={() => navigate('/navigation')}>
-                                  <Navigation className="h-3.5 w-3.5 mr-1.5" />Ir para este pico
-                                </Button>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${subRegion.lat},${subRegion.lng}&travelmode=driving`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <Navigation className="h-3.5 w-3.5" />Google Maps
+                                  </a>
+                                  <a
+                                    href={`https://waze.com/ul?ll=${subRegion.lat},${subRegion.lng}&navigate=yes`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted/50 transition-colors"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <Navigation className="h-3.5 w-3.5" />Waze
+                                  </a>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -709,20 +745,18 @@ export default function SpotDetails() {
               </Card>
             </div>
 
+            <Card className="anim-slide">
+              <CardHeader className="pb-3"><CardTitle className="text-lg flex items-center gap-2"><Navigation className="h-5 w-5 text-cyan-500" />Como vai estar o mar hoje?</CardTitle></CardHeader>
+              <CardContent><TideChart tide={spot.tide} /></CardContent>
+            </Card>
+
             <Alert className="bg-primary/5 border-primary/20 anim-slide">
               <TrendingUp className="h-4 w-4 text-primary" />
               <AlertTitle className="text-primary">Análise Inteligente</AlertTitle>
               <AlertDescription className="text-foreground">{analyzeConditions(spot)}</AlertDescription>
             </Alert>
 
-            {spot.bestTimeWindow !== 'Não recomendado hoje' && (
-              <Card className="bg-secondary/5 border-secondary/20 card-hover anim-slide">
-                <CardContent className="flex items-center gap-3 py-4">
-                  <Clock className="h-5 w-5 text-secondary flex-shrink-0" />
-                  <div><div className="text-sm font-semibold">Melhor Janela</div><div className="text-sm text-muted-foreground">{spot.bestTimeWindow}</div></div>
-                </CardContent>
-              </Card>
-            )}
+
 
             <div className="anim-slide"><CommentsSection spot={spot} /></div>
 
@@ -757,12 +791,6 @@ export default function SpotDetails() {
               </CardContent>
             </Card>
 
-
-
-            <Card className="anim-slide">
-              <CardHeader className="pb-3"><CardTitle className="text-lg flex items-center gap-2"><Navigation className="h-5 w-5 text-cyan-500" />Como vai estar o mar hoje?</CardTitle></CardHeader>
-              <CardContent><TideChart tide={spot.tide} /></CardContent>
-            </Card>
 
             <Card className="card-hover anim-slide">
               <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5 text-chart-3" />Crowd</CardTitle></CardHeader>
