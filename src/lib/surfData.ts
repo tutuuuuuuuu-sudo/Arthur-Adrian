@@ -217,16 +217,16 @@ const BEACHES = [
     orientation: 90,
     subRegions: [
       { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.6974, lng: -48.4899, swellDirections: ['E', 'SE'] },
-      { id: 'palanque', name: 'Palanque', lat: -27.7050, lng: -48.4950, swellDirections: ['SE', 'S', 'SSE'] },
-      { id: 'principal', name: 'Principal', lat: -27.7100, lng: -48.4980, swellDirections: ['E', 'NE'] },
+      { id: 'palanque', name: 'Palanque', lat: -27.6929, lng: -48.4870, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'principal', name: 'Principal', lat: -27.7080, lng: -48.4968, swellDirections: ['E', 'NE', 'ENE'] },
     ], bestTimeWindow: '06h - 09h' },
   { id: 'novo-campeche', name: 'Novo Campeche', region: 'Sul' as const,
     lat: -27.6661001, lng: -48.4755307, // Praia do Novo Campeche — bem na areia
     orientation: 90,
     subRegions: [
       { id: 'riozinho', name: 'Riozinho', lat: -27.6545, lng: -48.4710, swellDirections: ['NE', 'E', 'ENE'] },
-      { id: 'centro', name: 'Centro', lat: -27.6628, lng: -48.4750, swellDirections: ['E', 'SE'] },
-      { id: 'pico-da-cruz', name: 'Pico da Cruz', lat: -27.6695, lng: -48.4785, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'centro', name: 'Centro', lat: -27.6648, lng: -48.4784, swellDirections: ['E', 'SE'] },
+      { id: 'pico-da-cruz', name: 'Pico da Cruz', lat: -27.6498, lng: -48.4739, swellDirections: ['SE', 'S', 'SSE'] },
     ], bestTimeWindow: '06h - 09h' },
   { id: 'morro-pedras', name: 'Morro das Pedras', region: 'Sul' as const,
     lat: -27.7170897, lng: -48.503436, // Av. Campeche, s/n — Lagoa Pequena
@@ -283,13 +283,12 @@ const BEACHES = [
     subRegions: [
       { id: 'norte', name: 'Norte', lat: -27.4695, lng: -48.3852, swellDirections: ['NE', 'E', 'ENE'] },
       { id: 'meio', name: 'Meio da Praia', lat: -27.4938, lng: -48.3912, swellDirections: ['E', 'NE'] },
-      { id: 'sul', name: 'Sul', lat: -27.5150, lng: -48.3990, swellDirections: ['SE', 'E', 'ESE'] },
     ], bestTimeWindow: '08h - 11h' },
   { id: 'barra-lagoa', name: 'Barra da Lagoa', region: 'Leste' as const,
     lat: -27.5734502, lng: -48.424939, orientation: 75,
     subRegions: [
       { id: 'canal', name: 'Canal da Barra', lat: -27.5765, lng: -48.4185, swellDirections: ['NE', 'E', 'ENE'] },
-      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5760, lng: -48.4183, swellDirections: ['E', 'NE'] },
+      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5748, lng: -48.4200, swellDirections: ['E', 'NE'] },
       { id: 'norte-da-barra', name: 'Norte da Barra', lat: -27.5688, lng: -48.4252, swellDirections: ['NE', 'ENE'] },
     ], bestTimeWindow: 'Melhor na maré enchente' },
   { id: 'santinho', name: 'Santinho', region: 'Norte' as const,
