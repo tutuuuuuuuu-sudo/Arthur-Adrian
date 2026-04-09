@@ -46,6 +46,49 @@ export interface BeachCondition {
   cameraSource?: string
 }
 
+// Cache de maré real para Floripa (lat -27.62, lng -48.48)
+let tideCache: { heights: number[], times: string[], fetched: number } | null = null
+
+async function fetchRealTideData(): Promise<{ heights: number[], times: string[] } | null> {
+  const now = Date.now()
+  if (tideCache && (now - tideCache.fetched) < 30 * 60 * 1000) {
+    return { heights: tideCache.heights, times: tideCache.times }
+  }
+  try {
+    const res = await fetch(
+      'https://marine-api.open-meteo.com/v1/marine?' +
+      'latitude=-27.62&longitude=-48.48' +
+      '&hourly=sea_level_height_msl' +
+      '&timezone=America%2FSao_Paulo&forecast_days=2'
+    )
+    const data = await res.json() as any
+    if (data.error || !data.hourly?.sea_level_height_msl) return null
+    tideCache = { heights: data.hourly.sea_level_height_msl, times: data.hourly.time, fetched: now }
+    return { heights: tideCache.heights, times: tideCache.times }
+  } catch { return null }
+}
+
+function getTideFromData(heights: number[], times: string[]): { height: number, state: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' } {
+  // Encontra índice atual
+  const nowStr = new Date().toISOString().slice(0, 13)
+  let idx = times.findIndex(t => t.startsWith(nowStr))
+  if (idx < 0) idx = 0
+
+  const h = heights[idx] ?? 0.5
+  const prev = heights[Math.max(0, idx - 1)] ?? h
+  const next = heights[Math.min(heights.length - 1, idx + 1)] ?? h
+
+  const trend = next - prev
+  let state: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia'
+  if (trend > 0.05) state = 'Enchendo'
+  else if (trend < -0.05) state = 'Secando'
+  else if (h > 0.6) state = 'Cheia'
+  else state = 'Vazia'
+
+  return { height: Number(h.toFixed(2)), state }
+}
+
+// Fallback matemático se API falhar
 const getTideHeight = (): number => {
   const now = new Date()
   const currentHour = now.getHours() + now.getMinutes() / 60
@@ -134,6 +177,7 @@ const calculateScore = (waveHeight: number, windSpeed: number, swellPeriod: numb
   return Math.min(10, Math.max(1, Number(finalScore.toFixed(1))))
 }
 
+// Fallback de maré por hora do dia (usado se API falhar)
 const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
   const hour = new Date().getHours()
   if (hour >= 6 && hour <= 9) return 'Enchendo'
@@ -145,15 +189,20 @@ const getTide = (): 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia' => {
 
 const getCrowdLevel = (score: number): 'Vazio' | 'Pouca gente' | 'Cheio' => {
   const hour = new Date().getHours()
-  if (score >= 8 && hour >= 6 && hour <= 10) return 'Cheio'
-  if (score >= 7) return 'Pouca gente'
+  const isWeekend = [0, 6].includes(new Date().getDay())
+  const isPeakHour = hour >= 7 && hour <= 11
+  // Estimativa baseada em score, hora e dia da semana
+  if (score >= 7.5 && isPeakHour && isWeekend) return 'Cheio'
+  if (score >= 7 && isPeakHour) return 'Pouca gente'
+  if (score >= 6.5 && isWeekend) return 'Pouca gente'
   return 'Vazio'
 }
 
 const getCrowdMessage = (crowdLevel: string, score: number): string => {
-  if (crowdLevel === 'Cheio') return score >= 8 ? 'Mar bom atrai galera' : 'Bastante gente na água'
-  if (crowdLevel === 'Pouca gente') return 'Bom momento para surfar'
-  return 'Água tranquila, quase ninguém'
+  const base = '⚠️ Estimativa baseada em score, hora e dia'
+  if (crowdLevel === 'Cheio') return `Tendência de crowd alto · ${base}`
+  if (crowdLevel === 'Pouca gente') return `Tendência de crowd moderado · ${base}`
+  return `Tendência de crowd baixo · ${base}`
 }
 
 const getLevel = (waveHeight: number): 'Iniciante' | 'Intermediário' | 'Avançado' => {
@@ -218,7 +267,7 @@ const BEACHES = [
     subRegions: [
       { id: 'lomba-sabao', name: 'Lomba do Sabão', lat: -27.6974, lng: -48.4899, swellDirections: ['E', 'SE'] },
       { id: 'palanque', name: 'Palanque', lat: -27.6929, lng: -48.4870, swellDirections: ['SE', 'S', 'SSE'] },
-      { id: 'principal', name: 'Principal', lat: -27.7080, lng: -48.4968, swellDirections: ['E', 'NE', 'ENE'] },
+      { id: 'principal', name: 'Principal', lat: -27.6893, lng: -48.4825, swellDirections: ['E', 'NE', 'ENE'] },
     ], bestTimeWindow: '06h - 09h' },
   { id: 'novo-campeche', name: 'Novo Campeche', region: 'Sul' as const,
     lat: -27.6661001, lng: -48.4755307, // Praia do Novo Campeche — bem na areia
@@ -255,7 +304,7 @@ const BEACHES = [
   { id: 'armacao', name: 'Armação', region: 'Sul' as const,
     lat: -27.7504078, lng: -48.5017637, orientation: 115,
     subRegions: [
-      { id: 'canto-esquerdo', name: 'Canto Esquerdo', lat: -27.7428, lng: -48.5020, swellDirections: ['SE', 'S', 'SSE'] },
+      { id: 'caldeirao', name: 'Caldeirão', lat: -27.7535, lng: -48.5062, swellDirections: ['SE', 'S', 'SSE'] },
       { id: 'centro', name: 'Centro', lat: -27.7500, lng: -48.5045, swellDirections: ['SE', 'E'] },
       { id: 'matadouro', name: 'Matadouro', lat: -27.7535, lng: -48.5062, swellDirections: ['S', 'SW', 'SSW'] },
     ], bestTimeWindow: '06h - 09h e 16h - 18h' },
@@ -288,7 +337,6 @@ const BEACHES = [
     lat: -27.5734502, lng: -48.424939, orientation: 75,
     subRegions: [
       { id: 'canal', name: 'Canal da Barra', lat: -27.5765, lng: -48.4185, swellDirections: ['NE', 'E', 'ENE'] },
-      { id: 'praia-principal', name: 'Praia Principal', lat: -27.5748, lng: -48.4200, swellDirections: ['E', 'NE'] },
       { id: 'norte-da-barra', name: 'Norte da Barra', lat: -27.5688, lng: -48.4252, swellDirections: ['NE', 'ENE'] },
     ], bestTimeWindow: 'Melhor na maré enchente' },
   { id: 'santinho', name: 'Santinho', region: 'Norte' as const,
@@ -303,6 +351,40 @@ const BEACHES = [
     lat: -27.4802204, lng: -48.3769892, orientation: 65, bestTimeWindow: '09h - 12h' },
 ]
 
+// Calcula melhor janela do dia dinamicamente usando dados horários da API
+function calculateBestWindow(windyData: any, beachOrientation: number): string {
+  // windyData pode ter hourlyData se a API retornar dados horários
+  // Por enquanto usa lógica baseada no vento atual e hora do nascer/pôr do sol
+  if (!windyData) return 'Verificar condições'
+
+  const windDegMap: Record<string, number> = {
+    'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5, 'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+    'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5, 'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5,
+  }
+  const windDeg = windDegMap[windyData.windDirection] ?? 0
+  const offshoreDir = (beachOrientation + 180) % 360
+  let angleDiff = Math.abs(windDeg - offshoreDir)
+  if (angleDiff > 180) angleDiff = 360 - angleDiff
+
+  const isOffshore = angleDiff <= 60
+  const isLightWind = windyData.windSpeed <= 15
+  const hour = new Date().getHours()
+
+  // Em Floripa o vento tipicamente amaina de manhã cedo (offshore) e aumenta à tarde (onshore)
+  // Melhor janela = offshore + vento leve = manhã cedo
+  if (isOffshore && isLightWind) {
+    if (hour < 12) return `${hour.toString().padStart(2,'0')}h - ${Math.min(hour+3, 12).toString().padStart(2,'0')}h`
+    return 'Amanhã cedo (06h - 09h)'
+  }
+  if (isLightWind) {
+    return '06h - 09h (vento tende a ser melhor)'
+  }
+  if (windyData.windSpeed > 20) {
+    return 'Aguardar vento baixar'
+  }
+  return '06h - 09h'
+}
+
 let cachedConditions: BeachCondition[] | null = null
 let lastFetchTime = 0
 const CACHE_DURATION = 15 * 60 * 1000
@@ -311,9 +393,15 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
   const now = Date.now()
   if (cachedConditions && (now - lastFetchTime) < CACHE_DURATION) return cachedConditions
 
-  const tide = getTide()
-  // ✅ Busca temperatura da água real UMA vez para toda a ilha
-  const realWaterTemp = await getRealWaterTemp()
+  // ✅ Busca maré real + temperatura da água UMA vez para toda a ilha
+  const [tideData, realWaterTemp] = await Promise.all([
+    fetchRealTideData(),
+    getRealWaterTemp(),
+  ])
+  const tideInfo = tideData
+    ? getTideFromData(tideData.heights, tideData.times)
+    : { height: getTideHeight(), state: getTide() }
+  const tide = tideInfo.state
 
   const conditions = await Promise.all(
     BEACHES.map(async (beach) => {
@@ -348,11 +436,11 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       return {
         id: beach.id, name: beach.name, region: beach.region, subRegions,
         score, waveHeight, windSpeed, windDirection, swellDirection, swellPeriod, tide,
-        tideHeight: getTideHeight(), level: getLevel(waveHeight),
+        tideHeight: tideInfo.height, level: getLevel(waveHeight),
         boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: { temperature: waterTemp, wetsuit: getWetsuitInfo(waterTemp) },
         crowdLevel, crowdMessage: getCrowdMessage(crowdLevel, score),
-        bestTimeWindow: beach.bestTimeWindow,
+        bestTimeWindow: calculateBestWindow(windyData, beach.orientation),
         sunrise: windyData?.sunrise, sunset: windyData?.sunset,
         lat: beach.lat, lng: beach.lng,
         cameraUrl: camera?.cameraUrl, cameraEmbed: camera?.cameraEmbed, cameraSource: camera?.cameraSource,
