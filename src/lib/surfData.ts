@@ -198,7 +198,7 @@ const getCrowdLevel = (score: number): 'Vazio' | 'Pouca gente' | 'Cheio' => {
   return 'Vazio'
 }
 
-const getCrowdMessage = (crowdLevel: string, score: number): string => {
+const getCrowdMessage = (crowdLevel: string): string => {
   const base = '⚠️ Estimativa baseada em score, hora e dia'
   if (crowdLevel === 'Cheio') return `Tendência de crowd alto · ${base}`
   if (crowdLevel === 'Pouca gente') return `Tendência de crowd moderado · ${base}`
@@ -439,7 +439,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
         tideHeight: tideInfo.height, level: getLevel(waveHeight),
         boardSuggestion: getBoardSuggestion(waveHeight),
         waterConditions: { temperature: waterTemp, wetsuit: getWetsuitInfo(waterTemp) },
-        crowdLevel, crowdMessage: getCrowdMessage(crowdLevel, score),
+        crowdLevel, crowdMessage: getCrowdMessage(crowdLevel),
         bestTimeWindow: calculateBestWindow(windyData, beach.orientation),
         sunrise: windyData?.sunrise, sunset: windyData?.sunset,
         lat: beach.lat, lng: beach.lng,
