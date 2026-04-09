@@ -16,9 +16,9 @@ import { usePremium } from '@/lib/premium'
 import {
   ArrowLeft, Waves, Wind, Navigation, Users,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
-  Video, Heart, Calendar, Star, Sun, Info, Maximize2, X,
+  Video, Heart, Calendar, Star, Sun, Maximize2, X,
   Share2, MessageCircle, Trash2, Send, ChevronDown, ChevronUp,
-  ExternalLink, WifiOff, Lock, Crown, Camera
+  ExternalLink, WifiOff, Lock, Crown
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
@@ -111,7 +111,6 @@ const generateTideData = (realLevels?: number[]) => {
   const points: { hour: number, height: number }[] = []
 
   if (realLevels && realLevels.length >= 24) {
-    // ✅ Usa dados reais da API (sea_level horário)
     for (let h = 0; h <= 24; h += 0.25) {
       const i = Math.min(23, Math.floor(h))
       const frac = h - Math.floor(h)
@@ -120,7 +119,6 @@ const generateTideData = (realLevels?: number[]) => {
       points.push({ hour: h, height: Number((h0 + (h1 - h0) * frac).toFixed(2)) })
     }
   } else {
-    // Fallback senoidal
     const amplitude = 0.20, midLevel = 0.5, period = 12.4
     const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
     const phaseOffset = (dayOfYear * 0.8) % period
@@ -168,12 +166,12 @@ const TideChartSVG = ({ tide, expanded = false, realLevels }: { tide: string, ex
   const areaData = pathData + ` L ${xScale(24).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)} L ${xScale(0).toFixed(1)} ${(chartHeight + padding.top).toFixed(1)} Z`
   const currentX = xScale(currentHour), currentY = yScale(currentHeight)
   const formatHour = (h: number) => `${Math.floor(h).toString().padStart(2, '0')}:${Math.round((h - Math.floor(h)) * 60).toString().padStart(2, '0')}`
+
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return
     const rect = svgRef.current.getBoundingClientRect()
     const rawX = (e.clientX - rect.left) * (viewWidth / rect.width)
     const hour = Math.max(0, Math.min(24, (rawX - padding.left) / chartWidth * 24))
-    // Usa interpolação dos dados reais se disponível, senão fórmula senoidal
     let height: number
     if (realLevels && realLevels.length >= 24) {
       const i = Math.min(23, Math.floor(hour))
@@ -187,7 +185,14 @@ const TideChartSVG = ({ tide, expanded = false, realLevels }: { tide: string, ex
     height = Number(height.toFixed(2))
     setTooltip({ x: rawX, y: yScale(height), hour, height })
   }
+
   const gradId = expanded ? 'tideGradExp' : 'tideGrad'
+
+  // Tooltip box position — keep inside chart bounds
+  const tooltipBoxW = 72, tooltipBoxH = 36
+  const tooltipX = tooltip ? Math.min(Math.max(tooltip.x - tooltipBoxW / 2, padding.left), viewWidth - padding.right - tooltipBoxW) : 0
+  const tooltipY = tooltip ? Math.max(padding.top + 2, tooltip.y - tooltipBoxH - 10) : 0
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-4">
@@ -210,12 +215,18 @@ const TideChartSVG = ({ tide, expanded = false, realLevels }: { tide: string, ex
           <rect x={Math.min(currentX - 16, viewWidth - padding.right - 32)} y={padding.top - 14} width="32" height="13" rx="3" fill="#06b6d4" opacity="0.9" />
           <text x={Math.min(currentX, viewWidth - padding.right - 16)} y={padding.top - 4} textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">Agora</text>
           <circle cx={currentX} cy={currentY} r="5" fill="#06b6d4" stroke="white" strokeWidth="2" />
-          {tooltip && (<><line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top} stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.5" /><circle cx={tooltip.x} cy={yScale(tooltip.height)} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" /></>)}
+
+          {/* ✅ Tooltip hover com horário e nível real */}
+          {tooltip && (
+            <>
+              <line x1={tooltip.x} y1={padding.top} x2={tooltip.x} y2={chartHeight + padding.top} stroke="#ffffff" strokeWidth="1" strokeDasharray="2,2" opacity="0.4" />
+              <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="white" stroke="#06b6d4" strokeWidth="2" />
+              <rect x={tooltipX} y={tooltipY} width={tooltipBoxW} height={tooltipBoxH} rx="5" fill="#0e1117" stroke="#06b6d4" strokeWidth="1" opacity="0.95" />
+              <text x={tooltipX + tooltipBoxW / 2} y={tooltipY + 13} textAnchor="middle" fontSize="9" fill="#06b6d4" fontWeight="bold">{formatHour(tooltip.hour)}</text>
+              <text x={tooltipX + tooltipBoxW / 2} y={tooltipY + 27} textAnchor="middle" fontSize="11" fill="white" fontWeight="bold">{tooltip.height.toFixed(2)}m</text>
+            </>
+          )}
         </svg>
-      </div>
-      <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
-        <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
-        <span>Gráfico mostra o <strong>nível da maré</strong> — não o tamanho das ondas. Dados aproximados baseados no padrão semi-diurno de Florianópolis.</span>
       </div>
     </div>
   )
@@ -374,30 +385,74 @@ const ShareButton = ({ spot }: { spot: BeachCondition }) => {
   return <Button variant="outline" size="sm" onClick={handleShare}><Share2 className="h-4 w-4 mr-2" />Compartilhar</Button>
 }
 
+// ✅ CameraPlayer atualizado — links úteis para praias sem câmera embed
 const CameraPlayer = ({ spot }: { spot: BeachCondition }) => {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
 
+  const searchLinks = [
+    {
+      label: 'Buscar no YouTube',
+      icon: '▶️',
+      url: `https://www.youtube.com/results?search_query=camera+ao+vivo+${encodeURIComponent(spot.name)}+Florianopolis+surf`,
+      color: '#ff0000',
+    },
+    {
+      label: 'Ver no Instagram',
+      icon: '📸',
+      url: `https://www.instagram.com/explore/search/?q=${encodeURIComponent(spot.name + ' floripa surf')}`,
+      color: '#e1306c',
+    },
+    {
+      label: 'Street View da praia',
+      icon: '🗺️',
+      url: `https://www.google.com/maps/search/${encodeURIComponent(spot.name + ' Florianópolis')}/@${spot.lat},${spot.lng},15z`,
+      color: '#4285f4',
+    },
+    {
+      label: 'Windy — vento e ondas',
+      icon: '🌊',
+      url: `https://www.windy.com/${spot.lat.toFixed(2)}/${spot.lng.toFixed(2)}?waves`,
+      color: '#06b6d4',
+    },
+  ]
+
   if (!spot.cameraEmbed) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-        <WifiOff className="h-12 w-12 text-muted-foreground opacity-20" />
-        <p className="text-sm font-medium text-muted-foreground">Câmera não disponível para {spot.name}</p>
-        <a href={`https://www.google.com/search?q=camera+ao+vivo+${encodeURIComponent(spot.name)}+Florianopolis`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-          Buscar câmeras de {spot.name} <ExternalLink className="h-3 w-3" />
-        </a>
+      <div className="space-y-4">
+        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+          <WifiOff className="h-10 w-10 text-muted-foreground opacity-20" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Sem câmera ao vivo para {spot.name}</p>
+            <p className="text-xs text-muted-foreground mt-1">Confira as condições por outros meios:</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {searchLinks.map(link => (
+            <a
+              key={link.label}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 p-3 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
+            >
+              <span className="text-lg">{link.icon}</span>
+              <span className="text-xs font-semibold leading-tight">{link.label}</span>
+              <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto flex-shrink-0" />
+            </a>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      {/* Preview com botão de abrir — evita problemas de X-Frame-Options */}
       <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30" style={{ aspectRatio: '16/9' }}>
         {!loaded ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <div className="relative">
-              <Camera className="h-16 w-16 text-muted-foreground opacity-20" />
+              <Video className="h-16 w-16 text-muted-foreground opacity-20" />
               <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 animate-pulse border-2 border-background" />
             </div>
             <div className="text-center space-y-1">
@@ -416,7 +471,7 @@ const CameraPlayer = ({ spot }: { spot: BeachCondition }) => {
                 className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all active:scale-95"
                 style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
               >
-                <Camera className="h-4 w-4" />
+                <Video className="h-4 w-4" />
                 Abrir câmera ao vivo
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
@@ -513,7 +568,6 @@ export default function SpotDetails() {
     .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
   `
 
-  // Temperatura do ar vem do forecast[0]
   const airTemp = forecast.length > 0 ? forecast[0].temperature : null
 
   return (
@@ -556,6 +610,7 @@ export default function SpotDetails() {
         </div>
       )}
 
+      {/* ✅ Header sem botão Câmeras */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -614,32 +669,22 @@ export default function SpotDetails() {
                 <CardContent>
                   <div className="space-y-3">
                     {spot.subRegions.map((subRegion, idx) => {
-                      // ✅ Calcula compatibilidade do swell atual com as direções ideais de cada sub-pico
-                      // Compara a direção do swell atual com as direções que o pico funciona melhor
                       const swellDirOrder = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']
                       const currentSwellIdx = swellDirOrder.indexOf(spot.swellDirection)
                       const idealDirs: string[] = subRegion.swellDirections ?? []
-
-                      // Calcula diferença angular mínima entre swell atual e direções ideais do pico
-                      let minDiff = 8 // máximo (180°)
+                      let minDiff = 8
                       idealDirs.forEach(dir => {
                         const idealIdx = swellDirOrder.indexOf(dir)
                         if (idealIdx >= 0 && currentSwellIdx >= 0) {
                           let diff = Math.abs(currentSwellIdx - idealIdx)
-                          if (diff > 8) diff = 16 - diff // wraparound
+                          if (diff > 8) diff = 16 - diff
                           if (diff < minDiff) minDiff = diff
                         }
                       })
-
-                      // 0 = swell perfeito (×1.2), 1 = próximo (×1.05), 2 = ok (×0.9), 3+ = ruim (×0.7)
                       const waveMultiplier = minDiff === 0 ? 1.20 : minDiff === 1 ? 1.05 : minDiff === 2 ? 0.90 : minDiff <= 4 ? 0.75 : 0.60
                       const waveEst = spot.waveHeight * waveMultiplier
-                      // ✅ Range do sub-pico: baseado na compatibilidade de swell
-                      // Sem o ±20% extra — esse range já é da praia geral
-                      // Aqui mostramos apenas o valor estimado para cada pico ±10%
                       const waveMin = (waveEst * 0.90).toFixed(1)
                       const waveMax = (waveEst * 1.10).toFixed(1)
-                      // Compatibilidade em texto
                       const swellMatch = minDiff === 0 ? '🔥 Swell perfeito' : minDiff <= 2 ? '✅ Swell bom' : minDiff <= 4 ? '⚠️ Swell parcial' : '❌ Swell ruim'
                       return (
                         <div key={subRegion.id}
@@ -655,7 +700,6 @@ export default function SpotDetails() {
                               <span className="text-xs text-muted-foreground ml-auto">{waveMin}m - {waveMax}m</span>
                             </div>
                             {subRegion.description && <div className="text-sm text-muted-foreground">{subRegion.description}</div>}
-                            {/* Detalhes expandidos ao clicar */}
                             {selectedSubRegion?.id === subRegion.id && (
                               <div className="mt-3 pt-3 border-t border-border/40 space-y-2" style={{ animation: 'slideUp 0.2s ease-out' }}>
                                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -681,20 +725,10 @@ export default function SpotDetails() {
                                     : ` — Este pico funciona melhor com swell de ${idealDirs.join(', ')}. Hoje o swell é ${spot.swellDirection}, ondas menores e menos organizadas.`}
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                  <a
-                                    href={`https://www.google.com/maps/dir/?api=1&destination=${subRegion.lat},${subRegion.lng}&travelmode=driving`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors"
-                                    onClick={e => e.stopPropagation()}
-                                  >
+                                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${subRegion.lat},${subRegion.lng}&travelmode=driving`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors" onClick={e => e.stopPropagation()}>
                                     <Navigation className="h-3.5 w-3.5" />Google Maps
                                   </a>
-                                  <a
-                                    href={`https://waze.com/ul?ll=${subRegion.lat},${subRegion.lng}&navigate=yes`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted/50 transition-colors"
-                                    onClick={e => e.stopPropagation()}
-                                  >
+                                  <a href={`https://waze.com/ul?ll=${subRegion.lat},${subRegion.lng}&navigate=yes`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted/50 transition-colors" onClick={e => e.stopPropagation()}>
                                     <Navigation className="h-3.5 w-3.5" />Waze
                                   </a>
                                 </div>
@@ -765,11 +799,8 @@ export default function SpotDetails() {
               <AlertDescription className="text-foreground">{analyzeConditions(spot)}</AlertDescription>
             </Alert>
 
-
-
             <div className="anim-slide"><CommentsSection spot={spot} /></div>
 
-            {/* ✅ Temperatura da água SEM descrição "Quentinha" — apenas números */}
             <Card className="card-hover anim-slide">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2"><Thermometer className="h-5 w-5 text-chart-2" />Temperatura</CardTitle>
@@ -800,7 +831,6 @@ export default function SpotDetails() {
               </CardContent>
             </Card>
 
-
             <Card className="card-hover anim-slide">
               <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5 text-chart-3" />Crowd</CardTitle></CardHeader>
               <CardContent>
@@ -823,7 +853,6 @@ export default function SpotDetails() {
               </Card>
             )}
 
-
             {spot.score < 4 && (
               <Alert variant="destructive" className="anim-slide">
                 <AlertCircle className="h-4 w-4" /><AlertTitle>Condições não ideais</AlertTitle>
@@ -832,7 +861,6 @@ export default function SpotDetails() {
             )}
           </TabsContent>
 
-          {/* ✅ Previsão 7 dias com bloqueio para usuários free */}
           <TabsContent value="forecast" className="space-y-4">
             <Card>
               <CardHeader>
@@ -890,7 +918,6 @@ export default function SpotDetails() {
                         </div>
                       )
                     })}
-                    {/* CTA para assinar se for free */}
                     {!isPremium && (
                       <button onClick={() => navigate('/premium')} className="w-full p-4 rounded-lg border border-dashed border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors text-center">
                         <Crown className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
