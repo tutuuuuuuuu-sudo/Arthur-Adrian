@@ -17,6 +17,10 @@ const cache: Record<string, { data: WindyForecastData; time: number }> = {}
 const CACHE_DURATION = 15 * 60 * 1000
 
 const STORMGLASS_KEY = 'c15a1d32-26bc-11f1-97a9-0242ac120003-c15a1d8c-26bc-11f1-97a9-0242ac120003'
+// ✅ Windy Point Forecast API — crie sua key gratuita em: https://api.windy.com/keys
+// Quando tiver a key, cole aqui. Ela será usada como fonte primária (mais precisa que Open-Meteo)
+const WINDY_API_KEY = import.meta.env?.VITE_WINDY_API_KEY ?? ''
+const WINDY_ENDPOINT = 'https://api.windy.com/api/point-forecast/v2'
 
 function degToDir(deg: number): string {
   const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']
@@ -31,6 +35,49 @@ function getHourIndex(times: string[]): number {
     if (diff < bestDiff) { bestDiff = diff; bestIdx = i }
   })
   return bestIdx
+}
+
+// ── Fonte 0: Windy Point Forecast API (mais precisa — requer key) ───────────────
+async function fetchWindyAPI(lat: number, lng: number): Promise<WindyForecastData | null> {
+  if (!WINDY_API_KEY) return null
+  try {
+    const [waveRes, windRes] = await Promise.all([
+      fetch(WINDY_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon: lng, model: 'gfsWave', parameters: ['waves', 'swell1'], key: WINDY_API_KEY }),
+      }),
+      fetch(WINDY_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon: lng, model: 'gfs', parameters: ['wind', 'temp'], levels: ['surface'], key: WINDY_API_KEY }),
+      }),
+    ])
+    const waveData = await waveRes.json() as any
+    const windData = await windRes.json() as any
+    if (waveData.error || windData.error) return null
+
+    const ts: number[] = waveData.ts ?? []
+    const nowMs = Date.now()
+    let idx = 0, minDiff = Infinity
+    ts.forEach((t, i) => { const d = Math.abs(t - nowMs); if (d < minDiff) { minDiff = d; idx = i } })
+
+    const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']
+    const degToDir = (deg: number) => dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]
+
+    const wH = (waveData['waves_height-surface'] ?? [])[idx] ?? 0
+    const sH = (waveData['swell1_height-surface'] ?? [])[idx] ?? 0
+    const sP = (waveData['swell1_period-surface'] ?? [])[idx] ?? 8
+    const sD = (waveData['swell1_direction-surface'] ?? [])[idx] ?? 90
+    const wu = (windData['wind_u-surface'] ?? [])[idx] ?? 0
+    const wv = (windData['wind_v-surface'] ?? [])[idx] ?? 0
+    const windSpeed = Math.round(Math.sqrt(wu*wu + wv*wv) * 3.6)
+    const windDir = degToDir((Math.atan2(-wu, -wv) * 180 / Math.PI + 360) % 360)
+
+    return {
+      waveHeight: Number(Math.max(wH, sH).toFixed(1)),
+      swellPeriod: Math.round(sP), swellDirection: degToDir(sD),
+      windSpeed, windDirection: windDir,
+    }
+  } catch { return null }
 }
 
 // ── Fonte 1: Open-Meteo Marine (GFS Wave) ────────────────────────────────────
@@ -142,7 +189,14 @@ export async function getWindyForecast(
     return cache[cacheKey].data
   }
 
-  // Tenta Open-Meteo primeiro (gratuito, sem limite)
+  // Tenta Windy API primeiro (mais precisa, requer key em VITE_WINDY_API_KEY)
+  const windyResult = await fetchWindyAPI(lat, lng)
+  if (windyResult) {
+    cache[cacheKey] = { data: windyResult, time: now }
+    return windyResult
+  }
+
+  // Fallback: Open-Meteo (gratuito, sem limite)
   const openMeteo = await fetchOpenMeteo(lat, lng)
   if (openMeteo) {
     cache[cacheKey] = { data: openMeteo, time: now }
