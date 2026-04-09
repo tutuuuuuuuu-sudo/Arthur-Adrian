@@ -1,18 +1,19 @@
-// ✅ MARÉ REAL via Open-Meteo Marine (sea_level via Copernicus)
-// Disponível desde 2025 para costas abertas como Florianópolis
+// ✅ MARÉ REAL via Open-Meteo Marine (sea_level_height_msl via Copernicus)
+// Disponível para costas abertas como Florianópolis
 export async function getRealTide(): Promise<{
   level: number
   state: 'Enchendo' | 'Secando' | 'Cheia' | 'Vazia'
   hourlyLevels: number[]
 } | null> {
   try {
+    // ✅ CORRIGIDO: parâmetro correto é sea_level_height_msl (não sea_level)
     const res = await fetch(
-      'https://marine-api.open-meteo.com/v1/marine?latitude=-27.62&longitude=-48.48&hourly=sea_level&timezone=America%2FSao_Paulo&forecast_days=1'
+      'https://marine-api.open-meteo.com/v1/marine?latitude=-27.62&longitude=-48.48&hourly=sea_level_height_msl&timezone=America%2FSao_Paulo&forecast_days=1'
     )
     const data = await res.json() as any
-    if (data.error || !data.hourly?.sea_level) return null
+    if (data.error || !data.hourly?.sea_level_height_msl) return null
 
-    const levels: number[] = data.hourly.sea_level
+    const levels: number[] = data.hourly.sea_level_height_msl
     const hour = new Date().getHours()
     const current = levels[hour] ?? 0
     const next = levels[Math.min(23, hour + 1)] ?? current
@@ -189,30 +190,25 @@ export async function getWeatherForecast(
 
       let waveHeight: number, windSpeed: number, swellPeriod: number, temperature: number, score: number
 
-      // Temperatura atual: usa valor horário da hora atual (index = hora atual do dia)
       const currentHour = new Date().getHours()
       const hourlyTemps: number[] = weather.hourly?.temperature_2m ?? []
-      // Cada dia tem 24 horas no array hourly; dia i começa no índice i*24
-      const hourIdx = i === 0 ? currentHour : i * 24 + 12 // hora atual no dia 0, meio-dia nos demais
+      const hourIdx = i === 0 ? currentHour : i * 24 + 12
       const hourlyTemp = hourlyTemps[hourIdx] != null ? Math.round(hourlyTemps[hourIdx]) : null
 
       if (i === 0 && currentConditions) {
         waveHeight = currentConditions.waveHeight
         windSpeed = currentConditions.windSpeed
         swellPeriod = currentConditions.swellPeriod
-        // ✅ Temperatura do ar atual: valor horário real, não máximo diário
         temperature = hourlyTemp ?? Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
         score = currentConditions.score
       } else {
         waveHeight = Number((marine.daily?.swell_wave_height_max?.[i] ?? marine.daily?.wave_height_max?.[i] ?? 1.0).toFixed(1))
         swellPeriod = Math.round(marine.daily?.swell_wave_period_max?.[i] ?? marine.daily?.wave_period_max?.[i] ?? 10)
         windSpeed = Math.round(weather.daily?.wind_speed_10m_max?.[i] ?? 12)
-        // Para dias futuros usa temperatura máxima (previsão)
         temperature = Math.round(weather.daily?.temperature_2m_max?.[i] ?? 24)
         score = calculateForecastScore(waveHeight, windSpeed, swellPeriod)
       }
 
-      // ✅ CORRIGIDO: direção em graus → código limpo sem sufixo
       const windDeg = weather.daily?.wind_direction_10m_dominant?.[i] ?? 0
       const windDirection = degreesToDir(windDeg)
 
@@ -221,7 +217,7 @@ export async function getWeatherForecast(
         dayName,
         waveHeight,
         windSpeed,
-        windDirection,   // ← "SE", "N", "SW" — sem Terral/Frontal
+        windDirection,
         swellPeriod,
         temperature,
         condition: getConditionFromScore(score),
