@@ -68,7 +68,7 @@ async function fetchWindyAPI(lat: number, lng: number): Promise<WindyForecastDat
           lat,
           lon: lng,
           model: 'gfsWave',
-          parameters: ['waves', 'swell1'],
+          parameters: ['windWaves', 'swell1'],
           key: WINDY_API_KEY,
         }),
       }),
@@ -111,18 +111,19 @@ async function fetchWindyAPI(lat: number, lng: number): Promise<WindyForecastDat
     const windIdx = getHourIndexFromTs(windTs)
 
     // ── Ondas (gfsWave) ──
-    // waves_height-surface  = altura significativa total
-    // swell1_height-surface = altura do swell primário
-    // swell1_period-surface = período do swell primário (s)
-    // swell1_direction-surface = direção DE ONDE o swell vem (graus)
-    const wH = (waveData['waves_height-surface'] ?? [])[waveIdx] ?? 0
+    // windWaves_height-surface  = altura significativa das ondas de vento
+    // swell1_height-surface     = altura do swell primário
+    // swell1_period-surface     = período do swell primário (s)
+    // swell1_direction-surface  = direção DE ONDE o swell vem (graus)
+    const wH = (waveData['windWaves_height-surface'] ?? [])[waveIdx] ?? 0
     const sH = (waveData['swell1_height-surface'] ?? [])[waveIdx] ?? 0
     const sP = (waveData['swell1_period-surface'] ?? [])[waveIdx] ?? 8
     const sD = (waveData['swell1_direction-surface'] ?? [])[waveIdx] ?? 90
 
+    // Usa o maior entre onda de vento e swell primário
     const finalWaveHeight = Math.max(wH, sH)
     if (finalWaveHeight < 0.05) {
-      console.warn('[WeatherAPI] Windy: altura suspeita (< 0.05m) — keys wave:', Object.keys(waveData).filter(k => k !== 'ts' && k !== 'units'))
+      console.warn('[WeatherAPI] Windy: altura suspeita (< 0.05m) — keys disponíveis:', Object.keys(waveData).filter(k => k !== 'ts' && k !== 'units'))
       return null
     }
 
