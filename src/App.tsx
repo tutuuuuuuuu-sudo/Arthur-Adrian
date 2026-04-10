@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { PWAInstallBanner } from './components/PWAInstallBanner'
 import Home from './pages/Home'
 import SpotDetails from './pages/SpotDetails'
 import LoginPage from './pages/LoginPage'
@@ -61,6 +62,8 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" />
+      {/* ✅ Banner de instalação PWA — aparece uma vez no Android/iOS */}
+      <PWAInstallBanner />
     </>
   )
 }
