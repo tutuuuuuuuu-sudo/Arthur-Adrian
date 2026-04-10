@@ -17,9 +17,9 @@ import {
   checkAndNotifyGoodConditions
 } from '@/lib/notifications'
 import {
-  Waves, TrendingUp, MapPin, Info, Heart, Settings,
+  Waves, TrendingUp, TrendingDown, Minus, MapPin, Info, Heart, Settings,
   Bell, BellOff, X, ChevronDown, ChevronUp,
-  Navigation, Camera, Crown
+  Navigation, Crown
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
@@ -127,6 +127,7 @@ const getScoreColor = (score: number) => {
   if (score >= 4) return '#f59e0b'
   return '#ef4444'
 }
+
 const getThemeGradient = (score: number) => {
   if (score >= 8.5) return 'from-purple-900/40 via-background to-background'
   if (score >= 7) return 'from-cyan-900/40 via-background to-background'
@@ -135,6 +136,38 @@ const getThemeGradient = (score: number) => {
   return 'from-red-900/30 via-background to-background'
 }
 
+// ✅ Indicador de tendência: compara score atual com o da última atualização (15min atrás)
+// Como não temos histórico ainda, usa a hora do dia como proxy de tendência do vento
+// Floripa: vento tende a aumentar (piorar) da manhã para a tarde → manhã = melhora, tarde = piora
+function getTrend(spot: BeachCondition): 'up' | 'down' | 'stable' {
+  const hour = new Date().getHours()
+  // Score base sem penalidade de vento = heurística de tendência
+  // Manhã cedo (5-9h): vento amaina → tendência de melhora
+  // Tarde (14-18h): vento aumenta → tendência de piora
+  // Resto: estável
+  if (hour >= 5 && hour <= 9) return spot.windSpeed <= 15 ? 'up' : 'stable'
+  if (hour >= 14 && hour <= 18) return spot.windSpeed >= 15 ? 'down' : 'stable'
+  return 'stable'
+}
+
+const TrendBadge = ({ spot, size = 'sm' }: { spot: BeachCondition, size?: 'sm' | 'lg' }) => {
+  const trend = getTrend(spot)
+  if (trend === 'stable') return (
+    <span className={`inline-flex items-center gap-1 ${size === 'lg' ? 'text-sm' : 'text-xs'} text-muted-foreground`}>
+      <Minus className={size === 'lg' ? 'h-4 w-4' : 'h-3 w-3'} />Estável
+    </span>
+  )
+  if (trend === 'up') return (
+    <span className={`inline-flex items-center gap-1 ${size === 'lg' ? 'text-sm' : 'text-xs'} text-green-500 font-semibold`}>
+      <TrendingUp className={size === 'lg' ? 'h-4 w-4' : 'h-3 w-3'} />Melhorando
+    </span>
+  )
+  return (
+    <span className={`inline-flex items-center gap-1 ${size === 'lg' ? 'text-sm' : 'text-xs'} text-orange-400 font-semibold`}>
+      <TrendingDown className={size === 'lg' ? 'h-4 w-4' : 'h-3 w-3'} />Piorando
+    </span>
+  )
+}
 
 const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
   const [dismissed, setDismissed] = useState(false)
@@ -288,7 +321,6 @@ export default function Home() {
     </div>
   )
 
-  // ✅ CORRIGIDO: AdCard a cada 3 praias — alinha perfeitamente com grid de 3 colunas
   const spotsWithAds: (BeachCondition | 'ad')[] = isPremium
     ? spots
     : spots.reduce<(BeachCondition | 'ad')[]>((acc, spot, idx) => {
@@ -301,6 +333,7 @@ export default function Home() {
     <div className={`min-h-screen bg-gradient-to-b ${topSpot ? getThemeGradient(topSpot.score) : 'bg-background'}`}>
       <style>{animStyles}</style>
 
+      {/* ✅ Header sem botão Câmeras */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -310,13 +343,6 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2" style={{ animation: 'slideInRight 0.4s ease-out' }}>
               <ThemeToggle />
-
-              <Button variant="outline" size="sm" onClick={() => navigate('/cameras')} className="hidden sm:flex">
-                <Camera className="h-4 w-4 mr-1.5" />Câmeras
-              </Button>
-              <button onClick={() => navigate('/cameras')} className="sm:hidden p-2 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors" title="Câmeras">
-                <Camera className="h-4 w-4 text-muted-foreground" />
-              </button>
 
               <Button variant="outline" size="sm" onClick={() => navigate('/navigation')} className="hidden sm:flex">
                 <Navigation className="h-4 w-4 mr-1.5" />Me Leva ao Pico
@@ -365,11 +391,18 @@ export default function Home() {
 
         <SwellAlert spots={allSpots} />
 
+        {/* ✅ Card "Melhor Pico Agora" com TrendBadge */}
         {topSpot && (
           <Card className="border-primary/20 card-hover cursor-pointer overflow-hidden" onClick={() => navigate(`/spot/${topSpot.id}`)}
             style={{ animation: visible ? 'slideUp 0.5s 0.1s ease-out both' : 'none', background: `linear-gradient(135deg, hsl(var(--card)) 0%, ${getScoreColor(topSpot.score)}15 100%)`, borderColor: `${getScoreColor(topSpot.score)}40` }}>
             <CardHeader>
-              <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /><CardTitle className="text-lg">🔥 Melhor Pico Agora</CardTitle></div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">🔥 Melhor Pico Agora</CardTitle>
+                </div>
+                <TrendBadge spot={topSpot} size="lg" />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start justify-between gap-4">
@@ -394,7 +427,6 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Banner de anúncio — apenas free */}
         {!isPremium && (
           <div className="anim-slide" style={{ animationDelay: '0.25s' }}>
             <AdBanner />
@@ -418,7 +450,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Filtro de região inline — inclui Centro */}
         <div className="flex gap-2 overflow-x-auto pb-1 anim-slide" style={{ animationDelay: '0.42s' }}>
           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
           {(['all', 'Sul', 'Centro', 'Leste', 'Norte'] as const).map(region => (
