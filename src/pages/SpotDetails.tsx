@@ -687,6 +687,29 @@ export default function SpotDetails() {
           </TabsContent>
         </Tabs>
 
+        {/* ✅ Botões de navegação direto para esta praia */}
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}&travelmode=driving`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm text-white transition-all active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
+          >
+            <Navigation className="h-4 w-4" />
+            Ir ao Google Maps
+          </a>
+          <a
+            href={`https://waze.com/ul?ll=${spot.lat},${spot.lng}&navigate=yes`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm border border-border hover:bg-muted/50 transition-all active:scale-95"
+          >
+            <Navigation className="h-4 w-4" />
+            Ir ao Waze
+          </a>
+        </div>
+
         <Button size="lg" className="w-full" onClick={()=>navigate('/')}>Ver Todas as Praias</Button>
       </main>
     </div>
