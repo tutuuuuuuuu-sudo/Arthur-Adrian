@@ -22,6 +22,24 @@ function registerServiceWorker() {
   }
 }
 
+// ✅ Força dark mode sempre — remove qualquer classe de tema e adiciona 'dark'
+function useForceDark() {
+  useEffect(() => {
+    const html = document.documentElement
+    html.classList.remove('light')
+    html.classList.add('dark')
+    // Observa mudanças e reverte se algo tentar trocar
+    const observer = new MutationObserver(() => {
+      if (!html.classList.contains('dark')) {
+        html.classList.remove('light')
+        html.classList.add('dark')
+      }
+    })
+    observer.observe(html, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return (
@@ -35,6 +53,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user, loading } = useAuth()
+  useForceDark()
   useEffect(() => { registerServiceWorker() }, [])
 
   if (loading) return (
@@ -60,7 +79,6 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" />
-      {/* ✅ Banner de instalação PWA — aparece uma vez no Android/iOS */}
       <PWAInstallBanner />
     </>
   )
