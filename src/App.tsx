@@ -10,7 +10,6 @@ import Settings from './pages/Settings'
 import Profile from './pages/Profile'
 import Favorites from './pages/Favorites'
 import NavigationPage from './pages/Navigation'
-import CamerasPage from './pages/Cameras'
 import PremiumPage from './pages/Premium'
 import ComparePage from './pages/Compare'
 import HistoryPage from './pages/History'
@@ -54,7 +53,6 @@ function AppRoutes() {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
         <Route path="/navigation" element={<ProtectedRoute><NavigationPage /></ProtectedRoute>} />
-        <Route path="/cameras" element={<ProtectedRoute><CamerasPage /></ProtectedRoute>} />
         <Route path="/premium" element={<ProtectedRoute><PremiumPage /></ProtectedRoute>} />
         <Route path="/compare" element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
