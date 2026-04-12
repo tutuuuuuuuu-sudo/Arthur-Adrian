@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { SpotCard } from '@/components/surf/SpotCard'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getFavorites } from '@/lib/favorites'
@@ -18,8 +17,7 @@ import {
 } from '@/lib/notifications'
 import {
   Waves, TrendingUp, TrendingDown, Minus, MapPin, Info, Heart, Settings,
-  Bell, BellOff, X, ChevronDown, ChevronUp,
-  Navigation, Crown
+  Bell, BellOff, X, ChevronDown, ChevronUp, Navigation, Crown
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
@@ -136,15 +134,8 @@ const getThemeGradient = (score: number) => {
   return 'from-red-900/30 via-background to-background'
 }
 
-// ✅ Indicador de tendência: compara score atual com o da última atualização (15min atrás)
-// Como não temos histórico ainda, usa a hora do dia como proxy de tendência do vento
-// Floripa: vento tende a aumentar (piorar) da manhã para a tarde → manhã = melhora, tarde = piora
 function getTrend(spot: BeachCondition): 'up' | 'down' | 'stable' {
   const hour = new Date().getHours()
-  // Score base sem penalidade de vento = heurística de tendência
-  // Manhã cedo (5-9h): vento amaina → tendência de melhora
-  // Tarde (14-18h): vento aumenta → tendência de piora
-  // Resto: estável
   if (hour >= 5 && hour <= 9) return spot.windSpeed <= 15 ? 'up' : 'stable'
   if (hour >= 14 && hour <= 18) return spot.windSpeed >= 15 ? 'down' : 'stable'
   return 'stable'
@@ -311,7 +302,6 @@ export default function Home() {
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Waves className="h-6 w-6 text-primary animate-bounce" /></div>
             <div><h1 className="text-2xl font-bold">Surf AI</h1><p className="text-xs text-muted-foreground">Florianópolis, SC</p></div>
           </div>
-          <ThemeToggle />
         </div>
       </header>
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -333,7 +323,7 @@ export default function Home() {
     <div className={`min-h-screen bg-gradient-to-b ${topSpot ? getThemeGradient(topSpot.score) : 'bg-background'}`}>
       <style>{animStyles}</style>
 
-      {/* ✅ Header sem botão Câmeras */}
+      {/* ✅ Header sem ThemeToggle */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -342,8 +332,6 @@ export default function Home() {
               <div><h1 className="text-2xl font-bold">Surf AI</h1><p className="text-xs text-muted-foreground">Florianópolis, SC</p></div>
             </div>
             <div className="flex items-center gap-2" style={{ animation: 'slideInRight 0.4s ease-out' }}>
-              <ThemeToggle />
-
               <Button variant="outline" size="sm" onClick={() => navigate('/navigation')} className="hidden sm:flex">
                 <Navigation className="h-4 w-4 mr-1.5" />Me Leva ao Pico
               </Button>
@@ -391,7 +379,6 @@ export default function Home() {
 
         <SwellAlert spots={allSpots} />
 
-        {/* ✅ Card "Melhor Pico Agora" com TrendBadge */}
         {topSpot && (
           <Card className="border-primary/20 card-hover cursor-pointer overflow-hidden" onClick={() => navigate(`/spot/${topSpot.id}`)}
             style={{ animation: visible ? 'slideUp 0.5s 0.1s ease-out both' : 'none', background: `linear-gradient(135deg, hsl(var(--card)) 0%, ${getScoreColor(topSpot.score)}15 100%)`, borderColor: `${getScoreColor(topSpot.score)}40` }}>
@@ -416,12 +403,11 @@ export default function Home() {
                   <div className="text-xs text-muted-foreground">Score IA</div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                 <div><div className="text-xs text-muted-foreground">Ondas</div><div className="text-lg font-semibold">{Number(topSpot.waveHeight).toFixed(1)}m</div></div>
                 <div><div className="text-xs text-muted-foreground">Período</div><div className="text-lg font-semibold">{Math.round(topSpot.swellPeriod)}s</div></div>
                 <div><div className="text-xs text-muted-foreground">Maré</div><div className="text-lg font-semibold">{topSpot.tide}</div></div>
                 <div><div className="text-xs text-muted-foreground">Água</div><div className="text-lg font-semibold">{topSpot.waterConditions.temperature}°C</div></div>
-                <div><div className="text-xs text-muted-foreground">Prancha</div><div className="text-sm font-medium leading-tight">{topSpot.boardSuggestion}</div></div>
               </div>
             </CardContent>
           </Card>
@@ -442,25 +428,17 @@ export default function Home() {
 
         <div className="flex items-center justify-between anim-slide" style={{ animationDelay: '0.4s' }}>
           <h2 className="text-xl font-bold">Todas as Praias</h2>
-          <div className="flex items-center gap-2">
-            <Button variant={favorites.length > 0 ? 'default' : 'outline'} size="sm" onClick={() => navigate('/favorites')}>
-              <Heart className={`h-4 w-4 mr-2 ${favorites.length > 0 ? 'fill-current' : ''}`} />
-              {favorites.length > 0 ? `${favorites.length}` : 'Favoritas'}
-            </Button>
-          </div>
+          <Button variant={favorites.length > 0 ? 'default' : 'outline'} size="sm" onClick={() => navigate('/favorites')}>
+            <Heart className={`h-4 w-4 mr-2 ${favorites.length > 0 ? 'fill-current' : ''}`} />
+            {favorites.length > 0 ? `${favorites.length}` : 'Favoritas'}
+          </Button>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 anim-slide" style={{ animationDelay: '0.42s' }}>
           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
           {(['all', 'Sul', 'Centro', 'Leste', 'Norte'] as const).map(region => (
-            <button key={region}
-              onClick={() => setActiveRegion(region)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
-                activeRegion === region
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/40'
-              }`}
-            >
+            <button key={region} onClick={() => setActiveRegion(region)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${activeRegion === region ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}>
               {{ all: 'Todas', Sul: 'Sul', Centro: 'Centro', Leste: 'Leste', Norte: 'Norte' }[region]}
             </button>
           ))}
