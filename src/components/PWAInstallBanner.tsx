@@ -1,8 +1,6 @@
-// PWAInstallBanner.tsx — Banner "Instalar App" para Android/iOS
-// Aparece uma vez, pode ser dispensado, fica guardado no localStorage
-
+// PWAInstallBanner.tsx — Banner "Instalar App" com design do Surf AI
 import { useState, useEffect } from 'react'
-import { X, Download, Smartphone } from 'lucide-react'
+import { X } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -16,7 +14,6 @@ export function PWAInstallBanner() {
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    // Não mostra se já foi dispensado ou já está instalado
     const wasDismissed = localStorage.getItem('pwa-banner-dismissed') === 'true'
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as any).standalone === true
@@ -26,12 +23,10 @@ export function PWAInstallBanner() {
     setIsIOS(ios)
 
     if (ios) {
-      // iOS não tem beforeinstallprompt — mostra banner manual após 3s
       const timer = setTimeout(() => setShow(true), 3000)
       return () => clearTimeout(timer)
     }
 
-    // Android/Chrome — escuta o evento nativo
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
@@ -58,36 +53,38 @@ export function PWAInstallBanner() {
   if (!show || dismissed) return null
 
   return (
-    <div
-      className="fixed bottom-4 left-4 right-4 z-50 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-md shadow-2xl p-4"
-      style={{ animation: 'slideUp 0.4s ease-out' }}
-    >
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <Smartphone className="h-5 w-5 text-primary" />
+    <div className="fixed bottom-4 left-4 right-4 z-50" style={{ animation: 'slideUp 0.4s ease-out' }}>
+      <div className="flex items-center gap-3 p-3 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-md shadow-2xl">
+        <div
+          className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #061220 100%)', border: '1px solid rgba(6,182,212,0.3)' }}
+        >
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M4 18 Q9 13 14 17 Q19 21 24 16" stroke="#06b6d4" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+            <path d="M5 13 Q10 8 14 12 Q18 16 23 11" stroke="#22d3ee" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+            <path d="M7 8 Q11 4 14 7 Q17 10 21 6" stroke="#67e8f9" strokeWidth="1.4" strokeLinecap="round" fill="none"/>
+          </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm">Instalar Surf AI</div>
+          <div className="text-sm font-bold">Surf AI Floripa</div>
           {isIOS ? (
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Toque em <strong>Compartilhar</strong> <span className="text-base">⎙</span> e depois <strong>"Adicionar à Tela de Início"</strong> para instalar.
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              Toque em <strong>Compartilhar ⎙</strong> → <strong>"Adicionar à Tela de Início"</strong>
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Instale para acesso rápido, funciona sem internet.
-            </p>
-          )}
-          {!isIOS && (
-            <button
-              onClick={handleInstall}
-              className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Instalar agora
-            </button>
+            <p className="text-xs text-muted-foreground mt-0.5">Instale para acesso rápido na tela inicial</p>
           )}
         </div>
-        <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+        {!isIOS && (
+          <button
+            onClick={handleInstall}
+            className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl text-white transition-all active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
+          >
+            Instalar
+          </button>
+        )}
+        <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 p-1">
           <X className="h-4 w-4" />
         </button>
       </div>
