@@ -15,7 +15,7 @@ import { usePremium } from '@/lib/premium'
 import {
   ArrowLeft, Waves, Wind, Navigation,
   TrendingUp, Compass, AlertCircle, Thermometer, MapPin,
-  Heart, Calendar, Star, Sun, Info, Maximize2, X,
+  Heart, Calendar, Star, Sun, Maximize2, X,
   Share2, MessageCircle, Trash2, Send, ChevronDown, ChevronUp,
   Lock, Crown
 } from 'lucide-react'
