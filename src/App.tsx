@@ -16,7 +16,11 @@ import HistoryPage from './pages/History'
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    window.addEventListener('load', async () => {
+      // Desregistra TODOS os service workers antigos antes de registrar o novo
+      const registrations = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(registrations.map(r => r.unregister()))
+      // Registra o novo SW limpo
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     })
   }
