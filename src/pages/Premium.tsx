@@ -3,8 +3,23 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Check, Crown, Loader2 } from 'lucide-react'
-import { createMercadoPagoCheckout, PREMIUM_BENEFITS, usePremium } from '@/lib/premium'
+import { createMercadoPagoCheckout, usePremium } from '@/lib/premium'
 import { useAuth } from '@/contexts/AuthContext'
+
+const PREMIUM_BENEFITS = [
+  { icon: '📅', title: 'Previsão 14 dias', desc: 'Planeje suas sessões com antecedência. Free tem apenas 3 dias.' },
+  { icon: '🔔', title: 'Alertas de swell', desc: 'Receba notificação quando suas praias favoritas estiverem boas.' },
+  { icon: '📊', title: 'Histórico 30 dias', desc: 'Veja como as condições evoluíram nas últimas semanas.' },
+  { icon: '⚡', title: 'Melhor janela do dia', desc: 'Horário exato com melhores condições calculado hora a hora.' },
+  { icon: '🏄', title: 'Comparar praias', desc: 'Compare condições de várias praias lado a lado.' },
+  { icon: '🚫', title: 'Sem anúncios', desc: 'Experiência limpa e sem interrupções.' },
+  { icon: '👑', title: 'Badge Premium', desc: 'Destaque no perfil e nos relatos da comunidade.' },
+]
+
+const animStyles = `
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+`
 
 export default function PremiumPage() {
   const navigate = useNavigate()
@@ -31,11 +46,6 @@ export default function PremiumPage() {
     }
   }
 
-  const animStyles = `
-    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
-  `
-
   return (
     <div className="min-h-screen bg-background">
       <style>{animStyles}</style>
@@ -57,13 +67,8 @@ export default function PremiumPage() {
 
         {/* Hero */}
         <div className="text-center space-y-3" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-          <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-2"
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 50%, #ca8a04 100%)',
-              boxShadow: '0 0 40px rgba(234,179,8,0.3)',
-            }}
-          >
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-2"
+            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #eab308 50%, #ca8a04 100%)', boxShadow: '0 0 40px rgba(234,179,8,0.3)' }}>
             <Crown className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold">Surf AI Premium</h1>
@@ -86,18 +91,13 @@ export default function PremiumPage() {
 
         {/* Card de preço */}
         {!isPremium && (
-          <Card
-            className="overflow-hidden"
-            style={{
-              animation: 'slideUp 0.4s 0.1s ease-out both',
-              border: '1.5px solid rgba(234,179,8,0.5)',
-              background: 'linear-gradient(135deg, hsl(var(--card)) 0%, rgba(234,179,8,0.05) 100%)',
-            }}
-          >
-            <div
-              className="text-center py-2 text-xs font-bold tracking-wider"
-              style={{ background: 'linear-gradient(90deg, #f59e0b, #eab308, #f59e0b)', color: 'white' }}
-            >
+          <Card className="overflow-hidden" style={{
+            animation: 'slideUp 0.4s 0.1s ease-out both',
+            border: '1.5px solid rgba(234,179,8,0.5)',
+            background: 'linear-gradient(135deg, hsl(var(--card)) 0%, rgba(234,179,8,0.05) 100%)',
+          }}>
+            <div className="text-center py-2 text-xs font-bold tracking-wider"
+              style={{ background: 'linear-gradient(90deg, #f59e0b, #eab308, #f59e0b)', color: 'white' }}>
               PLANO MAIS POPULAR
             </div>
 
@@ -113,38 +113,30 @@ export default function PremiumPage() {
                 <p className="text-xs text-muted-foreground mt-1">Cancele quando quiser</p>
               </div>
 
-              {/* Benefícios — tipagem explícita corrigida */}
+              {/* Benefícios */}
               <div className="space-y-3">
-                {(PREMIUM_BENEFITS as readonly { icon: string; title: string; desc: string }[]).map(
-                  (benefit, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-3"
-                      style={{ animation: `slideUp 0.3s ${0.15 + idx * 0.05}s ease-out both` }}
-                    >
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-base">
-                        {benefit.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold">{benefit.title}</div>
-                        <div className="text-xs text-muted-foreground">{benefit.desc}</div>
-                      </div>
-                      <Check className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                {PREMIUM_BENEFITS.map((benefit, idx) => (
+                  <div key={idx} className="flex items-start gap-3"
+                    style={{ animation: `slideUp 0.3s ${0.15 + idx * 0.05}s ease-out both` }}>
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-base">
+                      {benefit.icon}
                     </div>
-                  )
-                )}
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">{benefit.title}</div>
+                      <div className="text-xs text-muted-foreground">{benefit.desc}</div>
+                    </div>
+                    <Check className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  </div>
+                ))}
               </div>
 
               {error && (
                 <div className="text-xs text-destructive bg-destructive/10 rounded-lg p-3 text-center">{error}</div>
               )}
 
-              <Button
-                className="w-full h-12 text-base font-bold"
+              <Button className="w-full h-12 text-base font-bold"
                 style={{ background: 'linear-gradient(135deg, #f59e0b, #eab308)', color: 'white', border: 'none' }}
-                onClick={handleSubscribe}
-                disabled={loading || loadingStatus}
-              >
+                onClick={handleSubscribe} disabled={loading || loadingStatus}>
                 {loading
                   ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Redirecionando...</>
                   : <><Crown className="h-5 w-5 mr-2" />Assinar por R$ 19,90/mês</>
@@ -164,28 +156,27 @@ export default function PremiumPage() {
           </Card>
         )}
 
-        {/* Comparativo */}
+        {/* Comparativo Free vs Premium */}
         {!isPremium && (
           <Card style={{ animation: 'slideUp 0.4s 0.35s ease-out both' }}>
             <CardContent className="p-5">
               <h3 className="text-sm font-bold mb-4 text-center">Free vs Premium</h3>
               <div className="space-y-2.5">
                 {([
-                  { feature: 'Condições em tempo real',     free: true,  premium: true },
-                  { feature: 'Score IA das praias',         free: true,  premium: true },
-                  { feature: 'Navegação GPS',               free: true,  premium: true },
-                  { feature: 'Relatos de surfistas',        free: true,  premium: true },
-                  { feature: 'Previsão 7 dias',             free: false, premium: true },
-                  { feature: 'Alertas de ondas (push)',     free: false, premium: true },
-                  { feature: 'Câmeras ao vivo',             free: false, premium: true },
-                  { feature: 'Histórico de condições',      free: false, premium: true },
-                  { feature: 'Sem anúncios',                free: false, premium: true },
-                  { feature: 'Badge Premium no perfil',     free: false, premium: true },
-                ] as { feature: string; free: boolean; premium: boolean }[]).map((row, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${idx % 2 === 0 ? 'bg-muted/10' : ''}`}
-                  >
+                  { feature: 'Condições em tempo real',       free: true,  premium: true },
+                  { feature: 'Score IA das praias',           free: true,  premium: true },
+                  { feature: 'Navegação GPS',                 free: true,  premium: true },
+                  { feature: 'Relatos de surfistas',          free: true,  premium: true },
+                  { feature: 'Previsão 3 dias',               free: true,  premium: true },
+                  { feature: 'Previsão 14 dias',              free: false, premium: true },
+                  { feature: 'Alertas de swell (push)',       free: false, premium: true },
+                  { feature: 'Histórico 30 dias',             free: false, premium: true },
+                  { feature: 'Melhor janela horária',         free: false, premium: true },
+                  { feature: 'Comparar praias',               free: false, premium: true },
+                  { feature: 'Sem anúncios',                  free: false, premium: true },
+                  { feature: 'Badge Premium no perfil',       free: false, premium: true },
+                ] as { feature: string; free: boolean; premium: boolean }[]).map((row, idx) => (
+                  <div key={idx} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${idx % 2 === 0 ? 'bg-muted/10' : ''}`}>
                     <span className="flex-1 text-muted-foreground">{row.feature}</span>
                     <div className="flex gap-8">
                       <span className="w-10 text-center">
