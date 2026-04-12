@@ -1,49 +1,34 @@
-const CACHE_NAME = 'surf-ai-v1'
-const STATIC_ASSETS = ['/', '/index.html', '/manifest.json']
+// sw.js — Service Worker Surf AI Floripa
+// Versão: incrementar esse número a cada deploy para forçar atualização
+const CACHE_VERSION = 'surf-ai-v3'
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS)
-    }).catch(() => {})
-  )
-  self.skipWaiting()
+// Ao instalar nova versão, limpa TODOS os caches antigos imediatamente
+self.addEventListener('install', () => {
+  self.skipWaiting() // ativa imediatamente sem esperar o browser fechar
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+      Promise.all(keys.map((k) => caches.delete(k))) // deleta TODOS os caches
+    ).then(() => self.clients.claim()) // toma controle de todas as abas abertas
   )
-  self.clients.claim()
 })
 
+// Estratégia: Network Only — nunca serve do cache, sempre busca da rede
+// Isso evita o problema de arquivos JS antigos sendo servidos
 self.addEventListener('fetch', (event) => {
+  // Deixa tudo passar direto para a rede
+  // O browser faz o cache normal via HTTP headers
   if (event.request.method !== 'GET') return
-
-  const url = new URL(event.request.url)
-  const isApiCall = [
-    'api.windy.com', 'marine-api.open-meteo.com', 'api.open-meteo.com',
-    'api.stormglass.io', 'supabase.co', 'coastwatch.pfeg.noaa.gov',
-  ].some((domain) => url.hostname.includes(domain))
-
-  if (isApiCall) return
-
+  
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached
-      return fetch(event.request).then((response) => {
-        if (response.ok && url.origin === location.origin) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-        }
-        return response
-      }).catch(() => {
-        if (event.request.destination === 'document') {
-          return caches.match('/index.html')
-        }
-      })
+    fetch(event.request).catch(() => {
+      // Só se offline: tenta retornar página principal
+      if (event.request.destination === 'document') {
+        return caches.match('/index.html') as Promise<Response>
+      }
+      return new Response('Offline', { status: 503 })
     })
   )
 })
