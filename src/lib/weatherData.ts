@@ -133,7 +133,7 @@ const forecastCache: Record<string, { data: WeatherForecast[], time: number }> =
 const CACHE_DURATION = 15 * 60 * 1000
 
 // Quantos dias mostrar sem bloqueio para usuário free
-const FREE_DAYS = 2
+const FREE_DAYS = 3
 
 export interface CurrentConditionsForForecast {
   waveHeight: number
