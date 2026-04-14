@@ -1,72 +1,62 @@
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Waves, Zap, Bell, BarChart3, Clock, Shield,
   ArrowRight, CheckCircle2, Wind, Droplets, TrendingUp,
-  MapPin, Crown, ChevronRight
+  MapPin, Crown, ChevronRight, ChevronDown, X, Check,
+  Star, Quote
 } from 'lucide-react'
 
+// ─── Dados ───────────────────────────────────────────────────────────────────
+
 const FEATURES = [
-  {
-    icon: Zap,
-    title: 'Score de IA em tempo real',
-    desc: 'Inteligência artificial analisa altura, período, vento e maré para gerar uma nota de 0 a 10 para cada praia.',
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-400/10',
-  },
-  {
-    icon: MapPin,
-    title: '17 praias monitoradas',
-    desc: 'Cobertura completa de Florianópolis — do Santinho ao Naufragados, todas as 4 regiões da ilha.',
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-  {
-    icon: BarChart3,
-    title: 'Previsão de 14 dias',
-    desc: 'Planeje seus surfs com antecedência. Dados de ondas, vento e maré para as próximas 2 semanas.',
-    color: 'text-violet-400',
-    bg: 'bg-violet-400/10',
-  },
-  {
-    icon: Bell,
-    title: 'Alertas personalizados',
-    desc: 'Seja notificado quando o seu spot favorito atingir o score que você definiu.',
-    color: 'text-green-400',
-    bg: 'bg-green-400/10',
-  },
-  {
-    icon: Clock,
-    title: 'Histórico e tendências',
-    desc: 'Veja como eram as condições nos últimos dias e identifique os melhores padrões de swell.',
-    color: 'text-orange-400',
-    bg: 'bg-orange-400/10',
-  },
-  {
-    icon: Waves,
-    title: 'Log de sessões',
-    desc: 'Registre suas sessões, dê notas, anote memórias. Seu diário de surf digital completo.',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-400/10',
-  },
+  { icon: Zap, title: 'Score de IA em tempo real', desc: 'Inteligência artificial analisa altura, período, vento e maré para gerar uma nota de 0 a 10 para cada praia.', color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
+  { icon: MapPin, title: '17 praias monitoradas', desc: 'Cobertura completa de Florianópolis — do Santinho ao Naufragados, todas as 4 regiões da ilha.', color: 'text-primary', bg: 'bg-primary/10' },
+  { icon: BarChart3, title: 'Previsão de 14 dias', desc: 'Planeje seus surfs com antecedência. Dados de ondas, vento e maré para as próximas 2 semanas.', color: 'text-violet-400', bg: 'bg-violet-400/10' },
+  { icon: Bell, title: 'Alertas personalizados', desc: 'Seja notificado quando o seu spot favorito atingir o score que você definiu.', color: 'text-green-400', bg: 'bg-green-400/10' },
+  { icon: Clock, title: 'Histórico e tendências', desc: 'Veja como eram as condições nos últimos dias e identifique os melhores padrões de swell.', color: 'text-orange-400', bg: 'bg-orange-400/10' },
+  { icon: Waves, title: 'Log de sessões', desc: 'Registre suas sessões, dê notas, anote memórias. Seu diário de surf digital completo.', color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
 ]
 
-const PREMIUM_BENEFITS = [
-  { icon: BarChart3, title: 'Previsão 14 dias', desc: 'Veja as condições dos próximos 14 dias' },
-  { icon: Bell, title: 'Alertas de ondas', desc: 'Notificações quando seu spot estiver perfeito' },
-  { icon: TrendingUp, title: 'Histórico completo', desc: 'Consulte como estava o mar nos últimos 7 dias' },
-  { icon: Shield, title: 'Sem anúncios', desc: 'Experiência limpa, sem interrupções' },
-  { icon: Crown, title: 'Badge Premium', desc: 'Selo exclusivo de surfista premium no perfil' },
-  { icon: Zap, title: 'Acesso antecipado', desc: 'Seja o primeiro a testar novos recursos' },
+const TESTIMONIALS = [
+  { name: 'Pedro Almeida', role: 'Surfista intermediário · Campeche', avatar: 'PA', stars: 5, text: 'Parei de chegar na praia e encontrar o mar péssimo. O score bate certinho com a realidade. Praia Mole e Joaquina eu confio de olho fechado agora.' },
+  { name: 'Marina Costa', role: 'Surfista iniciante · Mole', avatar: 'MC', stars: 5, text: 'Como iniciante, eu não sabia escolher praia. Agora o app me fala exatamente onde o mar está calmo e adequado pro meu nível. Mudou meu surf completamente.' },
+  { name: 'Rafael Souza', role: 'Surfista avançado · Joaquina', avatar: 'RS', stars: 5, text: 'A previsão de 14 dias é absurda. Planejei uma semana inteira de sessões em spots diferentes. Premium vale cada centavo.' },
+]
+
+const PLAN_FEATURES = [
+  { label: 'Score de IA em tempo real', free: true, premium: true },
+  { label: '17 praias monitoradas', free: true, premium: true },
+  { label: 'Favoritos e comparação', free: true, premium: true },
+  { label: 'Log de sessões', free: true, premium: true },
+  { label: 'Previsão de ondas', free: '3 dias', premium: '14 dias' },
+  { label: 'Histórico de condições', free: false, premium: true },
+  { label: 'Alertas de ondas push', free: false, premium: true },
+  { label: 'Navegação até a praia', free: false, premium: true },
+  { label: 'Badge Premium no perfil', free: false, premium: true },
+  { label: 'Experiência sem anúncios', free: false, premium: true },
+  { label: 'Acesso antecipado a recursos', free: false, premium: true },
+]
+
+const FAQS = [
+  { q: 'O app funciona para todas as praias de Florianópolis?', a: 'Sim! Monitoramos 17 praias distribuídas pelas 4 regiões da ilha: Norte, Leste, Centro e Sul. Cobrimos desde o Santinho até o Naufragados, passando por Praia Mole, Joaquina, Campeche e muito mais.' },
+  { q: 'Os dados são atualizados com que frequência?', a: 'Os dados de ondas, vento e maré são atualizados a cada hora, 24 horas por dia, 7 dias por semana. O score de IA é recalculado automaticamente a cada nova atualização.' },
+  { q: 'O plano gratuito tem alguma limitação?', a: 'No plano gratuito você tem acesso ao score de IA em tempo real, previsão para os próximos 3 dias, favoritos, log de sessões e comparação de praias. Para previsão de 14 dias, alertas push, histórico completo e navegação, é necessário o Premium.' },
+  { q: 'Posso cancelar o Premium quando quiser?', a: 'Sim, sem multa e sem burocracia. Você pode cancelar a qualquer momento pelo próprio app. O acesso Premium continua até o fim do período pago.' },
+  { q: 'Como funciona o score de IA?', a: 'Nossa IA analisa múltiplas variáveis em conjunto: altura e período das ondas, direção e intensidade do vento, fase da maré, swell predominante e histórico da praia. O resultado é uma nota de 0 a 10 que representa a qualidade real das condições para surfar.' },
+  { q: 'O app funciona no iPhone e no Android?', a: 'Sim! O Surf AI é um Progressive Web App (PWA), ou seja, funciona diretamente no navegador do seu celular, sem precisar baixar nada na loja. Adicione à tela inicial e use como um app nativo.' },
 ]
 
 const STATS = [
-  { value: '17', label: 'Praias monitoradas' },
-  { value: '24/7', label: 'Atualização contínua' },
-  { value: 'IA', label: 'Score inteligente' },
-  { value: '4', label: 'Regiões da ilha' },
+  { value: 17, suffix: '', label: 'Praias monitoradas' },
+  { value: 24, suffix: '/7', label: 'Atualização contínua' },
+  { value: 14, suffix: ' dias', label: 'Previsão Premium' },
+  { value: 4, suffix: '', label: 'Regiões da ilha' },
 ]
+
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
 
 function ScoreCard({ beach, score, condition, wave }: { beach: string; score: number; condition: string; wave: string }) {
   const color = score >= 8 ? 'text-green-400' : score >= 6 ? 'text-yellow-400' : 'text-orange-400'
@@ -78,16 +68,67 @@ function ScoreCard({ beach, score, condition, wave }: { beach: string; score: nu
         <div className={`text-2xl font-black ${color}`}>{score}</div>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Waves className="h-3 w-3" />{wave}
-        </span>
-        <span className="flex items-center gap-1">
-          <Wind className="h-3 w-3" />{condition}
-        </span>
+        <span className="flex items-center gap-1"><Waves className="h-3 w-3" />{wave}</span>
+        <span className="flex items-center gap-1"><Wind className="h-3 w-3" />{condition}</span>
       </div>
     </div>
   )
 }
+
+function AnimatedNumber({ value, suffix }: { value: number; suffix: string }) {
+  const [count, setCount] = useState(0)
+  const ref = useRef<HTMLDivElement>(null)
+  const started = useRef(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true
+        const duration = 1200
+        const steps = 40
+        const increment = value / steps
+        let current = 0
+        const timer = setInterval(() => {
+          current += increment
+          if (current >= value) { setCount(value); clearInterval(timer) }
+          else setCount(Math.floor(current))
+        }, duration / steps)
+      }
+    }, { threshold: 0.5 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [value])
+
+  return <div ref={ref} className="text-4xl md:text-5xl font-black text-primary">{count}{suffix}</div>
+}
+
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border border-border/50 rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-5 text-left hover:bg-card/60 transition-colors"
+      >
+        <span className="text-sm font-semibold pr-4">{q}</span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/30 pt-4">
+          {a}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PlanCell({ value }: { value: boolean | string }) {
+  if (value === true) return <Check className="h-4 w-4 text-green-400 mx-auto" />
+  if (value === false) return <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+  return <span className="text-xs font-semibold text-primary">{value}</span>
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -114,15 +155,17 @@ export default function Landing() {
         </div>
       </nav>
 
+      {/* URGENCY BANNER */}
+      <div className="bg-yellow-500/10 border-b border-yellow-500/20 py-2 px-4 text-center">
+        <p className="text-xs text-yellow-400 font-semibold">
+          Oferta de lançamento · Premium por R$ 29,90/mês · Cancele quando quiser
+        </p>
+      </div>
+
       {/* HERO */}
       <section className="relative pt-16 pb-24 overflow-hidden">
-        {/* Glow bg */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.6 0.16 200 / 0.15), transparent)',
-          }}
-        />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.6 0.16 200 / 0.15), transparent)' }} />
 
         <div className="container mx-auto px-4 max-w-5xl relative">
           <div className="text-center space-y-6 max-w-3xl mx-auto">
@@ -133,10 +176,8 @@ export default function Landing() {
 
             <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tight">
               O surf de{' '}
-              <span
-                className="text-transparent bg-clip-text"
-                style={{ backgroundImage: 'linear-gradient(135deg, oklch(0.75 0.16 200), oklch(0.55 0.18 220))' }}
-              >
+              <span className="text-transparent bg-clip-text"
+                style={{ backgroundImage: 'linear-gradient(135deg, oklch(0.75 0.16 200), oklch(0.55 0.18 220))' }}>
                 Florianópolis
               </span>
               <br />na palma da mão.
@@ -149,13 +190,13 @@ export default function Landing() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button size="lg" onClick={() => navigate('/login')}
-                className="text-base font-bold px-8 h-12 bg-primary hover:bg-primary/90 shadow-lg"
+                className="text-base font-bold px-8 h-12 bg-primary hover:bg-primary/90"
                 style={{ boxShadow: '0 0 32px oklch(0.6 0.16 200 / 0.35)' }}>
                 Criar conta grátis
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/login')}
-                className="text-base font-bold px-8 h-12 border-primary/30 hover:border-primary/60 hover:bg-primary/5">
+                className="text-base font-bold px-8 h-12 border-yellow-500/40 hover:border-yellow-500/70 hover:bg-yellow-500/5">
                 <Crown className="h-4 w-4 mr-2 text-yellow-400" />
                 Assinar Premium — R$ 29,90/mês
               </Button>
@@ -166,7 +207,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* App mockup cards */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
             <ScoreCard beach="Praia Mole" score={9} condition="NE 15km/h" wave="1.2m" />
             <ScoreCard beach="Joaquina" score={7} condition="S 12km/h" wave="0.9m" />
@@ -174,19 +214,18 @@ export default function Landing() {
             <ScoreCard beach="Santinho" score={5} condition="NE 22km/h" wave="0.8m" />
           </div>
 
-          {/* Wave decoration */}
           <div className="absolute bottom-0 left-0 right-0 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, oklch(0.6 0.16 200 / 0.3), transparent)' }} />
         </div>
       </section>
 
-      {/* STATS */}
+      {/* STATS ANIMADOS */}
       <section className="py-12 border-y border-border/40">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {STATS.map(({ value, label }) => (
+            {STATS.map(({ value, suffix, label }) => (
               <div key={label} className="text-center">
-                <div className="text-4xl md:text-5xl font-black text-primary">{value}</div>
+                <AnimatedNumber value={value} suffix={suffix} />
                 <div className="text-sm text-muted-foreground mt-1">{label}</div>
               </div>
             ))}
@@ -198,9 +237,7 @@ export default function Landing() {
       <section className="py-20">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-14">
-            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4">
-              Funcionalidades
-            </Badge>
+            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4">Funcionalidades</Badge>
             <h2 className="text-3xl md:text-5xl font-black mb-4">
               Tudo que você precisa<br />para surfar mais e melhor.
             </h2>
@@ -211,10 +248,8 @@ export default function Landing() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map(({ icon: Icon, title, desc, color, bg }) => (
-              <div
-                key={title}
-                className="group rounded-2xl border border-border/50 bg-card/50 p-6 hover:border-primary/30 hover:bg-card transition-all duration-300"
-              >
+              <div key={title}
+                className="group rounded-2xl border border-border/50 bg-card/50 p-6 hover:border-primary/30 hover:bg-card transition-all duration-300">
                 <div className={`h-11 w-11 rounded-xl ${bg} flex items-center justify-center mb-4`}>
                   <Icon className={`h-5 w-5 ${color}`} />
                 </div>
@@ -226,26 +261,118 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* DEPOIMENTOS */}
+      <section className="py-20 border-t border-border/30">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="text-center mb-14">
+            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4">Depoimentos</Badge>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">
+              Quem surfa com o Surf AI<br />não volta atrás.
+            </h2>
+            <p className="text-muted-foreground">Veja o que os surfistas de Floripa estão dizendo.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {TESTIMONIALS.map(({ name, role, avatar, stars, text }) => (
+              <div key={name}
+                className="rounded-2xl border border-border/50 bg-card/50 p-6 flex flex-col gap-4 hover:border-primary/20 transition-colors">
+                <Quote className="h-6 w-6 text-primary/30" />
+                <p className="text-sm text-muted-foreground leading-relaxed flex-1">"{text}"</p>
+                <div>
+                  <div className="flex gap-0.5 mb-3">
+                    {Array.from({ length: stars }).map((_, i) => (
+                      <Star key={i} className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                      {avatar}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold">{name}</div>
+                      <div className="text-xs text-muted-foreground">{role}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* WAVE SEPARATOR */}
-      <div className="relative h-24 overflow-hidden">
+      <div className="relative h-20 overflow-hidden">
         <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="absolute inset-0 w-full h-full"
           style={{ fill: 'oklch(0.6 0.16 200 / 0.05)' }}>
           <path d="M0,60 C300,120 900,0 1200,60 L1200,120 L0,120 Z" />
         </svg>
-        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="absolute inset-0 w-full h-full"
-          style={{ fill: 'oklch(0.6 0.16 200 / 0.03)', transform: 'translateX(50px)' }}>
-          <path d="M0,40 C400,100 800,10 1200,50 L1200,120 L0,120 Z" />
-        </svg>
       </div>
 
-      {/* PREMIUM */}
+      {/* COMPARATIVO PLANOS */}
+      <section className="py-20">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="text-center mb-14">
+            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4">Planos</Badge>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Grátis ou Premium?</h2>
+            <p className="text-muted-foreground">Compare e veja o quanto você está deixando na mesa.</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-3 bg-card/80 border-b border-border/50">
+              <div className="p-4 text-sm font-semibold text-muted-foreground">Recurso</div>
+              <div className="p-4 text-center border-l border-border/50">
+                <div className="text-sm font-bold">Grátis</div>
+                <div className="text-xs text-muted-foreground">R$ 0</div>
+              </div>
+              <div className="p-4 text-center border-l border-border/50"
+                style={{ background: 'oklch(0.6 0.16 200 / 0.08)' }}>
+                <div className="text-sm font-bold text-primary flex items-center justify-center gap-1.5">
+                  <Crown className="h-3.5 w-3.5 text-yellow-400" />Premium
+                </div>
+                <div className="text-xs text-yellow-400 font-semibold">R$ 29,90/mês</div>
+              </div>
+            </div>
+
+            {/* Rows */}
+            {PLAN_FEATURES.map(({ label, free, premium }, i) => (
+              <div key={label}
+                className={`grid grid-cols-3 border-b border-border/30 last:border-0 ${i % 2 === 0 ? 'bg-transparent' : 'bg-card/30'}`}>
+                <div className="p-4 text-sm text-muted-foreground">{label}</div>
+                <div className="p-4 text-center border-l border-border/30 flex items-center justify-center">
+                  <PlanCell value={free} />
+                </div>
+                <div className="p-4 text-center border-l border-border/30 flex items-center justify-center"
+                  style={{ background: 'oklch(0.6 0.16 200 / 0.04)' }}>
+                  <PlanCell value={premium} />
+                </div>
+              </div>
+            ))}
+
+            {/* Footer CTA */}
+            <div className="grid grid-cols-3 bg-card/60 border-t border-border/50">
+              <div className="p-4" />
+              <div className="p-4 text-center border-l border-border/50">
+                <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => navigate('/login')}>
+                  Criar conta
+                </Button>
+              </div>
+              <div className="p-4 text-center border-l border-border/50">
+                <Button size="sm" className="w-full text-xs bg-primary hover:bg-primary/90" onClick={() => navigate('/login')}
+                  style={{ boxShadow: '0 0 16px oklch(0.6 0.16 200 / 0.3)' }}>
+                  <Crown className="h-3 w-3 mr-1" />
+                  Assinar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PREMIUM PRICING */}
       <section className="py-20 relative">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 60% 40% at 50% 50%, oklch(0.55 0.18 60 / 0.05), transparent)',
-          }}
-        />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 50%, oklch(0.55 0.18 60 / 0.05), transparent)' }} />
 
         <div className="container mx-auto px-4 max-w-4xl relative">
           <div className="text-center mb-14">
@@ -263,31 +390,37 @@ export default function Landing() {
             </p>
           </div>
 
-          <div
-            className="rounded-3xl border border-yellow-500/20 p-8 md:p-12 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, oklch(0.2 0.02 240), oklch(0.22 0.04 220))' }}
-          >
-            {/* Glow corner */}
-            <div
-              className="absolute -top-20 -right-20 w-64 h-64 rounded-full pointer-events-none"
-              style={{ background: 'radial-gradient(circle, oklch(0.6 0.16 60 / 0.12), transparent)' }}
-            />
+          <div className="rounded-3xl border border-yellow-500/20 p-8 md:p-12 relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, oklch(0.2 0.02 240), oklch(0.22 0.04 220))' }}>
+            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full pointer-events-none"
+              style={{ background: 'radial-gradient(circle, oklch(0.6 0.16 60 / 0.12), transparent)' }} />
+
+            {/* Urgency badge */}
+            <div className="inline-flex items-center gap-2 bg-yellow-500/15 border border-yellow-500/30 rounded-full px-4 py-1.5 mb-8">
+              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+              <span className="text-xs font-semibold text-yellow-400">Oferta de lançamento — preço especial</span>
+            </div>
 
             <div className="grid md:grid-cols-2 gap-10 items-center relative">
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  {PREMIUM_BENEFITS.map(({ icon: Icon, title, desc }) => (
-                    <div key={title} className="flex items-start gap-3">
-                      <div className="h-7 w-7 rounded-lg bg-yellow-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Icon className="h-3.5 w-3.5 text-yellow-400" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">{title}</div>
-                        <div className="text-xs text-muted-foreground">{desc}</div>
-                      </div>
+              <div className="space-y-3">
+                {[
+                  { icon: BarChart3, title: 'Previsão 14 dias', desc: 'Veja as condições dos próximos 14 dias' },
+                  { icon: Bell, title: 'Alertas de ondas', desc: 'Notificações quando seu spot estiver perfeito' },
+                  { icon: TrendingUp, title: 'Histórico completo', desc: 'Consulte como estava o mar nos últimos 7 dias' },
+                  { icon: Shield, title: 'Sem anúncios', desc: 'Experiência limpa, sem interrupções' },
+                  { icon: Crown, title: 'Badge Premium', desc: 'Selo exclusivo de surfista premium no perfil' },
+                  { icon: Zap, title: 'Acesso antecipado', desc: 'Seja o primeiro a testar novos recursos' },
+                ].map(({ icon: Icon, title, desc }) => (
+                  <div key={title} className="flex items-start gap-3">
+                    <div className="h-7 w-7 rounded-lg bg-yellow-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Icon className="h-3.5 w-3.5 text-yellow-400" />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <div className="text-sm font-semibold">{title}</div>
+                      <div className="text-xs text-muted-foreground">{desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="text-center md:text-right space-y-6">
@@ -303,25 +436,21 @@ export default function Landing() {
                   <div className="text-xs text-muted-foreground">Cancele quando quiser</div>
                 </div>
 
-                <Button
-                  size="lg"
-                  onClick={() => navigate('/login')}
-                  className="w-full md:w-auto font-bold px-10 h-13 text-base"
+                <Button size="lg" onClick={() => navigate('/login')}
+                  className="w-full font-bold px-10 h-12 text-base"
                   style={{
                     background: 'linear-gradient(135deg, oklch(0.7 0.18 60), oklch(0.6 0.22 50))',
                     color: 'oklch(0.1 0.02 240)',
                     boxShadow: '0 0 32px oklch(0.6 0.18 60 / 0.4)',
-                  }}
-                >
+                  }}>
                   <Crown className="h-4 w-4 mr-2" />
                   Assinar Premium agora
                 </Button>
 
-                <div className="flex items-center justify-center md:justify-end gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 text-xs text-muted-foreground">
                   {['Pagamento seguro', 'Sem fidelidade', 'Suporte prioritário'].map(t => (
                     <span key={t} className="flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3 text-green-400" />
-                      {t}
+                      <CheckCircle2 className="h-3 w-3 text-green-400" />{t}
                     </span>
                   ))}
                 </div>
@@ -331,7 +460,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* COMO FUNCIONA */}
       <section className="py-20 border-t border-border/30">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-14">
@@ -341,24 +470,9 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              {
-                step: '01',
-                icon: Droplets,
-                title: 'Dados em tempo real',
-                desc: 'Coletamos dados de ondas, vento e maré de múltiplas fontes meteorológicas a cada hora.',
-              },
-              {
-                step: '02',
-                icon: Zap,
-                title: 'IA calcula o score',
-                desc: 'Nossa IA analisa todos os parâmetros e gera uma nota de 0 a 10 considerando o seu nível.',
-              },
-              {
-                step: '03',
-                icon: TrendingUp,
-                title: 'Você decide em segundos',
-                desc: 'Veja o score, compare praias e tome a melhor decisão — sem desperdício de tempo ou gasolina.',
-              },
+              { step: '01', icon: Droplets, title: 'Dados em tempo real', desc: 'Coletamos dados de ondas, vento e maré de múltiplas fontes meteorológicas a cada hora.' },
+              { step: '02', icon: Zap, title: 'IA calcula o score', desc: 'Nossa IA analisa todos os parâmetros e gera uma nota de 0 a 10 considerando o seu nível.' },
+              { step: '03', icon: TrendingUp, title: 'Você decide em segundos', desc: 'Veja o score, compare praias e tome a melhor decisão — sem desperdício de tempo ou gasolina.' },
             ].map(({ step, icon: Icon, title, desc }) => (
               <div key={step} className="relative">
                 <div className="rounded-2xl border border-border/50 bg-card/40 p-6 h-full">
@@ -380,16 +494,29 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section className="py-20 border-t border-border/30">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <div className="text-center mb-14">
+            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4">FAQ</Badge>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Perguntas frequentes</h2>
+            <p className="text-muted-foreground">Tudo que você precisa saber antes de começar.</p>
+          </div>
+
+          <div className="space-y-3">
+            {FAQS.map(faq => <FAQItem key={faq.q} q={faq.q} a={faq.a} />)}
+          </div>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section className="py-20">
         <div className="container mx-auto px-4 max-w-2xl text-center">
-          <div
-            className="rounded-3xl p-12 border border-primary/20"
+          <div className="rounded-3xl p-12 border border-primary/20"
             style={{
               background: 'linear-gradient(135deg, oklch(0.2 0.04 220 / 0.8), oklch(0.18 0.06 210 / 0.8))',
               boxShadow: '0 0 80px oklch(0.6 0.16 200 / 0.1)',
-            }}
-          >
+            }}>
             <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
               <Waves className="h-8 w-8 text-primary" />
             </div>
@@ -400,19 +527,16 @@ export default function Landing() {
               Crie sua conta grátis agora e nunca mais chegue na praia com o mar ruim.
               Upgrade para Premium quando quiser.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button size="lg" onClick={() => navigate('/login')}
-                className="font-bold px-10 h-12 text-base bg-primary hover:bg-primary/90"
-                style={{ boxShadow: '0 0 32px oklch(0.6 0.16 200 / 0.4)' }}>
-                Criar conta gratuita
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
+            <Button size="lg" onClick={() => navigate('/login')}
+              className="font-bold px-10 h-12 text-base bg-primary hover:bg-primary/90"
+              style={{ boxShadow: '0 0 32px oklch(0.6 0.16 200 / 0.4)' }}>
+              Criar conta gratuita
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
             <div className="flex items-center justify-center gap-6 mt-6">
               {['Grátis para sempre', 'Sem cartão', 'Setup em 1 min'].map(t => (
                 <span key={t} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
-                  {t}
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />{t}
                 </span>
               ))}
             </div>
@@ -433,14 +557,8 @@ export default function Landing() {
             Florianópolis, SC · Dados atualizados a cada hora · Feito com 🤙 para surfistas
           </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/login')}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Entrar
-            </button>
-            <Button size="sm" variant="outline" onClick={() => navigate('/login')}
-              className="text-xs border-primary/30 hover:bg-primary/5">
+            <button onClick={() => navigate('/login')} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Entrar</button>
+            <Button size="sm" variant="outline" onClick={() => navigate('/login')} className="text-xs border-primary/30 hover:bg-primary/5">
               Começar grátis
             </Button>
           </div>
