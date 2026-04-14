@@ -14,6 +14,7 @@ import PremiumPage from './pages/Premium'
 import ComparePage from './pages/Compare'
 import HistoryPage from './pages/History'
 import SurfLog from './pages/SurfLog'
+import Landing from './pages/Landing'
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -64,8 +65,9 @@ function AppRoutes() {
   return (
     <>
       <Routes>
+        <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/" element={user ? <ProtectedRoute><Home /></ProtectedRoute> : <Navigate to="/landing" replace />} />
         <Route path="/spot/:id" element={<ProtectedRoute><SpotDetails /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
