@@ -8,6 +8,8 @@ import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib
 import { getFavorites } from '@/lib/favorites'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePremium } from '@/lib/premium'
+import { fetchAIReport } from '@/lib/aiReport'
+import { getScoreColor, getThemeGradient } from '@/lib/rating'
 import {
   subscribeToNotifications,
   getNotificationPermission,
@@ -17,7 +19,7 @@ import {
 } from '@/lib/notifications'
 import {
   Waves, TrendingUp, TrendingDown, Minus, MapPin, Info, Heart, Settings,
-  Bell, BellOff, X, ChevronDown, ChevronUp, Navigation, Crown
+  Bell, BellOff, X, ChevronDown, ChevronUp, Navigation, Crown, Sparkles
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
@@ -118,21 +120,7 @@ const SwellPeriodWidget = () => {
   )
 }
 
-const getScoreColor = (score: number) => {
-  if (score >= 8.5) return '#8b5cf6'
-  if (score >= 7) return '#06b6d4'
-  if (score >= 5.5) return '#22c55e'
-  if (score >= 4) return '#f59e0b'
-  return '#ef4444'
-}
-
-const getThemeGradient = (score: number) => {
-  if (score >= 8.5) return 'from-purple-900/40 via-background to-background'
-  if (score >= 7) return 'from-cyan-900/40 via-background to-background'
-  if (score >= 5.5) return 'from-green-900/30 via-background to-background'
-  if (score >= 4) return 'from-yellow-900/30 via-background to-background'
-  return 'from-red-900/30 via-background to-background'
-}
+// getScoreColor e getThemeGradient agora vêm de @/lib/rating
 
 function getTrend(spot: BeachCondition): 'up' | 'down' | 'stable' {
   const hour = new Date().getHours()
@@ -252,7 +240,9 @@ const NotificationPanel = ({ spots, favorites }: { spots: BeachCondition[], favo
 }
 
 export default function Home() {
-  const [activeRegion, setActiveRegion] = useState<string>('all')
+  const [activeRegion, setActiveRegion] = useState<string>(() => {
+    try { return localStorage.getItem('pref_region') ?? 'all' } catch { return 'all' }
+  })
   const [showOnlyFavorites] = useState(false)
   const [spots, setSpots] = useState<BeachCondition[]>([])
   const [allSpots, setAllSpots] = useState<BeachCondition[]>([])
@@ -261,6 +251,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState<string[]>([])
   const [visible, setVisible] = useState(false)
+  const [aiReport, setAiReport] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
   const { isPremium } = usePremium()
@@ -279,12 +271,24 @@ export default function Home() {
       else if (activeRegion !== 'all') filtered = filtered.filter(s => s.region === activeRegion && !CENTRO_IDS.includes(s.id))
       if (showOnlyFavorites) filtered = filtered.filter(s => favs.includes(s.id))
       filtered.sort((a, b) => b.score - a.score)
+      const sortedAll = [...allConditions].sort((a, b) => b.score - a.score)
+      const top = sortedAll[0] ?? null
       setSpots(filtered)
-      setTopSpot(allConditions.sort((a, b) => b.score - a.score)[0] ?? null)
+      setTopSpot(top)
       setLoading(false)
       setTimeout(() => setVisible(true), 100)
       const notifSettings = getSavedNotificationSettings()
       if (notifSettings.enabled) await checkAndNotifyGoodConditions(allConditions, favs, notifSettings.minScore, notifSettings.favoriteOnly)
+      // Busca relatório de IA em background
+      if (top) {
+        setAiLoading(true)
+        try {
+          const userLevel = localStorage.getItem('pref_skill') ?? undefined
+          const report = await fetchAIReport(sortedAll.slice(0, 6), top, userLevel ?? undefined)
+          setAiReport(report)
+        } catch { /* silently fail */ }
+        setAiLoading(false)
+      }
     }
     updateData()
     const interval = setInterval(updateData, 15 * 60 * 1000)
@@ -378,6 +382,30 @@ export default function Home() {
         </div>
 
         <SwellAlert spots={allSpots} />
+
+        {/* Card de relatório de IA */}
+        {(aiReport || aiLoading) && (
+          <Card className="border-primary/30 anim-slide" style={{ animationDelay: '0.15s', background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--primary)/.05) 100%)' }}>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Relatório do dia — IA
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {aiLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.4s' }} />
+                  <span>Analisando condições com IA...</span>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground leading-relaxed">{aiReport}</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {topSpot && (
           <Card className="border-primary/20 card-hover cursor-pointer overflow-hidden" onClick={() => navigate(`/spot/${topSpot.id}`)}

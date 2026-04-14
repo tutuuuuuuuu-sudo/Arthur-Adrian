@@ -159,5 +159,5 @@ export const PREMIUM_BENEFITS = [
   },
 ] as const
 
-export const PREMIUM_PRICE = 'R$ 19,90'
-export const PREMIUM_PRICE_MONTHLY = 19.90
+export const PREMIUM_PRICE = 'R$ 29,90'
+export const PREMIUM_PRICE_MONTHLY = 29.90

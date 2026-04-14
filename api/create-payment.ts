@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           description: 'Acesso completo ao Surf AI Floripa por 30 dias',
           quantity: 1,
           currency_id: 'BRL',
-          unit_price: 19.90,
+          unit_price: 29.90,
         },
       ],
       payer: {

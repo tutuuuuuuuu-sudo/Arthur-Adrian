@@ -13,34 +13,29 @@ import NavigationPage from './pages/Navigation'
 import PremiumPage from './pages/Premium'
 import ComparePage from './pages/Compare'
 import HistoryPage from './pages/History'
+import SurfLog from './pages/SurfLog'
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
-      // Desregistra TODOS os service workers antigos antes de registrar o novo
       const registrations = await navigator.serviceWorker.getRegistrations()
       await Promise.all(registrations.map(r => r.unregister()))
-      // Registra o novo SW limpo
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     })
   }
 }
 
-// ✅ Força dark mode sempre — remove qualquer classe de tema e adiciona 'dark'
-function useForceDark() {
+// Garante dark mode como padrão apenas se o usuário não tiver preferência salva
+function useDefaultDark() {
   useEffect(() => {
     const html = document.documentElement
-    html.classList.remove('light')
-    html.classList.add('dark')
-    // Observa mudanças e reverte se algo tentar trocar
-    const observer = new MutationObserver(() => {
-      if (!html.classList.contains('dark')) {
-        html.classList.remove('light')
-        html.classList.add('dark')
-      }
-    })
-    observer.observe(html, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
+    const savedTheme = localStorage.getItem('theme')
+    if (!savedTheme) {
+      html.classList.add('dark')
+    } else {
+      html.classList.toggle('dark', savedTheme === 'dark')
+      html.classList.toggle('light', savedTheme === 'light')
+    }
   }, [])
 }
 
@@ -57,7 +52,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user, loading } = useAuth()
-  useForceDark()
+  useDefaultDark()
   useEffect(() => { registerServiceWorker() }, [])
 
   if (loading) return (
@@ -80,6 +75,7 @@ function AppRoutes() {
         <Route path="/compare" element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
         <Route path="/history/:id" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+        <Route path="/surf-log" element={<ProtectedRoute><SurfLog /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" />

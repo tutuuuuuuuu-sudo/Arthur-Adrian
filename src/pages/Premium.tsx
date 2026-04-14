@@ -7,11 +7,12 @@ import { createMercadoPagoCheckout, usePremium } from '@/lib/premium'
 import { useAuth } from '@/contexts/AuthContext'
 
 const PREMIUM_BENEFITS = [
+  { icon: '🤖', title: 'Relatório de IA personalizado', desc: 'Claude AI analisa as condições e escreve um relatório diário pro seu nível de surf.' },
   { icon: '📅', title: 'Previsão 14 dias', desc: 'Planeje suas sessões com antecedência. Free tem apenas 3 dias.' },
   { icon: '🔔', title: 'Alertas de swell', desc: 'Receba notificação quando suas praias favoritas estiverem boas.' },
+  { icon: '📓', title: 'Log de sessões', desc: 'Registre cada sessão com nota, duração e anotações. Veja seu histórico.' },
   { icon: '📊', title: 'Histórico 30 dias', desc: 'Veja como as condições evoluíram nas últimas semanas.' },
   { icon: '⚡', title: 'Melhor janela do dia', desc: 'Horário exato com melhores condições calculado hora a hora.' },
-  { icon: '🏄', title: 'Comparar praias', desc: 'Compare condições de várias praias lado a lado.' },
   { icon: '🚫', title: 'Sem anúncios', desc: 'Experiência limpa e sem interrupções.' },
   { icon: '👑', title: 'Badge Premium', desc: 'Destaque no perfil e nos relatos da comunidade.' },
 ]
@@ -106,7 +107,7 @@ export default function PremiumPage() {
               <div className="text-center">
                 <div className="flex items-end justify-center gap-1">
                   <span className="text-sm text-muted-foreground mb-1">R$</span>
-                  <span className="text-5xl font-bold text-yellow-500">19</span>
+                  <span className="text-5xl font-bold text-yellow-500">29</span>
                   <span className="text-2xl font-bold text-yellow-500">,90</span>
                   <span className="text-sm text-muted-foreground mb-1">/mês</span>
                 </div>
@@ -139,7 +140,7 @@ export default function PremiumPage() {
                 onClick={handleSubscribe} disabled={loading || loadingStatus}>
                 {loading
                   ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Redirecionando...</>
-                  : <><Crown className="h-5 w-5 mr-2" />Assinar por R$ 19,90/mês</>
+                  : <><Crown className="h-5 w-5 mr-2" />Assinar por R$ 29,90/mês</>
                 }
               </Button>
 
