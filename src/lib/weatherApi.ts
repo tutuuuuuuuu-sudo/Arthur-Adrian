@@ -190,14 +190,14 @@ async function fetchOpenMeteo(lat: number, lng: number): Promise<WindyForecastDa
     const wi = getHourIndex(weather.hourly?.time ?? [])
 
     const waveH  = (marine.hourly?.wave_height ?? [])[mi] ?? 0
-    const swellH = (marine.hourly?.swell_wave_height ?? [])[mi] ?? 0
     const swellP = (marine.hourly?.swell_wave_period ?? [])[mi] ?? (marine.hourly?.wave_period ?? [])[mi] ?? 8
     const swellD = (marine.hourly?.swell_wave_direction ?? [])[mi] ?? (marine.hourly?.wave_direction ?? [])[mi] ?? 90
     const windKmh = (weather.hourly?.wind_speed_10m ?? [])[wi] ?? 0
     const windDeg = (weather.hourly?.wind_direction_10m ?? [])[wi] ?? 0
     const tempC   = (weather.hourly?.temperature_2m ?? [])[wi]
 
-    const totalH = Math.max(waveH, swellH)
+    // Usa wave_height (Hs combinado real) — não inflar com Math.max(wave, swell)
+    const totalH = waveH
     if (totalH < 0.1) {
       console.warn('[WeatherAPI] Open-Meteo: altura suspeita (< 0.1m), tentando Stormglass')
       return null

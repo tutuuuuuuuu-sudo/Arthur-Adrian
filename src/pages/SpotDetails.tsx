@@ -389,7 +389,7 @@ export default function SpotDetails() {
             <div className={`text-center text-sm font-bold mb-6 ${rating.color}`}>{rating.label}</div>
             <div className="space-y-4">
               {[
-                {label:'Ondulação',max:10,value:spot.waveHeight>=2.5?10:spot.waveHeight>=2.0?9.5:spot.waveHeight>=1.5?9.0:spot.waveHeight>=1.2?8.5:spot.waveHeight>=1.0?8.0:spot.waveHeight>=0.8?7.5:spot.waveHeight>=0.6?7.0:spot.waveHeight>=0.5?6.5:5.0,desc:`${(spot.waveHeight*0.8).toFixed(1)}m - ${(spot.waveHeight*1.2).toFixed(1)}m`,icon:'🌊'},
+                {label:'Ondulação',max:10,value:spot.waveHeight>=2.5?10:spot.waveHeight>=2.0?9.5:spot.waveHeight>=1.5?9.0:spot.waveHeight>=1.2?8.5:spot.waveHeight>=1.0?8.0:spot.waveHeight>=0.8?7.5:spot.waveHeight>=0.6?7.0:spot.waveHeight>=0.5?6.5:5.0,desc:`${spot.waveHeight.toFixed(1)}m`,icon:'🌊'},
                 {label:'Período',max:10,value:spot.swellPeriod>=14?9:spot.swellPeriod>=12?8:spot.swellPeriod>=10?7:spot.swellPeriod>=8?6:spot.swellPeriod>=7?5.5:5,desc:`${Math.round(spot.swellPeriod)}s entre ondas`,icon:'⏱️'},
                 {label:'Vento',max:10,value:spot.windSpeed<=10?9:spot.windSpeed<=15?7.5:spot.windSpeed<=20?6:4,desc:`${Math.round(spot.windSpeed)}km/h ${spot.windDirection}`,icon:'💨'},
               ].map(item=>(
@@ -475,9 +475,9 @@ export default function SpotDetails() {
                         const idealIdx=swellDirOrder.indexOf(dir)
                         if(idealIdx>=0&&currentSwellIdx>=0){let diff=Math.abs(currentSwellIdx-idealIdx);if(diff>8)diff=16-diff;if(diff<minDiff)minDiff=diff}
                       })
-                      const waveMultiplier=minDiff===0?1.20:minDiff===1?1.05:minDiff===2?0.90:minDiff<=4?0.75:0.60
+                      const waveMultiplier=minDiff===0?1.05:minDiff===1?1.00:minDiff===2?0.95:minDiff<=4?0.88:0.80
                       const waveEst=spot.waveHeight*waveMultiplier
-                      const waveMin=(waveEst*0.90).toFixed(1), waveMax=(waveEst*1.10).toFixed(1)
+                      const waveMin=(waveEst*0.95).toFixed(1), waveMax=(waveEst*1.05).toFixed(1)
                       const swellMatch=minDiff===0?'🔥 Swell perfeito':minDiff<=2?'✅ Swell bom':minDiff<=4?'⚠️ Swell parcial':'❌ Swell ruim'
                       return (
                         <div key={subRegion.id}
@@ -532,7 +532,7 @@ export default function SpotDetails() {
                       <span className="text-sm text-muted-foreground">Altura</span>
                       <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold">
-                          {usesFeet?`${metersToFeet(Number((spot.waveHeight*0.8).toFixed(1)))} - ${metersToFeet(Number((spot.waveHeight*1.2).toFixed(1)))}`:`${(spot.waveHeight*0.8).toFixed(1)}m - ${(spot.waveHeight*1.2).toFixed(1)}m`}
+                          {usesFeet?metersToFeet(spot.waveHeight):`${spot.waveHeight.toFixed(1)}m`}
                         </span>
                         <button onClick={()=>setUsesFeet(!usesFeet)} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">{usesFeet?'m':'ft'}</button>
                       </div>
