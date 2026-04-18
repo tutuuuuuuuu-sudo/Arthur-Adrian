@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { path: '/',          label: 'Início',     Icon: Home },
   { path: '/favorites', label: 'Favoritas',  Icon: Heart },
   { path: '/cameras',   label: 'Câmeras',    Icon: Camera },
-  { path: '/history',   label: 'Histórico',  Icon: History },
+  { path: '/history',   label: 'Previsão',   Icon: History },
   { path: '/profile',   label: 'Perfil',     Icon: User },
 ]
 

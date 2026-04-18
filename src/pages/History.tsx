@@ -74,7 +74,7 @@ export default function HistoryPage() {
           </Button>
           <h1 className="text-lg font-bold flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Histórico / Previsão
+            Previsão 14 Dias
           </h1>
           <div className="w-16" />
         </div>
@@ -90,7 +90,7 @@ export default function HistoryPage() {
               <div>
                 <h3 className="text-lg font-bold mb-1">Exclusivo Premium</h3>
                 <p className="text-sm text-muted-foreground">
-                  Veja a previsão dos próximos 7 dias para qualquer praia de Floripa.
+                  Veja a previsão dos próximos 14 dias para qualquer praia de Floripa.
                 </p>
               </div>
               <Button
@@ -164,7 +164,7 @@ export default function HistoryPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
-                Previsão dos Próximos 7 Dias
+                Previsão dos Próximos 14 Dias
                 <Badge className="ml-auto bg-yellow-500/10 text-yellow-500 border-yellow-500/30 text-xs">
                   <Crown className="h-3 w-3 mr-1" />Premium
                 </Badge>
