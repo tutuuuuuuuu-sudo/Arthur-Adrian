@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
-import { getRatingInfo, } from '@/lib/rating'
+import { getRatingInfo } from '@/lib/rating'
 import { getCurrentConditions } from '@/lib/surfData'
 import {
   ArrowLeft, Waves, Plus, Clock, Star, Trash2, X,
