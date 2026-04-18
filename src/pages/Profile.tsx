@@ -12,22 +12,10 @@ import { supabase } from '@/lib/supabase'
 import {
   ArrowLeft, Crown, Heart, MessageCircle, Waves, Settings,
   LogOut, User, TrendingUp, MapPin, Star, Calendar, Award,
-  Camera, Edit2, Check, X, Image
+  Camera, Edit2, Check, X, Image, Wind, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-const SCORE_COLORS: Record<string, string> = {
-  'Épico': '#8b5cf6', 'Excelente': '#06b6d4', 'Bom': '#22c55e',
-  'Regular': '#f59e0b', 'Ruim': '#ef4444'
-}
-
-function getScoreLabel(score: number) {
-  if (score >= 8.5) return 'Épico'
-  if (score >= 7) return 'Excelente'
-  if (score >= 5.5) return 'Bom'
-  if (score >= 4) return 'Regular'
-  return 'Ruim'
-}
+import { getRatingInfo } from '@/lib/rating'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
@@ -122,12 +110,6 @@ export default function ProfilePage() {
     setUploadingPhoto(false)
   }
 
-  const animStyles = `
-    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-    .anim { animation: slideUp 0.4s ease-out both; }
-  `
-
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -144,8 +126,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <style>{animStyles}</style>
-
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
         onChange={e => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
@@ -166,7 +146,7 @@ export default function ProfilePage() {
 
       <main className="container mx-auto px-4 py-6 max-w-2xl space-y-5">
 
-        <Card className="anim overflow-hidden" style={{ animationDelay: '0s' }}>
+        <Card className="anim-slide overflow-hidden" style={{ animationDelay: '0s' }}>
           <div className="h-16 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/10" />
           <CardContent className="pb-5 -mt-8">
             <div className="flex items-end justify-between">
@@ -288,7 +268,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-3 gap-3 anim" style={{ animationDelay: '0.1s' }}>
+        <div className="grid grid-cols-3 gap-3 anim-slide" style={{ animationDelay: '0.1s' }}>
           {[
             { icon: Heart, label: 'Favoritas', value: favorites.length, color: '#ef4444', action: () => navigate('/favorites') },
             { icon: MessageCircle, label: 'Relatos', value: commentCount, color: '#06b6d4', action: undefined },
@@ -305,7 +285,7 @@ export default function ProfilePage() {
         </div>
 
         {favoriteSpots.length > 0 && (
-          <Card className="anim" style={{ animationDelay: '0.2s' }}>
+          <Card className="anim-slide" style={{ animationDelay: '0.2s' }}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Heart className="h-5 w-5 text-red-500 fill-red-500" />Suas Praias Favoritas
@@ -313,13 +293,12 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {favoriteSpots.map((spot, idx) => {
-                const label = getScoreLabel(spot.score)
-                const color = SCORE_COLORS[label]
+                const rating = getRatingInfo(spot.score)
                 return (
                   <button key={spot.id} onClick={() => navigate(`/spot/${spot.id}`)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/40 hover:border-primary/30 hover:bg-primary/5 transition-all text-left"
                     style={{ animation: `slideUp 0.3s ${idx * 0.06}s ease-out both` }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0" style={{ backgroundColor: color }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0" style={{ backgroundColor: rating.scoreColor }}>
                       {spot.score.toFixed(1)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -329,7 +308,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-xs font-bold" style={{ color }}>{label}</div>
+                      <div className="text-xs font-bold" style={{ color: rating.scoreColor }}>{rating.label}</div>
                       <div className="text-xs text-muted-foreground">{spot.waveHeight.toFixed(1)}m</div>
                     </div>
                   </button>
@@ -343,12 +322,11 @@ export default function ProfilePage() {
         )}
 
         {!loading && (() => {
-          const best = getCurrentConditions().sort((a, b) => b.score - a.score)[0]
+          const best = getCurrentConditions().sort((a, b) => b.score - a.score)[0] ?? null
           if (!best) return null
-          const label = getScoreLabel(best.score)
-          const color = SCORE_COLORS[label]
+          const rating = getRatingInfo(best.score)
           return (
-            <Card className="anim" style={{ animationDelay: '0.3s' }}>
+            <Card className="anim-slide" style={{ animationDelay: '0.3s' }}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />Melhor Pico Agora
@@ -357,16 +335,16 @@ export default function ProfilePage() {
               <CardContent>
                 <button onClick={() => navigate(`/spot/${best.id}`)}
                   className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-muted/20 transition-colors text-left">
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-white text-lg flex-shrink-0" style={{ backgroundColor: color }}>
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-white text-lg flex-shrink-0" style={{ backgroundColor: rating.scoreColor }}>
                     {best.score.toFixed(1)}
                   </div>
                   <div className="flex-1">
                     <div className="font-bold text-base">{best.name}</div>
                     <div className="text-xs text-muted-foreground">{best.region} da Ilha</div>
                     <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>🌊 {best.waveHeight.toFixed(1)}m</span>
-                      <span>💨 {Math.round(best.windSpeed)}km/h</span>
-                      <span>⏱️ {Math.round(best.swellPeriod)}s</span>
+                      <span className="flex items-center gap-1"><Waves className="h-3 w-3 text-primary" />{best.waveHeight.toFixed(1)}m</span>
+                      <span className="flex items-center gap-1"><Wind className="h-3 w-3 text-accent" />{Math.round(best.windSpeed)}km/h</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{Math.round(best.swellPeriod)}s</span>
                     </div>
                   </div>
                   <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
@@ -376,7 +354,7 @@ export default function ProfilePage() {
           )
         })()}
 
-        <Card className="anim" style={{ animationDelay: '0.4s' }}>
+        <Card className="anim-slide" style={{ animationDelay: '0.4s' }}>
           <CardContent className="py-3 space-y-1">
             {[
               { icon: Heart, label: 'Praias Favoritas', path: '/favorites', color: '#ef4444' },

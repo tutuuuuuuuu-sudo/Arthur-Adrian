@@ -21,9 +21,9 @@ const FEATURES = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Pedro Almeida', role: 'Surfista intermediário · Campeche', avatar: 'PA', stars: 5, text: 'Parei de chegar na praia e encontrar o mar péssimo. O score bate certinho com a realidade. Praia Mole e Joaquina eu confio de olho fechado agora.' },
-  { name: 'Marina Costa', role: 'Surfista iniciante · Mole', avatar: 'MC', stars: 5, text: 'Como iniciante, eu não sabia escolher praia. Agora o app me fala exatamente onde o mar está calmo e adequado pro meu nível. Mudou meu surf completamente.' },
-  { name: 'Rafael Souza', role: 'Surfista avançado · Joaquina', avatar: 'RS', stars: 5, text: 'A previsão de 14 dias é absurda. Planejei uma semana inteira de sessões em spots diferentes. Premium vale cada centavo.' },
+  { name: 'Lucas T.', role: 'Intermediário · mora em Coqueiros', avatar: 'LT', stars: 5, text: 'Ontem o score da Joaquina estava 8.2 às 7h da manhã. Fui, e estava perfeito — 1m, período de 12s, sem ninguém. Antes eu ia na sorte. Agora eu só vou quando vale.' },
+  { name: 'Ana F.', role: 'Iniciante · aprendendo em Moçambique', avatar: 'AF', stars: 5, text: 'O app identificou que sou iniciante e começou a mostrar "Ideal para você" nas praias com mar calmo. Isso mudou tudo — finalmente parei de ir na praia errada pro meu nível.' },
+  { name: 'Bruno M.', role: 'Avançado · frequenta o Campeche e Mole', avatar: 'BM', stars: 5, text: 'Usei a previsão de 14 dias pra planejar uma semana de folga do trabalho. Acertou 5 dos 6 dias. O dia que errou foi por frente fria imprevista — isso não tem app que segure.' },
 ]
 
 const PLAN_FEATURES = [
@@ -58,18 +58,113 @@ const STATS = [
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-function ScoreCard({ beach, score, condition, wave }: { beach: string; score: number; condition: string; wave: string }) {
-  const color = score >= 8 ? 'text-green-400' : score >= 6 ? 'text-yellow-400' : 'text-orange-400'
-  const bg = score >= 8 ? 'bg-green-400/10 border-green-400/20' : score >= 6 ? 'bg-yellow-400/10 border-yellow-400/20' : 'bg-orange-400/10 border-orange-400/20'
+const MOCK_SPOTS = [
+  { beach: 'Praia Mole',  score: 9.1, wave: '1.2m', wind: 'NE 12km/h', period: '13s', color: '#8b5cf6', label: 'ÉPICO' },
+  { beach: 'Joaquina',    score: 7.8, wave: '1.0m', wind: 'E 15km/h',  period: '11s', color: '#06b6d4', label: 'EXCELENTE' },
+  { beach: 'Campeche',    score: 6.5, wave: '0.8m', wind: 'S 18km/h',  period: '10s', color: '#22c55e', label: 'BOM' },
+  { beach: 'Santinho',    score: 4.2, wave: '0.6m', wind: 'NE 25km/h', period: '7s',  color: '#f59e0b', label: 'REGULAR' },
+]
+
+function AppMockup() {
   return (
-    <div className={`rounded-2xl border p-4 ${bg} backdrop-blur-sm`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold text-foreground">{beach}</span>
-        <div className={`text-2xl font-black ${color}`}>{score}</div>
+    <div className="relative mx-auto" style={{ width: 260, height: 520 }}>
+      {/* Brilho atrás do celular */}
+      <div className="absolute inset-0 rounded-[40px] blur-2xl opacity-20"
+        style={{ background: 'oklch(0.6 0.16 200)' }} />
+
+      {/* Frame do celular */}
+      <div className="relative w-full h-full rounded-[36px] border-[3px] overflow-hidden shadow-2xl"
+        style={{ borderColor: 'oklch(0.35 0.04 240)', background: 'oklch(0.15 0.02 240)' }}>
+
+        {/* Notch */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 rounded-b-2xl z-10"
+          style={{ background: 'oklch(0.12 0.02 240)' }} />
+
+        {/* Tela do app */}
+        <div className="h-full overflow-hidden pt-5"
+          style={{ background: 'oklch(0.15 0.02 240)' }}>
+
+          {/* Header */}
+          <div className="px-3 pt-2 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <div className="h-6 w-6 rounded-full flex items-center justify-center"
+                style={{ background: 'oklch(0.6 0.16 200 / 0.2)' }}>
+                <Waves className="h-3.5 w-3.5" style={{ color: 'oklch(0.6 0.16 200)' }} />
+              </div>
+              <div>
+                <div className="text-[11px] font-black text-white leading-none">Surf AI</div>
+                <div className="text-[8px]" style={{ color: 'oklch(0.6 0.02 220)' }}>Florianópolis</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-1.5 w-1.5 rounded-full animate-pulse"
+                style={{ background: 'oklch(0.6 0.16 200)' }} />
+              <span className="text-[8px]" style={{ color: 'oklch(0.6 0.02 220)' }}>ao vivo</span>
+            </div>
+          </div>
+
+          {/* Card do melhor pico */}
+          <div className="mx-3 mb-2 rounded-xl p-3"
+            style={{ background: 'oklch(0.8 0.18 290 / 0.12)', border: '1px solid oklch(0.8 0.18 290 / 0.25)' }}>
+            <div className="text-[9px] font-semibold mb-1" style={{ color: 'oklch(0.6 0.16 200)' }}>
+              Melhor pico agora
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[13px] font-black text-white">Praia Mole</div>
+                <div className="text-[9px]" style={{ color: 'oklch(0.6 0.02 220)' }}>Norte da Ilha · 1.2m · 13s</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[22px] font-black leading-none" style={{ color: '#8b5cf6' }}>9.1</div>
+                <div className="text-[8px] font-bold" style={{ color: '#8b5cf6' }}>ÉPICO</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de praias */}
+          <div className="px-3 mb-1">
+            <div className="text-[9px] font-semibold mb-1.5" style={{ color: 'oklch(0.6 0.02 220)' }}>
+              Todas as praias
+            </div>
+            <div className="space-y-1.5">
+              {MOCK_SPOTS.map(spot => (
+                <div key={spot.beach} className="flex items-center justify-between rounded-lg px-2.5 py-2"
+                  style={{ background: 'oklch(0.2 0.02 240)', border: '1px solid oklch(0.3 0.03 240)' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-semibold text-white truncate">{spot.beach}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="flex items-center gap-0.5 text-[8px]" style={{ color: 'oklch(0.6 0.02 220)' }}>
+                        <Waves className="h-2 w-2" />{spot.wave}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[8px]" style={{ color: 'oklch(0.6 0.02 220)' }}>
+                        <Wind className="h-2 w-2" />{spot.wind}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right ml-2">
+                    <div className="text-[14px] font-black leading-none" style={{ color: spot.color }}>
+                      {spot.score}
+                    </div>
+                    <div className="text-[7px] font-bold" style={{ color: spot.color }}>{spot.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><Waves className="h-3 w-3" />{wave}</span>
-        <span className="flex items-center gap-1"><Wind className="h-3 w-3" />{condition}</span>
+
+      {/* Badge flutuante de "ao vivo" */}
+      <div className="absolute -right-3 top-24 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-lg flex items-center gap-1.5"
+        style={{ background: 'oklch(0.2 0.02 240)', border: '1px solid oklch(0.3 0.03 240)', color: 'white' }}>
+        <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: '#22c55e' }} />
+        Tempo real
+      </div>
+
+      {/* Badge flutuante de "IA" */}
+      <div className="absolute -left-3 bottom-32 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-lg"
+        style={{ background: 'oklch(0.6 0.16 200)', color: 'white' }}>
+        Score IA
       </div>
     </div>
   )
@@ -105,19 +200,22 @@ function AnimatedNumber({ value, suffix }: { value: number; suffix: string }) {
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border border-border/50 rounded-2xl overflow-hidden">
+    <div className="border border-border/50 rounded-2xl overflow-hidden transition-all duration-200">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-5 text-left hover:bg-card/60 transition-colors"
+        aria-expanded={open}
       >
         <span className="text-sm font-semibold pr-4">{q}</span>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
-        <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/30 pt-4">
-          {a}
+      <div className={`grid transition-all duration-300 ease-in-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/30 pt-4">
+            {a}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -158,7 +256,7 @@ export default function Landing() {
       {/* URGENCY BANNER */}
       <div className="bg-yellow-500/10 border-b border-yellow-500/20 py-2 px-4 text-center">
         <p className="text-xs text-yellow-400 font-semibold">
-          Oferta de lançamento · Premium por R$ 29,90/mês · Cancele quando quiser
+          Lançamento — <span className="font-black">R$ 29,90/mês</span> · Menos de R$1 por dia · Cancele quando quiser · Sem cartão para começar
         </p>
       </div>
 
@@ -195,7 +293,7 @@ export default function Landing() {
                 Criar conta grátis
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/login')}
+              <Button size="lg" variant="outline" onClick={() => navigate('/login?plan=premium')}
                 className="text-base font-bold px-8 h-12 border-yellow-500/40 hover:border-yellow-500/70 hover:bg-yellow-500/5">
                 <Crown className="h-4 w-4 mr-2 text-yellow-400" />
                 Assinar Premium — R$ 29,90/mês
@@ -207,11 +305,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
-            <ScoreCard beach="Praia Mole" score={9} condition="NE 15km/h" wave="1.2m" />
-            <ScoreCard beach="Joaquina" score={7} condition="S 12km/h" wave="0.9m" />
-            <ScoreCard beach="Campeche" score={8} condition="E 10km/h" wave="1.0m" />
-            <ScoreCard beach="Santinho" score={5} condition="NE 22km/h" wave="0.8m" />
+          <div className="mt-16 flex justify-center">
+            <AppMockup />
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 h-px"
@@ -358,7 +453,7 @@ export default function Landing() {
                 </Button>
               </div>
               <div className="p-4 text-center border-l border-border/50">
-                <Button size="sm" className="w-full text-xs bg-primary hover:bg-primary/90" onClick={() => navigate('/login')}
+                <Button size="sm" className="w-full text-xs bg-primary hover:bg-primary/90" onClick={() => navigate('/login?plan=premium')}
                   style={{ boxShadow: '0 0 16px oklch(0.6 0.16 200 / 0.3)' }}>
                   <Crown className="h-3 w-3 mr-1" />
                   Assinar
@@ -436,7 +531,7 @@ export default function Landing() {
                   <div className="text-xs text-muted-foreground">Cancele quando quiser</div>
                 </div>
 
-                <Button size="lg" onClick={() => navigate('/login')}
+                <Button size="lg" onClick={() => navigate('/login?plan=premium')}
                   className="w-full font-bold px-10 h-12 text-base"
                   style={{
                     background: 'linear-gradient(135deg, oklch(0.7 0.18 60), oklch(0.6 0.22 50))',

@@ -65,15 +65,8 @@ export default function HistoryPage() {
 
   const currentSpot = spots.find(s => s.id === selectedSpot)
 
-  const animStyles = `
-    @keyframes slideUp { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
-    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-  `
-
   return (
     <div className="min-h-screen bg-background">
-      <style>{animStyles}</style>
-
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -105,7 +98,7 @@ export default function HistoryPage() {
                 className="bg-yellow-500 hover:bg-yellow-600 text-white"
               >
                 <Crown className="h-4 w-4 mr-2" />
-                Assinar Premium — R$ 19,90/mês
+                Assinar Premium — R$ 29,90/mês
               </Button>
             </CardContent>
           </Card>

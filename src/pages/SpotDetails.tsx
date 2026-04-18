@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
+import { fetchCurrentConditions, analyzeConditions, BeachCondition, SubRegion } from '@/lib/surfData'
 import { getWeatherForecast, WeatherForecast, getRealTide } from '@/lib/weatherData'
 import { isFavorite, toggleFavorite } from '@/lib/favorites'
 import { getComments, addComment, deleteComment, formatCommentTime, Comment } from '@/lib/comments'
@@ -21,17 +21,10 @@ import {
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from 'sonner'
+import { getRatingInfo } from '@/lib/rating'
 
-const FIXED_DOMAIN = 'https://lasy-c2c60750-a786-490a-a8f2-7fef1fd0-arthurs-projects-d2bf211e.vercel.app'
+const FIXED_DOMAIN = typeof window !== 'undefined' ? window.location.origin : ''
 const metersToFeet = (m: number): string => `${(m * 3.281).toFixed(1)}ft`
-
-const getRatingInfo = (score: number) => {
-  if (score >= 8.5) return { label: 'ÉPICO', color: 'text-purple-500', bg: 'bg-purple-500', bars: 5 }
-  if (score >= 7) return { label: 'EXCELENTE', color: 'text-primary', bg: 'bg-primary', bars: 4 }
-  if (score >= 5.5) return { label: 'BOM', color: 'text-accent', bg: 'bg-accent', bars: 3 }
-  if (score >= 4) return { label: 'REGULAR', color: 'text-yellow-500', bg: 'bg-yellow-500', bars: 2 }
-  return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
-}
 
 const directionNames: Record<string, string> = {
   'N': 'Norte', 'NNE': 'Nordeste', 'NE': 'Nordeste', 'ENE': 'Nordeste',
@@ -324,9 +317,11 @@ export default function SpotDetails() {
   const [forecast, setForecast] = useState<WeatherForecast[]>([])
   const [visible, setVisible] = useState(false)
   const [showScoreExplainer, setShowScoreExplainer] = useState(false)
-  const [usesFeet, setUsesFeet] = useState(false)
+  const [usesFeet, setUsesFeet] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pref_units') ?? '"metric"') === 'imperial' } catch { return false }
+  })
   const { isPremium } = usePremium()
-  const [selectedSubRegion, setSelectedSubRegion] = useState<any>(null)
+  const [selectedSubRegion, setSelectedSubRegion] = useState<(SubRegion & { waveMin: string; waveMax: string }) | null>(null)
 
   useEffect(()=>{
     if(id){
@@ -362,21 +357,10 @@ export default function SpotDetails() {
   const windInfo=formatWindDirection(spot.windDirection)
   const airTemp=forecast.length>0?forecast[0].temperature:null
 
-  const animStyles=`
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes slideInLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
-    .anim-slide{animation:slideUp 0.5s ease-out both}
-    .card-hover{transition:transform 0.2s ease,box-shadow 0.2s ease}
-    .card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.12)}
-  `
-
-  // FREE_DAYS agora é 3
   const FREE_DAYS = 3
 
   return (
     <div className="min-h-screen bg-background">
-      <style>{animStyles}</style>
 
       {showScoreExplainer&&(
         <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={()=>setShowScoreExplainer(false)}>
@@ -427,7 +411,7 @@ export default function SpotDetails() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
+      <main className="container mx-auto px-4 py-6 pb-24 max-w-4xl space-y-6">
         {/* ✅ Badge de Crowd REMOVIDO — apenas região, nível, temp */}
         <div className="flex items-start justify-between gap-4" style={{opacity:visible?1:0,transform:visible?'translateY(0)':'translateY(16px)',transition:'opacity 0.5s ease,transform 0.5s ease'}}>
           <div className="flex-1">
@@ -435,10 +419,10 @@ export default function SpotDetails() {
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="text-sm">{spot.region} da Ilha</Badge>
               <Badge variant="secondary" className="text-sm">{spot.level}</Badge>
-              {airTemp&&<Badge variant="outline" className="text-sm">☁️ Ar: {airTemp}°C</Badge>}
-              <Badge variant="outline" className="text-sm">🌊 Água: {spot.waterConditions.temperature}°C</Badge>
+              {airTemp&&<Badge variant="outline" className="text-sm flex items-center gap-1"><Sun className="h-3 w-3" />Ar: {airTemp}°C</Badge>}
+              <Badge variant="outline" className="text-sm flex items-center gap-1"><Thermometer className="h-3 w-3" />Água: {spot.waterConditions.temperature}°C</Badge>
               {spot.bestTimeWindow&&spot.bestTimeWindow!=='Não recomendado hoje'&&(
-                <Badge variant="outline" className="text-sm">⏰ {spot.bestTimeWindow}</Badge>
+                <Badge variant="outline" className="text-sm">{spot.bestTimeWindow}</Badge>
               )}
             </div>
           </div>
@@ -585,8 +569,8 @@ export default function SpotDetails() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><div className="text-xs text-muted-foreground mb-1">☁️ Ar</div><div className="text-3xl font-bold">{airTemp?`${airTemp}°C`:'—'}</div></div>
-                  <div><div className="text-xs text-muted-foreground mb-1">🌊 Água</div><div className="text-3xl font-bold">{spot.waterConditions.temperature}°C</div></div>
+                  <div><div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Sun className="h-3 w-3" />Ar</div><div className="text-3xl font-bold">{airTemp?`${airTemp}°C`:'—'}</div></div>
+                  <div><div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Thermometer className="h-3 w-3" />Água</div><div className="text-3xl font-bold">{spot.waterConditions.temperature}°C</div></div>
                 </div>
                 <Separator/>
                 <div><div className="text-xs text-muted-foreground">Neoprene Recomendado</div><div className="text-base font-semibold">{spot.waterConditions.wetsuit.thickness}</div></div>
@@ -677,7 +661,7 @@ export default function SpotDetails() {
                       <button onClick={()=>navigate('/premium')} className="w-full p-4 rounded-lg border border-dashed border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors text-center">
                         <Crown className="h-5 w-5 text-yellow-500 mx-auto mb-1"/>
                         <div className="text-sm font-semibold text-yellow-500">Ver previsão completa de 14 dias</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">Assine o Premium por R$ 19,90/mês</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Assine o Premium por R$ 29,90/mês</div>
                       </button>
                     )}
                   </div>

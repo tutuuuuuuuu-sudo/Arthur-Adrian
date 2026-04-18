@@ -129,8 +129,8 @@ export async function createMercadoPagoCheckout(
 export const PREMIUM_BENEFITS = [
   {
     icon: '📅',
-    title: 'Previsão 7 dias',
-    desc: 'Veja as condições dos próximos 7 dias em todas as praias',
+    title: 'Previsão 14 dias',
+    desc: 'Veja as condições dos próximos 14 dias em todas as praias',
   },
   {
     icon: '🔔',

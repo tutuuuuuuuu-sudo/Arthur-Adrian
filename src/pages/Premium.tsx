@@ -17,11 +17,6 @@ const PREMIUM_BENEFITS = [
   { icon: '👑', title: 'Badge Premium', desc: 'Destaque no perfil e nos relatos da comunidade.' },
 ]
 
-const animStyles = `
-  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
-`
-
 export default function PremiumPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -49,8 +44,6 @@ export default function PremiumPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <style>{animStyles}</style>
-
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>

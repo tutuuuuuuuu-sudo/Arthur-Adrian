@@ -1,17 +1,41 @@
 import { BeachCondition } from './surfData'
 
-let reportCache: { report: string; fetchedAt: number } | null = null
+const CACHE_KEY = 'ai_report_cache'
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutos
+
+interface CachedReport {
+  report: string
+  fetchedAt: number
+}
+
+function getCached(): CachedReport | null {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CachedReport
+    if (Date.now() - parsed.fetchedAt > CACHE_DURATION) {
+      sessionStorage.removeItem(CACHE_KEY)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function setCached(report: string) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ report, fetchedAt: Date.now() }))
+  } catch { /* sessionStorage quota exceeded */ }
+}
 
 export async function fetchAIReport(
   spots: BeachCondition[],
   topSpot: BeachCondition,
   userLevel?: string
 ): Promise<string | null> {
-  const now = Date.now()
-  if (reportCache && now - reportCache.fetchedAt < CACHE_DURATION) {
-    return reportCache.report
-  }
+  const cached = getCached()
+  if (cached) return cached.report
 
   try {
     const res = await fetch('/api/ai-report', {
@@ -22,7 +46,7 @@ export async function fetchAIReport(
     if (!res.ok) return null
     const data = await res.json()
     if (data.report) {
-      reportCache = { report: data.report, fetchedAt: now }
+      setCached(data.report)
       return data.report
     }
     return null
@@ -32,5 +56,5 @@ export async function fetchAIReport(
 }
 
 export function clearAIReportCache() {
-  reportCache = null
+  try { sessionStorage.removeItem(CACHE_KEY) } catch { /* ignore */ }
 }

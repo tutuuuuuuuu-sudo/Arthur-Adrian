@@ -7,19 +7,12 @@ import { fetchCurrentConditions, BeachCondition } from '@/lib/surfData'
 import { getFavorites, toggleFavorite } from '@/lib/favorites'
 import { ArrowLeft, Heart, Waves, Wind, Thermometer, Star } from 'lucide-react'
 import { toast } from 'sonner'
+import { getRatingInfo } from '@/lib/rating'
 
 export default function Favorites() {
   const navigate = useNavigate()
   const [favorites, setFavorites] = useState<BeachCondition[]>([])
   const [loading, setLoading] = useState(true)
-
-  const getRatingInfo = (score: number) => {
-    if (score >= 8.5) return { label: 'ÉPICO', color: 'text-purple-500', bg: 'bg-purple-500', bars: 5 }
-    if (score >= 7) return { label: 'EXCELENTE', color: 'text-primary', bg: 'bg-primary', bars: 4 }
-    if (score >= 5.5) return { label: 'BOM', color: 'text-green-500', bg: 'bg-green-500', bars: 3 }
-    if (score >= 4) return { label: 'REGULAR', color: 'text-yellow-500', bg: 'bg-yellow-500', bars: 2 }
-    return { label: 'RUIM', color: 'text-destructive', bg: 'bg-destructive', bars: 1 }
-  }
 
   useEffect(() => {
     const load = async () => {
@@ -40,11 +33,6 @@ export default function Favorites() {
 
   return (
     <div className="min-h-screen bg-background">
-      <style>{`
-        @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-      `}</style>
-
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -94,9 +82,9 @@ export default function Favorites() {
                       <h2 className="text-2xl font-bold">{bestSpot.name}</h2>
                       <Badge variant="outline" className="mt-1 text-xs">{bestSpot.region} da Ilha</Badge>
                       <div className="flex gap-4 mt-3 text-sm text-muted-foreground">
-                        <span>🌊 {bestSpot.waveHeight.toFixed(1)}m</span>
-                        <span>💨 {Math.round(bestSpot.windSpeed)}km/h</span>
-                        <span>🌡️ {bestSpot.waterConditions.temperature}°C</span>
+                        <span className="flex items-center gap-1"><Waves className="h-4 w-4 text-primary" />{bestSpot.waveHeight.toFixed(1)}m</span>
+                        <span className="flex items-center gap-1"><Wind className="h-4 w-4 text-accent" />{Math.round(bestSpot.windSpeed)}km/h</span>
+                        <span className="flex items-center gap-1"><Thermometer className="h-4 w-4 text-chart-2" />{bestSpot.waterConditions.temperature}°C</span>
                       </div>
                     </div>
                     <div className="text-center">
@@ -173,8 +161,8 @@ export default function Favorites() {
               })}
             </div>
 
-            <p className="text-center text-xs text-muted-foreground">
-              Toque no ❤️ para remover dos favoritos
+            <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+              Toque no <Heart className="h-3 w-3 text-primary fill-primary" /> para remover dos favoritos
             </p>
           </>
         )}

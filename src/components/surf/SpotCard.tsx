@@ -2,16 +2,30 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BeachCondition } from '@/lib/surfData'
 import { getRatingInfo } from '@/lib/rating'
-import { Waves, Wind, Clock, Users, Thermometer } from 'lucide-react'
+import { Waves, Wind, Clock, Users, Thermometer, ThumbsUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface SpotCardProps {
   spot: BeachCondition
 }
 
+function getUserLevel(): string | null {
+  try { return JSON.parse(localStorage.getItem('pref_skill') ?? 'null') } catch { return null }
+}
+
+function getPersonalizedBadge(spot: BeachCondition, level: string | null): string | null {
+  if (!level) return null
+  const { waveHeight: w, windSpeed: wind, swellPeriod: period } = spot
+  if (level === 'Iniciante'     && w <= 0.9 && wind <= 15)              return 'Ideal para você'
+  if (level === 'Intermediário' && w >= 0.5 && w <= 1.8 && wind <= 22) return 'Bom para você'
+  if (level === 'Avançado'      && w >= 1.0 && period >= 9)             return 'Ótimo para você'
+  return null
+}
+
 export function SpotCard({ spot }: SpotCardProps) {
   const navigate = useNavigate()
   const rating = getRatingInfo(spot.score)
+  const personalBadge = getPersonalizedBadge(spot, getUserLevel())
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -60,19 +74,26 @@ export function SpotCard({ spot }: SpotCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <Waves className="h-4 w-4 text-primary" />
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex items-center gap-1.5">
+            <Waves className="h-4 w-4 text-primary flex-shrink-0" />
             <div>
               <div className="text-sm font-semibold">{Number(spot.waveHeight).toFixed(1)}m</div>
-              <div className="text-xs text-muted-foreground">Altura</div>
+              <div className="text-xs text-muted-foreground">Ondas</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Wind className="h-4 w-4 text-accent" />
+          <div className="flex items-center gap-1.5">
+            <Wind className="h-4 w-4 text-accent flex-shrink-0" />
             <div>
               <div className="text-sm font-semibold">{Math.round(spot.windSpeed)}km/h</div>
               <div className="text-xs text-muted-foreground">{spot.windDirection}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4 text-violet-400 flex-shrink-0" />
+            <div>
+              <div className="text-sm font-semibold">{Math.round(spot.swellPeriod)}s</div>
+              <div className="text-xs text-muted-foreground">Período</div>
             </div>
           </div>
         </div>
@@ -86,11 +107,6 @@ export function SpotCard({ spot }: SpotCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground border-t pt-3">
-          <Clock className="h-3.5 w-3.5" />
-          <span>{spot.bestTimeWindow}</span>
-        </div>
-
         <div className="flex items-center gap-2 flex-wrap">
           <Badge className={getLevelColor(spot.level)} variant="outline">
             {spot.level}
@@ -99,6 +115,12 @@ export function SpotCard({ spot }: SpotCardProps) {
             <Users className="h-3 w-3 mr-1" />
             {spot.crowdLevel}
           </Badge>
+          {personalBadge && (
+            <Badge className="bg-green-500/15 text-green-500 border-green-500/30" variant="outline">
+              <ThumbsUp className="h-3 w-3 mr-1" />
+              {personalBadge}
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SpotCard } from '@/components/surf/SpotCard'
+import { OnboardingModal } from '@/components/OnboardingModal'
 import { fetchCurrentConditions, analyzeConditions, BeachCondition } from '@/lib/surfData'
 import { getFavorites } from '@/lib/favorites'
 import { useAuth } from '@/contexts/AuthContext'
@@ -19,21 +20,12 @@ import {
 } from '@/lib/notifications'
 import {
   Waves, TrendingUp, TrendingDown, Minus, MapPin, Info, Heart, Settings,
-  Bell, BellOff, X, ChevronDown, ChevronUp, Navigation, Crown, Sparkles
+  Bell, BellOff, X, ChevronDown, ChevronUp, Navigation, Crown, Sparkles,
+  Flame, Store
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 
-const animStyles = `
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
-  @keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
-  .anim-fade { animation: fadeIn 0.5s ease-out both; }
-  .anim-slide { animation: slideUp 0.5s ease-out both; }
-  .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-  .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-`
 
 interface AdData {
   id: string; empresa: string; slogan: string; imagem_url: string; link_url: string
@@ -51,7 +43,7 @@ const AdBanner = ({ ad = PLACEHOLDER_AD }: { ad?: AdData }) => (
     <div className="flex items-center gap-3 px-4 py-3 bg-muted/10">
       {ad.imagem_url
         ? <img src={ad.imagem_url} alt={ad.empresa} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-        : <div className="w-12 h-12 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0 text-xl">🏄</div>
+        : <div className="w-12 h-12 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0"><Waves className="h-6 w-6 text-muted-foreground" /></div>
       }
       <div className="flex-1 min-w-0">
         <div className="text-xs font-bold truncate">{ad.empresa}</div>
@@ -68,7 +60,7 @@ const AdCard = ({ ad = PLACEHOLDER_AD }: { ad?: AdData }) => (
     <div className="rounded-xl border border-dashed border-border/50 hover:border-primary/30 bg-muted/5 hover:bg-primary/5 transition-all p-4 flex items-center gap-3">
       {ad.imagem_url
         ? <img src={ad.imagem_url} alt={ad.empresa} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-        : <div className="w-10 h-10 rounded-lg bg-muted/20 flex items-center justify-center flex-shrink-0 text-lg">🏪</div>
+        : <div className="w-10 h-10 rounded-lg bg-muted/20 flex items-center justify-center flex-shrink-0"><Store className="h-5 w-5 text-muted-foreground" /></div>
       }
       <div className="flex-1 min-w-0">
         <div className="text-xs font-semibold truncate">{ad.empresa}</div>
@@ -155,7 +147,7 @@ const SwellAlert = ({ spots }: { spots: BeachCondition[] }) => {
   const best = bigSwellSpots.sort((a, b) => b.waveHeight - a.waveHeight)[0]
   return (
     <div className="relative bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 rounded-xl p-4 flex items-start gap-3 anim-slide" style={{ animationDelay: '0.1s' }}>
-      <div className="text-2xl">🌊</div>
+      <Waves className="h-6 w-6 text-primary flex-shrink-0" />
       <div className="flex-1">
         <div className="font-bold text-sm">Swell grande chegando!</div>
         <div className="text-xs text-muted-foreground mt-0.5">{best.name} com ondas de {best.waveHeight.toFixed(1)}m — período de {Math.round(best.swellPeriod)}s</div>
@@ -243,7 +235,6 @@ export default function Home() {
   const [activeRegion, setActiveRegion] = useState<string>(() => {
     try { return localStorage.getItem('pref_region') ?? 'all' } catch { return 'all' }
   })
-  const [showOnlyFavorites] = useState(false)
   const [spots, setSpots] = useState<BeachCondition[]>([])
   const [allSpots, setAllSpots] = useState<BeachCondition[]>([])
   const [topSpot, setTopSpot] = useState<BeachCondition | null>(null)
@@ -253,6 +244,9 @@ export default function Home() {
   const [visible, setVisible] = useState(false)
   const [aiReport, setAiReport] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return !localStorage.getItem('onboarding_done') } catch { return false }
+  })
   const navigate = useNavigate()
   const { user } = useAuth()
   const { isPremium } = usePremium()
@@ -268,8 +262,7 @@ export default function Home() {
       let filtered = [...allConditions]
       const CENTRO_IDS = ['novo-campeche', 'joaquina', 'mole', 'barra-lagoa']
       if (activeRegion === 'Centro') filtered = filtered.filter(s => CENTRO_IDS.includes(s.id))
-      else if (activeRegion !== 'all') filtered = filtered.filter(s => s.region === activeRegion && !CENTRO_IDS.includes(s.id))
-      if (showOnlyFavorites) filtered = filtered.filter(s => favs.includes(s.id))
+      else if (activeRegion !== 'all') filtered = filtered.filter(s => s.region === activeRegion)
       filtered.sort((a, b) => b.score - a.score)
       const sortedAll = [...allConditions].sort((a, b) => b.score - a.score)
       const top = sortedAll[0] ?? null
@@ -293,7 +286,7 @@ export default function Home() {
     updateData()
     const interval = setInterval(updateData, 15 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [activeRegion, showOnlyFavorites])
+  }, [activeRegion])
 
   const userName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split('@')[0] ?? 'Surfista'
   const userInitial = userName.charAt(0).toUpperCase()
@@ -325,9 +318,10 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${topSpot ? getThemeGradient(topSpot.score) : 'bg-background'}`}>
-      <style>{animStyles}</style>
 
-      {/* ✅ Header sem ThemeToggle */}
+      {showOnboarding && <OnboardingModal onDone={() => setShowOnboarding(false)} />}
+
+      {/* Header */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -372,7 +366,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 pb-24 space-y-6">
         <div className="flex items-center justify-between" style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.5s ease' }}>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -414,7 +408,7 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">🔥 Melhor Pico Agora</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2"><Flame className="h-5 w-5 text-orange-400" />Melhor Pico Agora</CardTitle>
                 </div>
                 <TrendBadge spot={topSpot} size="lg" />
               </div>

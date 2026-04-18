@@ -403,7 +403,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
     : { height: getTideHeight(), state: getTide() }
   const tide = tideInfo.state
 
-  const conditions = await Promise.all(
+  const results = await Promise.allSettled(
     BEACHES.map(async (beach) => {
       const windyData = await getWindyForecast(beach.lat, beach.lng, beach.orientation)
 
@@ -425,7 +425,7 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
           id: sub.id, name: sub.name, lat: sub.lat, lng: sub.lng,
           swellDirections: sub.swellDirections ?? [],
           description: sub.id === bestSubId
-            ? `🔥 Melhor com swell de ${swellDirection}`
+            ? `Melhor com swell de ${swellDirection}`
             : `Funciona melhor com swell de ${sub.swellDirections?.join(', ') ?? 'E'}`,
           bestNow: sub.id === bestSubId
         }))
@@ -448,6 +448,10 @@ export async function fetchCurrentConditions(): Promise<BeachCondition[]> {
       } as BeachCondition & { _beachOrientation: number }
     })
   )
+
+  const conditions = results
+    .filter((r): r is PromiseFulfilledResult<BeachCondition & { _beachOrientation: number }> => r.status === 'fulfilled')
+    .map(r => r.value)
 
   cachedConditions = conditions
   lastFetchTime = now

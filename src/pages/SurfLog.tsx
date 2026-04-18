@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
-import { getRatingInfo } from '@/lib/rating'
+import { getRatingInfo, } from '@/lib/rating'
+import { getCurrentConditions } from '@/lib/surfData'
 import {
   ArrowLeft, Waves, Plus, Clock, Star, Trash2, X,
   CalendarDays, MapPin, FileText
@@ -23,12 +24,16 @@ interface SurfSession {
   created_at: string
 }
 
-const BEACHES_LIST = [
-  'Campeche', 'Novo Campeche', 'Morro das Pedras', 'Matadeiro',
-  'Lagoinha do Leste', 'Açores', 'Solidão', 'Armação', 'Naufragados',
-  'Joaquina', 'Praia Mole', 'Moçambique', 'Barra da Lagoa',
-  'Santinho', 'Ponta das Aranhas',
-]
+function getBeachesList(): string[] {
+  const cached = getCurrentConditions()
+  if (cached.length > 0) return cached.map(s => s.name).sort()
+  return [
+    'Campeche', 'Novo Campeche', 'Morro das Pedras', 'Matadeiro',
+    'Lagoinha do Leste', 'Açores', 'Solidão', 'Armação', 'Naufragados',
+    'Joaquina', 'Praia Mole', 'Moçambique', 'Barra da Lagoa',
+    'Santinho', 'Ponta das Aranhas',
+  ]
+}
 
 const STAR_LABELS = ['', 'Ruim', 'Regular', 'Bom', 'Excelente', 'Épico']
 
@@ -231,7 +236,7 @@ CREATE POLICY "users see own sessions" ON surf_sessions
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                 >
                   <option value="">Selecionar praia...</option>
-                  {BEACHES_LIST.map(b => <option key={b} value={b}>{b}</option>)}
+                  {getBeachesList().map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
 
