@@ -17,7 +17,7 @@ export interface WindyForecastData {
 const cache: Record<string, { data: WindyForecastData; time: number }> = {}
 const CACHE_DURATION = 15 * 60 * 1000
 
-const STORMGLASS_KEY = 'c15a1d32-26bc-11f1-97a9-0242ac120003-c15a1d8c-26bc-11f1-97a9-0242ac120003'
+const STORMGLASS_KEY = import.meta.env.VITE_STORMGLASS_KEY ?? ''
 const WINDY_API_KEY = import.meta.env?.VITE_WINDY_API_KEY ?? ''
 const WINDY_ENDPOINT = 'https://api.windy.com/api/point-forecast/v2'
 
