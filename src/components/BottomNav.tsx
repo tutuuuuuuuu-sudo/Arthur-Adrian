@@ -1,10 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Heart, History, User, Camera } from 'lucide-react'
+import { Home, Heart, History, User } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/',          label: 'Início',     Icon: Home },
   { path: '/favorites', label: 'Favoritas',  Icon: Heart },
-  { path: '/cameras',   label: 'Câmeras',    Icon: Camera },
   { path: '/history',   label: 'Previsão',   Icon: History },
   { path: '/profile',   label: 'Perfil',     Icon: User },
 ]

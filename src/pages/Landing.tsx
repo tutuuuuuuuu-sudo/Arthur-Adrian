@@ -21,9 +21,9 @@ const FEATURES = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Lucas T.', role: 'Intermediário · Coqueiros', avatar: 'LT', stars: 5, text: 'Ontem o score da Joaquina estava 8.2 às 7h. Fui, e estava perfeito — 1m, período de 12s, sem ninguém. Antes ia na sorte. Agora só vou quando vale.' },
-  { name: 'Ana F.', role: 'Iniciante · Moçambique', avatar: 'AF', stars: 5, text: 'O app identificou que sou iniciante e mostrou "Ideal para você" nas praias com mar calmo. Finalmente parei de ir na praia errada pro meu nível.' },
-  { name: 'Bruno M.', role: 'Avançado · Campeche e Mole', avatar: 'BM', stars: 5, text: 'Usei a previsão de 14 dias pra planejar uma semana de folga. Acertou 5 dos 6 dias. Incrível para quem precisa se planejar com antecedência.' },
+  { name: 'Lucas T.', role: 'Intermediário · Coqueiros', avatar: 'LT', stars: 5, text: 'Fui na Mole ontem cedo, o score tava 8.4. Mar perfeito, quase vazio. Antes eu ia no achismo e volta bastante frustrado. Agora pelo menos sei antes de sair de casa.' },
+  { name: 'Ana F.', role: 'Iniciante · Norte da ilha', avatar: 'AF', stars: 4, text: 'Pra mim que sou iniciante foi ótimo porque sempre fui na praia errada. Agora olho quais tão mais calmas e vou pra lá. Simples assim. Não perco mais tempo.' },
+  { name: 'Bruno M.', role: 'Surfista · Campeche', avatar: 'BM', stars: 5, text: 'Usei pra planejar a semana de folga. Dos 6 dias que fui, 5 o mar tava bom mesmo. Não é 100% obvio mas bem melhor do que depender de grupo de whatsapp.' },
 ]
 
 const PLAN_FEATURES = [
@@ -409,9 +409,9 @@ export default function Landing() {
               Como funciona
             </Badge>
             <h2 className="text-3xl md:text-4xl font-black mb-4">
-              Em menos de 1 minuto você sabe<br />se vale ir surfar.
+              Enquanto você lê isso, tem gente<br />surfando na praia certa.
             </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">Simples, rápido e preciso. Nossa IA faz o trabalho pesado por você.</p>
+            <p className="text-muted-foreground max-w-md mx-auto">Em menos de 1 minuto você sabe se vale sair de casa — sem chute, sem grupo de WhatsApp, sem frustração.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 relative">
@@ -456,7 +456,7 @@ export default function Landing() {
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4 px-4 py-1">Funcionalidades</Badge>
             <h2 className="text-3xl md:text-5xl font-black mb-4">
-              Tudo que você precisa<br />para surfar mais e melhor.
+              Pare de adivinhar.<br />Comece a surfar na hora certa.
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
               Feito por surfistas, para surfistas. Dados reais, análise inteligente, decisão rápida.
@@ -487,7 +487,7 @@ export default function Landing() {
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4 px-4 py-1">Depoimentos</Badge>
             <h2 className="text-3xl md:text-4xl font-black mb-4">
-              Quem surfa com o Surf AI<br />não volta atrás.
+              Todo dia alguém chega na praia<br />na hora certa por causa disso.
             </h2>
             <div className="flex items-center justify-center gap-1 mb-2">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -530,8 +530,8 @@ export default function Landing() {
         <div className="container mx-auto px-5 max-w-2xl">
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4 px-4 py-1">FAQ</Badge>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Perguntas frequentes</h2>
-            <p className="text-muted-foreground">Tudo que você precisa saber antes de começar.</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Ainda com dúvida?<br />A gente responde.</h2>
+            <p className="text-muted-foreground">Perguntas que todo surfista faz antes de baixar.</p>
           </div>
           <div className="space-y-3">
             {FAQS.map(faq => <FAQItem key={faq.q} q={faq.q} a={faq.a} />)}
@@ -544,8 +544,8 @@ export default function Landing() {
         <div className="container mx-auto px-5 max-w-3xl">
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 mb-4 px-4 py-1">Planos</Badge>
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Grátis ou Premium?</h2>
-            <p className="text-muted-foreground">Compare e escolha o que mais combina com você.</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Quanto custa perder<br />uma sessão épica?</h2>
+            <p className="text-muted-foreground">Comece grátis. Upgrade quando quiser — sem complicação.</p>
           </div>
 
           <div className="rounded-2xl border border-border/50 overflow-hidden">
